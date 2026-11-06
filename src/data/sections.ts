@@ -1,0 +1,422 @@
+import { Block, NoteSection, Segment } from './types';
+
+/**
+ * Research note content for Romsons Group.
+ *
+ * Provenance: company history, products and reach come from the original design copy and
+ * public registry / press sources. Financial figures are third-party and unaudited and are
+ * labelled as such; sections that depend on filings not yet obtained say so explicitly
+ * instead of stating numbers.
+ */
+
+const t = (text: string, bold = false): Segment => ({ text, bold });
+/** Paragraph. */
+const p = (text: string, marginBottom?: number): Block => ({ kind: 'paragraph', segments: [t(text)], marginBottom });
+/** Bold sub-heading line. */
+const h = (text: string, marginBottom = 8): Block => ({ kind: 'paragraph', segments: [t(text, true)], marginBottom });
+/** Bullet with a bold lead-in followed by regular text. */
+const b = (lead: string, text: string, marginBottom?: number): Block => ({
+  kind: 'bullet',
+  segments: [t(lead, true), t(` ${text}`)],
+  marginBottom,
+});
+const spacer: Block = { kind: 'spacer' };
+
+export const sections: NoteSection[] = [
+  {
+    id: 'company-overview',
+    group: 'main',
+    index: '1.',
+    title: 'Company overview',
+    status: 'vetted',
+    version: 'v10',
+    maxWidth: 602,
+    body: [
+      p(
+        'Romsons was established in 1952 as "Romsons Scientific and Surgical Industries" and formally incorporated as a private limited company on November 28, 1977. It operates as a manufacturer and distributor of medical equipment and devices, classified within the Health Care Equipment & Supplies sectordata.',
+        12,
+      ),
+      p(
+        'The company manufactures a diverse portfolio of disposable medical devices, including urology catheters and surgical consumables, alongside a range of patient care products such as BP monitors, blood glucose meters, nebulizers, adult diapers, and breast pumps. Romsons serves healthcare providers in India and internationally, with a distribution network that includes warehouses in all state capitals and exports to 65-75 countries.',
+        16,
+      ),
+      h('Key Milestones:'),
+      p('Romsons has achieved several significant milestones in its 70+ years of operation:', 12),
+      b('Founding (1952):', 'Began operations as Romsons Scientific and Surgical Industries, at a time when most hospital consumables used in India were either imported or designed for repeated use.', 8),
+      b('Incorporation (1977):', 'Formalised as a private limited company on November 28, 1977, giving the founding family business a corporate vehicle for raising capital, hiring professionally and expanding capacity.', 8),
+      b('Single-use pioneer:', 'Credited with helping move Indian hospitals from reusable to single-use medical devices, a shift driven by infection-control standards that became the foundation of its urology and surgical consumables franchise.', 8),
+      b('Portfolio broadening:', 'Extended beyond hospital disposables into consumer-facing patient care products such as BP monitors, glucose meters, nebulizers, adult diapers and breast pumps, reducing dependence on a single customer type.', 8),
+      b('National and export reach:', 'Built warehousing in every state capital for fast hospital and distributor replenishment, and now ships to an estimated 65-75 countries.', 8),
+      b('Strategic capital:', 'A subsidiary of Temasek took a minority stake as a long-term partner to support global expansion, a meaningful external validation of the business and its governance.', 16),
+      h('Business model at a glance:'),
+      b('Manufacture and distribute:', 'Romsons makes the majority of what it sells and also distributes complementary products, which lets it offer hospitals a broad single-vendor basket.', 8),
+      b('Three demand channels:', 'Hospitals and institutions (tenders and direct supply), distributors and pharmacy retail (patient care products), and exports.', 8),
+      b('Recurring consumption:', 'Disposables are consumed per procedure, so revenue tracks hospital procedure volumes and tends to be repeat in nature rather than capital-equipment driven.', 16),
+      h('Why it matters for the investment case:'),
+      p(
+        'Romsons combines seven decades of brand equity, a wide installed distribution footprint and a regulated, high-compliance product set that is hard for new entrants to replicate quickly. The questions that remain are the durability of margins in a price-competitive tender market, the true scale of the business (sources disagree), and the health of the organization behind it, each of which is covered in the sections that follow.',
+      ),
+    ],
+  },
+  {
+    id: 'background-checks',
+    group: 'main',
+    index: '2.',
+    title: 'Background checks on the company',
+    status: 'unvetted',
+    version: 'v4',
+    maxWidth: 600,
+    body: [
+      h('Management team and organizational health:', 0),
+      spacer,
+      p(
+        'The company describes itself as a professionally-managed enterprise, with a structured Sales & Marketing Team led by a Director, Marketing, overseeing regional and zonal operations.',
+      ),
+      spacer,
+      p(
+        'What makes us pause is the general employee sentiment, which has been reported as negative and declining in 2026, according to Revelio Labs data. Employee reviews from platforms like Justdial indicate concerns about inefficient management, specifically that higher-level officials are perceived as not prioritizing timely work completion. Furthermore, reviews for "Romsons International" highlight issues such as delayed salaries and pending bonuses [#6]. System-derived: This suggests potential internal operational inefficiencies and compensation management issues that could impact talent retention and overall organizational health.',
+        16,
+      ),
+      h('Corporate and regulatory standing'),
+      p(
+        'Romsons Group Private Limited is an unlisted private company incorporated on November 28, 1977, with its registered office in Agra, Uttar Pradesh (CIN U24236UP1977PTC004511). Registry aggregators show the entity as active. None of the public sources reviewed so far surfaced regulatory action, product recalls or licence suspensions, but this reflects desk research only and has not yet been confirmed through formal searches.',
+        16,
+      ),
+      h('Promoter and governance'),
+      p(
+        'The group is promoter-led and family-founded, with a Temasek subsidiary as a minority investor. Institutional investors normally negotiate information rights, board representation and reserved matters, so the shareholder agreement is a key document for understanding how much independent oversight exists over related-party dealings and capital allocation.',
+        16,
+      ),
+      h('Litigation, tax and compliance'),
+      b('To search:', 'High court and tribunal records, NCLT and consumer-forum matters, tax disputes and GST notices against the group entities.', 8),
+      b('To obtain:', 'Statutory auditor reports (including CARO remarks), qualified opinions, and any emphasis-of-matter paragraphs from the last three years.', 8),
+      b('To confirm:', 'Product-licence status with the regulator, plant inspection history and the outcome of any quality audits.', 16),
+      h('Reputation and media screening'),
+      p(
+        'Press coverage located so far is largely positive and focused on the Temasek investment and expansion plans. Customer-facing reviews and employee-review sites show the more mixed picture described above, which makes reference calls with former employees and long-standing hospital customers a priority.',
+        16,
+      ),
+      h('Open items'),
+      b('Management references:', 'Calls with at least two former senior executives and two hospital procurement heads.', 8),
+      b('Payroll health:', 'Evidence on salary and bonus payment timelines to test the delayed-payment reports.', 8),
+      b('Registry confirmation:', 'MCA charge register, director DIN history and shareholding pattern.'),
+    ],
+  },
+  {
+    id: 'key-risks',
+    group: 'main',
+    index: '3.',
+    title: 'Key risks, mitigants & diligence areas',
+    status: 'unvetted',
+    version: 'v2',
+    maxWidth: 600,
+    body: [
+      p(
+        'The risks below are ranked by how much they could change the investment case. Each is paired with a mitigant and the specific diligence work needed to confirm it.',
+        16,
+      ),
+      h('1. Data reliability and scale uncertainty'),
+      p(
+        'Third-party sources disagree on revenue by a wide margin (over ₹500 crore versus roughly ₹1,400 crore), on employee count and even on sector classification. Until audited statements are obtained, every ratio in this note is provisional. Mitigant: reconcile to audited standalone and consolidated accounts and to MCA filings for each group entity before any figure is used in valuation.',
+        16,
+      ),
+      h('2. Organizational health and talent retention'),
+      p(
+        'Reported employee sentiment is negative and declining, with reviews citing delayed salaries and pending bonuses. If accurate, this signals liquidity pressure or weak management processes and could lead to attrition in sales, quality and plant roles. Mitigant: payroll and attrition data by function, management references, and a review of the incentive structure.',
+        16,
+      ),
+      h('3. Regulatory and quality compliance'),
+      p(
+        'Medical devices in India are regulated by the central drug regulator under the Medical Devices Rules, and exports require additional certifications. A quality lapse, licence suspension or recall would hit both revenue and reputation. Mitigant: review licences, ISO 13485 and export certifications, inspection reports and complaint and recall logs.',
+        16,
+      ),
+      h('4. Input cost and supply chain exposure'),
+      p(
+        'Disposable devices depend on polymers, latex, silicone and packaging materials whose prices follow petrochemical and commodity cycles, and on sterilization capacity. Tender-based contracts can lag input-price increases. Mitigant: review price-variation clauses, supplier concentration and inventory policy.',
+        16,
+      ),
+      h('5. Pricing pressure and competition'),
+      p(
+        'Institutional buyers run competitive tenders, domestic peers are expanding, and global players compete in higher-value catheters. Government price regulation of notified devices can also compress margins. Mitigant: analyse gross margin by channel and product, and win/loss history in major tenders.',
+        16,
+      ),
+      h('6. Customer, channel and working-capital risk'),
+      p(
+        'Public-sector and institutional customers can pay slowly, which inflates receivable days and funding needs. Concentration in a few distributors would add further risk. Mitigant: receivable ageing, top-ten customer and distributor shares, and credit-loss history.',
+        16,
+      ),
+      h('Priority diligence list'),
+      b('First:', 'Audited accounts, entity map and shareholder agreement.', 8),
+      b('Second:', 'Regulatory licences, quality audits and recall history.', 8),
+      b('Third:', 'Customer, distributor and supplier concentration and working-capital ageing.'),
+    ],
+  },
+  {
+    id: 'market-opportunity',
+    group: 'main',
+    index: '4.',
+    title: 'Market opportunity',
+    status: 'vetted',
+    version: 'v3',
+    maxWidth: 600,
+    body: [
+      p(
+        'Romsons competes in the single-use medical consumables segment of the Indian healthcare equipment market. This segment is attractive because demand is tied to procedure volumes rather than hospital capital budgets, product usage is repeated, and domestic manufacturers have a long-running opportunity to replace imported products.',
+        16,
+      ),
+      h('Demand drivers'),
+      b('Shift to single-use:', 'Infection-control norms favour disposable catheters, syringes and surgical consumables over reusable equivalents, the transition Romsons helped pioneer in India.', 8),
+      b('Expanding access to care:', 'Growth in hospital beds, diagnostic capacity and health-insurance coverage increases the number of procedures and therefore consumables used.', 8),
+      b('Ageing and chronic disease:', 'Urological, diabetic and cardiovascular conditions require recurring consumables and home-monitoring products, supporting both hospital and patient-care lines.', 8),
+      b('Home care:', 'BP monitors, glucose meters and nebulizers serve a growing at-home monitoring and self-care market.', 16),
+      h('Policy and structural tailwinds'),
+      p(
+        'India imports a large share of its medical devices, and government initiatives such as production-linked incentives and domestic-manufacturing preference in public procurement are intended to build local capacity. Consumables are among the easiest categories to localise, which favours established manufacturers with scale and regulatory credentials.',
+        16,
+      ),
+      h('Competitive landscape'),
+      p(
+        'Competition comes from listed and unlisted domestic manufacturers of infusion, urology and syringe products, from multinationals in premium catheters and surgical products, and from low-cost imports. Romsons’ differentiators are its brand heritage, breadth of catalogue, state-level warehousing and export presence.',
+        16,
+      ),
+      h('Romsons’ positioning'),
+      p(
+        'The company is positioned as a broad-line domestic manufacturer rather than a niche specialist. That breadth helps it win hospital contracts that favour one-stop suppliers, but it also means margins depend on category mix and on how well it protects price in commoditised lines.',
+        16,
+      ),
+      h('Headwinds and what to validate'),
+      b('Price competition:', 'Tender-driven pricing can limit margin expansion in commodity products.', 8),
+      b('Premiumisation:', 'Gains may be harder in advanced catheters where global brands are entrenched.', 8),
+      b('To validate:', 'Segment-level market size and growth from industry sources, and Romsons’ share by product category.'),
+    ],
+  },
+  {
+    id: 'benchmarking',
+    group: 'main',
+    index: '5.',
+    title: 'Benchmarking',
+    status: 'unvetted',
+    version: 'v1',
+    maxWidth: 600,
+    body: [
+      p(
+        'Benchmarking positions Romsons against domestic and international peers on growth, profitability, capital efficiency and mix. The peer set below is chosen for product overlap and for the availability of public disclosures; no peer metrics are quoted yet because they must be sourced from filings with matching financial years.',
+        16,
+      ),
+      h('Domestic peer set'),
+      b('Poly Medicure:', 'Listed manufacturer of infusion, blood management, urology and surgical disposables with a large export share; the closest listed comparable by product mix and a reference for margins and export mix.', 8),
+      b('Hindustan Syringes & Medical Devices:', 'Large-scale syringe and needle producer; relevant for scale, automation, cost position and export benchmarks.', 8),
+      b('Healthium Medtech:', 'Surgical sutures and consumables company that has filed a draft offer document; relevant as a valuation reference and a source of disclosed segment data.', 16),
+      h('International reference points'),
+      p(
+        'Global urology and surgical consumables companies show where premium margins sit and what regulatory and clinical evidence supports them. They are best used as a ceiling for product quality and pricing, not as direct valuation comparables.',
+        16,
+      ),
+      h('Metrics to compare'),
+      b('Growth:', 'Three-year revenue CAGR and latest-year growth, split between domestic and export.', 8),
+      b('Profitability:', 'Gross margin and EBITDA margin, which indicate pricing power and cost position.', 8),
+      b('Capital efficiency:', 'ROCE, asset turnover and capex intensity relative to revenue.', 8),
+      b('Working capital:', 'Receivable, inventory and payable days, which reveal channel mix and bargaining strength.', 8),
+      b('Mix:', 'Share of revenue from hospital disposables, patient-care products and exports.', 16),
+      h('Working hypotheses to test'),
+      p(
+        'Romsons’ breadth of catalogue and distribution should support revenue scale comparable to listed peers, while its margin may sit below export-heavy peers because of a larger domestic institutional share. Capital efficiency will depend heavily on how much capacity was added recently. These hypotheses stay unproven until audited data is mapped to the same periods as peers.',
+      ),
+    ],
+  },
+  {
+    id: 'financial-analysis',
+    group: 'main',
+    index: '6.',
+    title: 'Financial analysis',
+    status: 'unvetted',
+    version: 'v2',
+    maxWidth: 600,
+    body: [
+      p(
+        'Financial data for Romsons Group is available only from third-party aggregators and is inconsistent across sources. The figures below are therefore indicators of direction and order of magnitude, not a basis for valuation.',
+        16,
+      ),
+      h('Scale and reconciliation'),
+      p(
+        'One aggregator lists FY2023 operating revenue as over ₹500 crore, while another source cites an annual turnover of about ₹1,400 crore. The gap may reflect different entities (standalone versus group), different years, or gross versus net sales, but it cannot be resolved without the consolidated accounts and the group structure in Annexure 2.',
+        16,
+      ),
+      h('Growth and profitability'),
+      b('Revenue:', 'A data provider reports net sales growth of about 16% in its latest (FY2025) highlights.', 8),
+      b('Operating profit and EBITDA:', 'The same provider reports growth of about 9%, which would imply operating margins narrowing slightly because profit grew slower than sales.', 8),
+      b('Interpretation:', 'Faster sales than profit growth is consistent with price competition, input-cost pressure or investment in capacity and distribution, but the cause has not been established.', 16),
+      h('Cost structure to analyse'),
+      p(
+        'For a disposables manufacturer the main cost lines are raw materials and packaging, sterilization, employee costs and freight. Gross margin trends against polymer prices, and employee cost as a share of revenue, will show whether the reported organizational stress has a financial footprint.',
+        16,
+      ),
+      h('Working capital and cash flow'),
+      p(
+        'Institutional customers often pay slowly and the warehouse network requires stock in every state, so inventory and receivable days are likely to be significant. Cash conversion, rather than reported EBITDA, should be the main quality-of-earnings test.',
+        16,
+      ),
+      h('Capex and leverage'),
+      p(
+        'Capacity additions, automation and sterilization investments drive capex. Debt levels, interest cover and the use of any proceeds from the minority investment need to be traced to understand how growth has been funded.',
+        16,
+      ),
+      h('Next steps'),
+      b('Obtain:', 'Audited standalone and consolidated statements for FY2023-FY2025 and the latest management accounts.', 8),
+      b('Rebuild:', 'Revenue by channel, EBITDA bridge, working-capital days and free cash flow.', 8),
+      b('Test:', 'Related-party transactions, inter-company balances and contingent liabilities.'),
+    ],
+  },
+  {
+    id: 'valuation-returns',
+    group: 'main',
+    index: '7.',
+    title: 'Valuation and returns',
+    status: 'unvetted',
+    version: 'v1',
+    maxWidth: 600,
+    body: [
+      p(
+        'A valuation view is not yet possible because verified financials are outstanding. This section sets out the methodology so the analysis can be completed quickly once data arrives, and states clearly what is still unknown.',
+        16,
+      ),
+      h('Valuation approaches'),
+      b('Trading multiples:', 'EV/EBITDA and EV/Sales against the listed peers in the benchmarking section, adjusted for growth, margin and export mix. A private-company discount may apply because of illiquidity and weaker disclosure.', 8),
+      b('Precedent transactions:', 'The minority investment by a Temasek subsidiary is the most relevant reference; its terms must be confirmed from primary documents. Other healthcare consumables deals provide a range.', 8),
+      b('Discounted cash flow:', 'Useful as a cross-check once a credible forecast of volumes, margins, capex and working capital exists.', 16),
+      h('Key value drivers'),
+      b('Revenue growth:', 'Capacity utilisation, new products and export expansion.', 8),
+      b('Margin:', 'Pricing in tenders, raw-material pass-through and operating leverage.', 8),
+      b('Cash conversion:', 'Receivable and inventory discipline, which determine how much EBITDA becomes free cash flow.', 16),
+      h('Returns framework'),
+      p(
+        'Returns to an investor come from three sources: earnings growth, change in the valuation multiple, and cash yield or deleveraging. Estimating MOIC and IRR requires an entry valuation, an exit horizon and exit multiple, and the capital structure at entry. None of these inputs is available yet.',
+        16,
+      ),
+      h('Scenarios to model'),
+      b('Base:', 'Growth in line with reported recent trends and stable margins.', 8),
+      b('Upside:', 'Faster export growth and margin recovery from mix improvement.', 8),
+      b('Downside:', 'Margin compression and working-capital stress consistent with the organizational concerns raised earlier.', 16),
+      h('Open items'),
+      p('Audited financials, shareholder agreement terms, entry price, and agreement on the peer set.'),
+    ],
+  },
+  {
+    id: 'annexure-1',
+    group: 'main',
+    index: '8.',
+    title: 'Annexure 1',
+    status: 'vetted',
+    version: 'v2',
+    maxWidth: 600,
+    body: [
+      h('Product portfolio'),
+      p(
+        'Romsons markets more than 200 products. They fall into two broad families with different customers, purchase patterns and margin profiles.',
+        16,
+      ),
+      h('A. Hospital disposables'),
+      b('Urology products:', 'Catheters and related drainage and collection products used in surgery, critical care and long-term patient management.', 8),
+      b('Surgical consumables:', 'Single-use devices and accessories used in operating theatres and wards, purchased repeatedly by hospitals.', 8),
+      b('Characteristics:', 'Sold mainly through tenders and institutional contracts, price-sensitive, quality-regulated and recurring.', 16),
+      h('B. Patient care'),
+      b('Monitoring devices:', 'BP monitors and blood glucose meters for home use, supported by consumables such as test strips where applicable.', 8),
+      b('Respiratory care:', 'Nebulizers for asthma and chronic respiratory conditions.', 8),
+      b('Personal care:', 'Adult diapers and breast pumps sold through pharmacies and retail channels.', 8),
+      b('Characteristics:', 'Brand-led, distributor and retail driven, with higher marketing intensity and potentially better margins.', 16),
+      h('Manufacturing and quality'),
+      p(
+        'Medical consumables require controlled manufacturing, sterilization and traceability, and exports require regulatory certifications. Plant locations, capacities, utilisation and certifications are to be added from the data room.',
+        16,
+      ),
+      h('Information still required'),
+      p('Revenue and margin by product family, top-ten products by sales, and new products in the pipeline.'),
+    ],
+  },
+  {
+    id: 'annexure-2',
+    group: 'main',
+    index: '9.',
+    title: 'Annexure 2',
+    status: 'vetted',
+    version: 'v1',
+    maxWidth: 600,
+    body: [
+      h('Group entities and registration details'),
+      p(
+        'The Romsons group operates through several related companies. The list below is drawn from public registry aggregators and press sources and must be confirmed against MCA records.',
+        16,
+      ),
+      b('Romsons Group Private Limited:', 'Incorporated on November 28, 1977; registered office in Agra, Uttar Pradesh; CIN U24236UP1977PTC004511; unlisted private company.', 8),
+      b('Romsons Scientific & Surgical Industries:', 'The original 1952 business and a group manufacturing entity.', 8),
+      b('Romsons Medworld Private Limited:', 'Incorporated in 2021; appears to be a more recent group vehicle.', 8),
+      b('Other group companies:', 'Romsons Juniors India and Romsons Medicons, referred to in press and directory listings.', 16),
+      h('Shareholding'),
+      p(
+        'Promoter family holdings with a minority stake held by a Temasek subsidiary. The exact cap table, any other institutional holders and the classes of shares are to be obtained from the shareholder agreement and the MCA register.',
+        16,
+      ),
+      h('Documents to collect'),
+      b('Corporate:', 'Certificates of incorporation, memorandum and articles, board and shareholder resolutions.', 8),
+      b('Financial:', 'Audited statements for every entity and a consolidation bridge.', 8),
+      b('Regulatory:', 'Manufacturing licences, quality certifications and export approvals.', 8),
+      b('Legal:', 'Material contracts, litigation register and intellectual-property schedules.'),
+    ],
+  },
+  {
+    id: 'custom-company-overview',
+    group: 'custom',
+    index: '10.',
+    title: 'Company overview',
+    status: 'vetted',
+    version: 'v1',
+    maxWidth: 600,
+    body: [
+      h('History and ownership'),
+      p(
+        'Romsons began in 1952 and is credited with helping move Indian hospitals from reusable to single-use medical devices. It was incorporated as a private limited company on November 28, 1977, and has grown from a surgical-supplies business into a diversified manufacturer and distributor.',
+        16,
+      ),
+      b('Founder-led heritage:', 'Started by Ram Lal Khanna; the group remains promoter-led and unlisted.', 8),
+      b('External investor:', 'A Temasek subsidiary holds a minority stake and is described as a long-term strategic partner supporting global expansion.', 16),
+      h('Strategy'),
+      p(
+        'Public statements point to three strategic priorities: strengthening the core disposables franchise, growing patient-care and branded products, and expanding exports. Each requires additional capacity, regulatory approvals and distribution investment, which makes the financing plan and capital allocation central to the investment case.',
+        16,
+      ),
+      h('Leadership and organization'),
+      p(
+        'The company describes itself as professionally managed, with regional and zonal sales structures. Named senior management, their tenure and succession planning have not yet been mapped, and are a priority given the organizational health concerns raised in the background checks.',
+      ),
+    ],
+  },
+  {
+    id: 'custom-financial-profile',
+    group: 'custom',
+    index: '11.',
+    title: 'Financial profile',
+    status: 'unvetted',
+    version: 'v1',
+    maxWidth: 600,
+    body: [
+      p(
+        'This profile summarises the indicators currently available. All are unaudited, third-party and subject to the reconciliation issues described in the financial analysis.',
+        16,
+      ),
+      h('Headline indicators'),
+      b('Revenue band:', 'Over ₹500 crore for FY2023 per an aggregator; another source cites roughly ₹1,400 crore turnover, so scale remains unresolved.', 8),
+      b('Net sales growth:', 'About 16% in the latest reported year.', 8),
+      b('Operating profit and EBITDA growth:', 'About 9% in the latest reported year, below sales growth.', 16),
+      h('What the indicators suggest'),
+      p(
+        'Growth appears healthy in the top line, while profit growth lagging sales points to margin pressure or investment. This is consistent with competitive tenders and rising input and distribution costs but needs confirmation from audited segment and cost data.',
+        16,
+      ),
+      h('To complete this profile'),
+      b('Income statement:', 'Revenue, gross margin, EBITDA, depreciation, interest and profit after tax for three years.', 8),
+      b('Balance sheet:', 'Net debt, receivable, inventory and payable days, and capital employed.', 8),
+      b('Cash flow:', 'Operating cash flow, capex and free cash flow.', 8),
+      b('Quality checks:', 'Related-party items, contingent liabilities and auditor remarks.'),
+    ],
+  },
+];
