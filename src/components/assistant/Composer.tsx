@@ -3,6 +3,7 @@ import { colors, type } from '../../theme';
 import { assistant } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { Stroke } from '../Stroke';
+import { pointer } from '../../theme/cursor';
 
 /** Prompt area. Static for now — input behavior is pending confirmation. */
 export function Composer() {
@@ -19,7 +20,7 @@ export function Composer() {
               <Icon name="dataRoom" size={16} />
             </View>
           </View>
-          <Icon name="send" size={22} />
+          <Icon name="send" size={22} style={pointer} />
         </View>
         <Stroke color={colors.slate100} radius={12} />
       </View>
@@ -42,10 +43,12 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   attach: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   attachButton: {
-    padding: 4,
+    height: 30,
+    paddingHorizontal: 8,
     borderRadius: 6,
     backgroundColor: colors.slate50,
     alignItems: 'center',
     justifyContent: 'center',
+    ...pointer,
   },
 });

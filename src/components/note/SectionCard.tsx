@@ -16,7 +16,7 @@ const stickyActions = (Platform.OS === 'web'
 const actions = [
   { icon: 'actionComment', hoverIcon: 'actionCommentHover', label: 'Comments' },
   { icon: 'actionCopy', hoverIcon: 'actionCopyHover', label: 'Copy' },
-  { icon: 'actionLink', hoverIcon: 'actionLinkHover', label: 'Copy link' },
+  { icon: 'actionLink', hoverIcon: 'actionLinkHover', label: 'Copy link', size: 16 },
   { icon: 'actionMore', hoverIcon: 'actionMoreHover', label: 'More' },
 ] as const;
 
@@ -32,12 +32,12 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
     <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={[type.sectionIndex, { color: colors.slate400 }]}>{section.index}</Text>
+          <Text style={[type.sectionTitle, { color: colors.slate900 }]}>{section.index}</Text>
           <Text style={[type.sectionTitle, { color: colors.slate900 }]}>{section.title}</Text>
         </View>
         <View style={styles.chips}>
           <StatusChip status={section.status} />
-          <VersionChip version={section.version} status={section.status} />
+          <VersionChip version={section.version} />
         </View>
       </View>
 
@@ -53,7 +53,7 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
       <View pointerEvents="box-none" style={styles.actionsTrack}>
         <View style={[styles.actions, stickyActions]}>
           {actions.map((a) => (
-            <ActionButton key={a.icon} icon={a.icon} hoverIcon={a.hoverIcon} label={a.label} />
+            <ActionButton key={a.icon} {...a} />
           ))}
         </View>
       </View>
@@ -69,13 +69,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
     paddingHorizontal: 16,
-    gap: 12,
+    gap: 10,
   },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  chips: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  divider: { height: 0, width: '100%' },
-  dividerImg: { position: 'absolute', top: -1, left: 0, width: '100%' },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Runs edge to edge: 2px in from each card edge (Figma: x 2, width 598 in a 602px card).
+  divider: { height: 1, marginHorizontal: -14 },
+  dividerImg: { width: '100%' },
   actionsTrack: { position: 'absolute', top: 0, bottom: 0, right: -33, width: 28 },
   actions: { marginTop: 15, gap: 4, justifyContent: 'center' },
 });

@@ -3,8 +3,10 @@ import { Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-na
 import { floatingHeaderBackdrop } from '../../assets/images';
 import { colors, type } from '../../theme';
 import { noteTabs } from '../../data/researchNote';
+import { transition } from '../../theme/motion';
 import { useHover } from '../../hooks/useHover';
 import { Icon } from '../Icon';
+import { pointer } from '../../theme/cursor';
 
 type Props = {
   activeTab: number;
@@ -86,9 +88,9 @@ const styles = StyleSheet.create({
   },
   navShadow: { boxShadow: `0px 2px 12px ${colors.floatingShadow}` },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  back: { width: 24, height: 24, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 24, height: 24, borderRadius: 4, alignItems: 'center', justifyContent: 'center', ...pointer, ...transition(['background-color']) },
   backHover: { backgroundColor: colors.dew75 },
-  title: { flexDirection: 'row', alignItems: 'center' },
+  title: { flexDirection: 'row', alignItems: 'center', ...pointer },
   sectionChip: {
     flex: 1,
     minWidth: 1,
@@ -107,6 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 8,
     overflow: 'hidden',
+    ...pointer,
   },
   actionsShadow: { boxShadow: `0px 1px 2px ${colors.floatingShadowSoft}, 0px 2px 12px ${colors.floatingShadow}` },
 });

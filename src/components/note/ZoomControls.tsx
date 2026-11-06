@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '../../theme';
+import { transition } from '../../theme/motion';
 import { Icon } from '../Icon';
+import { pointer } from '../../theme/cursor';
 
 type Props = {
   canZoomIn: boolean;
@@ -47,6 +49,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     boxShadow: '0px 1px 2px rgba(0,0,0,0.04)',
   },
-  button: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  disabled: { backgroundColor: colors.grey50 },
+  button: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', ...pointer, ...transition(['background-color']) },
+  disabled: { backgroundColor: colors.grey50, cursor: 'auto' },
 });

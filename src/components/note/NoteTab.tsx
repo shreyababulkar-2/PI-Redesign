@@ -1,6 +1,8 @@
 import { Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { colors, type } from '../../theme';
+import { transition } from '../../theme/motion';
 import { useHover } from '../../hooks/useHover';
+import { pointer } from '../../theme/cursor';
 
 type Props = { label: string; active: boolean };
 
@@ -34,7 +36,7 @@ const activeFill = (Platform.OS === 'web'
 const styles = StyleSheet.create({
   tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
   active: { gap: 6, borderRadius: 8, backgroundColor: colors.dew100, ...activeFill },
-  inactive: { borderRadius: 4 },
+  inactive: { borderRadius: 4, ...pointer, ...transition(['background-color']) },
   hover: { backgroundColor: colors.slate100 },
   dot: { width: 4, height: 4, borderRadius: 100, backgroundColor: colors.pine900 },
 });

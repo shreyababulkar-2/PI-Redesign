@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, type } from '../../theme';
+import { transition } from '../../theme/motion';
 import { NoteSection } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { Stroke } from '../Stroke';
+import { pointer } from '../../theme/cursor';
 
 type Props = {
   sections: NoteSection[];
@@ -83,7 +85,7 @@ const styles = StyleSheet.create({
     boxShadow: '2px 4px 6px rgba(0,0,0,0.15)',
   },
   groups: { width: '100%', gap: 4 },
-  item: { height: 32, flexDirection: 'row', alignItems: 'center', width: '100%' },
+  item: { height: 32, flexDirection: 'row', alignItems: 'center', width: '100%', ...pointer, ...transition(['background-color']) },
   itemActive: { backgroundColor: colors.pine100, borderRadius: 6 },
   itemDefault: { borderRadius: 4 },
   itemHover: { backgroundColor: colors.slate100 },
@@ -101,5 +103,6 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     paddingVertical: 6,
     overflow: 'hidden',
+    ...pointer,
   },
 });

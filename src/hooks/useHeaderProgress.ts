@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing } from 'react-native';
+import { motion } from '../theme/motion';
 
-const DURATION_MS = 220;
+const DURATION_MS = motion.base;
 
 /** 0 = default (full) header, 1 = floating header. Animates between them when `scrolled` flips. */
 export function useHeaderProgress(scrolled: boolean): Animated.Value {

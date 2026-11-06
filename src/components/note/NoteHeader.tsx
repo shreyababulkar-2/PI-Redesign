@@ -6,6 +6,7 @@ import { HEADER_TOP } from '../../theme/layout';
 import { company, noteTabs } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { NoteTab } from './NoteTab';
+import { pointer } from '../../theme/cursor';
 
 type Props = { activeTab: number };
 
@@ -34,8 +35,8 @@ export function NoteHeader({ activeTab }: Props) {
             Data Room
           </Text>
         </View>
-        <Icon name="topbarDownload" size={28} />
-        <Icon name="topbarMore" size={28} />
+        <Icon name="topbarDownload" size={28} style={pointer} />
+        <Icon name="topbarMore" size={28} style={pointer} />
       </View>
     </View>
   );
@@ -76,5 +77,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dew75,
     borderRadius: 8,
     overflow: 'hidden',
+    ...pointer,
   },
 });

@@ -21,15 +21,14 @@ export const assistant = {
   answer: [
     {
       kind: 'paragraph',
+      marginBottom: 12,
       segments: [
         t(
           'Techfab is pitched as #1 organised player in a ~₹13,500 crore market growing ~9.0%, with FY25 revenue ₹593 crore and FY24 EBITDA margin 16.1%, and a ₹200 crore capex to double capacity.',
         ),
       ],
     },
-    { kind: 'spacer' },
-    { kind: 'paragraph', segments: [t('Here is what was found before the stop:', true)] },
-    { kind: 'spacer' },
+    { kind: 'paragraph', marginBottom: 8, segments: [t('Here is what was found before the stop:', true)] },
     {
       kind: 'bullet',
       segments: [

@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, type } from '../theme';
 import { Icon } from './Icon';
 import { IconName } from '../assets/icons';
+import { pointer } from '../theme/cursor';
 
 const NAV_ITEMS: IconName[] = ['navItem1', 'navItemSelected', 'navItem2', 'navItem3', 'navItem4', 'navItem5'];
 const SELECTED: IconName = 'navItemSelected';
@@ -74,16 +75,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white10,
     alignItems: 'center',
     justifyContent: 'center',
+    ...pointer,
   },
   group: { alignItems: 'center', gap: 12 },
   list: { gap: 8 },
   itemSlot: { width: 32, height: 32 },
-  item: { padding: 4, alignItems: 'center', justifyContent: 'center' },
+  item: { padding: 4, alignItems: 'center', justifyContent: 'center', ...pointer },
   selected: {
     padding: 7.111,
     borderRadius: 7.111,
     backgroundColor: colors.pine100,
     alignSelf: 'flex-start',
+    ...pointer,
   },
   footerList: { gap: 6 },
   role: {
@@ -94,6 +97,7 @@ const styles = StyleSheet.create({
     padding: 4,
     flexDirection: 'row',
     alignItems: 'center',
+    ...pointer,
   },
   avatar: {
     width: 24,

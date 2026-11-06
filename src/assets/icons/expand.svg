@@ -1,8 +1,8 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Topbar Item Button [Topbar] [1.0]">
+<rect width="20" height="20" rx="4" fill="#F5F7FA"/>
 <g id="Frame">
-<path id="Vector" d="M9.50014 3.50003H12.5001V6.5" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
-<path id="Vector_2" d="M12.4999 3.50003L8.99996 7" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
-<path id="Vector_3" d="M3.50004 12.5L7.00001 9.00006" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
-<path id="Vector_4" d="M6.50001 12.5H3.50004V9.50003" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
+<path id="Vector" d="M8.125 5.875H5.875V8.125M5.875 5.875L8.5 8.5M8.125 14.125H5.875V11.875M5.875 14.125L8.5 11.5M14.125 8.125V5.875H11.875M14.125 5.875L11.5 8.5M14.125 11.875V14.125H11.875M14.125 14.125L11.5 11.5" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
+</g>
 </g>
 </svg>

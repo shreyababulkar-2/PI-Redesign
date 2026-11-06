@@ -2,12 +2,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, type } from '../../theme';
 import { Icon } from '../Icon';
 import { SectionStatus } from '../../data/researchNote';
+import { pointer } from '../../theme/cursor';
 
-/**
- * Chip sizes follow the Figma header frames: the Vetted / version chips are 24px tall with
- * 12/18 text, while the Unvetted / version chips keep the original 20px, 10/16 sizing.
- * Both statuses end with a chevron.
- */
+/** Section header chips (Figma "Chips/Rounded"): 20px tall, 11px Mona Sans, ending in a chevron. */
 const STATUS = {
   vetted: {
     label: 'Vetted',
@@ -15,8 +12,6 @@ const STATUS = {
     fg: colors.white,
     icon: 'successFilled',
     chevron: 'chipChevronWhite',
-    text: type.chipLg,
-    height: 24,
   },
   unvetted: {
     label: 'Unvetted',
@@ -24,27 +19,24 @@ const STATUS = {
     fg: colors.neutralChipText,
     icon: 'errorFilled',
     chevron: 'chipChevronWarning',
-    text: type.chip,
-    height: undefined,
   },
 } as const;
 
 export function StatusChip({ status }: { status: SectionStatus }) {
   const s = STATUS[status];
   return (
-    <View style={[styles.chip, { backgroundColor: s.bg, gap: 4, height: s.height }]}>
+    <View style={[styles.chip, { backgroundColor: s.bg, paddingHorizontal: 4 }]}>
       <Icon name={s.icon} size={12} />
-      <Text style={[s.text, { color: s.fg }]}>{s.label}</Text>
+      <Text style={[type.chip, { color: s.fg }]}>{s.label}</Text>
       <Icon name={s.chevron} size={12} />
     </View>
   );
 }
 
-export function VersionChip({ version, status }: { version: string; status: SectionStatus }) {
-  const s = STATUS[status];
+export function VersionChip({ version }: { version: string }) {
   return (
-    <View style={[styles.chip, { backgroundColor: colors.shark50, gap: 2, height: s.height }]}>
-      <Text style={[s.text, { color: colors.grey700 }]}>{version}</Text>
+    <View style={[styles.chip, { backgroundColor: colors.shark50 }]}>
+      <Text style={[type.chip, { color: colors.grey700 }]}>{version}</Text>
       <Icon name="chevronDown12" size={12} />
     </View>
   );
@@ -55,8 +47,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 40,
+    ...pointer,
   },
 });

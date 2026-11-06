@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Animated, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { colors } from '../theme';
-import { HEADER_COLLAPSE_DELTA, HEADER_EXPANDED_HEIGHT } from '../theme/layout';
+import { HEADER_EXPANDED_HEIGHT } from '../theme/layout';
 import { sections } from '../data/researchNote';
 import { SideNav } from '../components/SideNav';
 import { AnimatedHeader } from '../components/note/AnimatedHeader';
@@ -29,10 +29,6 @@ export function ResearchNoteScreen() {
   const [zoom, setZoom] = useState(1);
 
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
-  const minimapTop = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [HEADER_EXPANDED_HEIGHT + MINIMAP_OFFSET, HEADER_EXPANDED_HEIGHT + MINIMAP_OFFSET - HEADER_COLLAPSE_DELTA],
-  });
 
   return (
     <View style={styles.root}>
@@ -53,9 +49,9 @@ export function ResearchNoteScreen() {
           ))}
         </ScrollView>
 
-        <Animated.View style={[styles.minimapSlot, { top: minimapTop }]}>
+        <View style={styles.minimapSlot}>
           <Minimap sections={sections} activeId={activeId} onSelect={scrollToSection} />
-        </Animated.View>
+        </View>
 
         <AnimatedHeader
           progress={progress}
@@ -89,5 +85,5 @@ const styles = StyleSheet.create({
     paddingTop: HEADER_EXPANDED_HEIGHT,
     paddingHorizontal: 80,
   },
-  minimapSlot: { position: 'absolute', left: 4, width: 0, height: 0, zIndex: 10 },
+  minimapSlot: { position: 'absolute', top: HEADER_EXPANDED_HEIGHT + MINIMAP_OFFSET, left: 4, width: 0, height: 0, zIndex: 10 },
 });

@@ -1,7 +1,5 @@
 <svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="Frame">
-<path id="Vector" d="M8 3.125V9.625" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
-<path id="Vector_2" d="M10.7082 5.83333L7.99987 3.125L5.29153 5.83333" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
-<path id="Vector_3" d="M12.875 9.625V11.7917C12.875 12.079 12.7609 12.3545 12.5577 12.5577C12.3545 12.7609 12.079 12.875 11.7917 12.875H4.20833C3.92102 12.875 3.64547 12.7609 3.4423 12.5577C3.23914 12.3545 3.125 12.079 3.125 11.7917V9.625" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
+<path id="Vector" d="M2 11V12.5C2 12.8978 2.15804 13.2794 2.43934 13.5607C2.72064 13.842 3.10218 14 3.5 14H12.5C12.8978 14 13.2794 13.842 13.5607 13.5607C13.842 13.2794 14 12.8978 14 12.5V11M11 5L8 2L5 5M8 2V11" stroke-linecap="round" stroke-linejoin="round" stroke="#525866"/>
 </g>
 </svg>
