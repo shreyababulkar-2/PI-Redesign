@@ -1,6 +1,6 @@
 # Netlify builds the Expo web export and publishes a Deploy Preview for every pull request.
 [build]
-  command = "npx expo export --platform web"
+  command = "npm run export:web"
   publish = "dist"
 
 [build.environment]
