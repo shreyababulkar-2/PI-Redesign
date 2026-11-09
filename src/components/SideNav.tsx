@@ -66,7 +66,8 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   primaryPod: { top: 8, gap: 16, backgroundColor: colors.pine800, boxShadow: '0px 1px 2px rgba(0,0,0,0.1)' },
-  footerPod: { top: 658, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.cardBorder },
+  // Anchored to the bottom edge (8px inset, matching the primary pod's top inset) so it stays pinned at any viewport height.
+  footerPod: { bottom: 8, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.cardBorder },
   collapse: {
     width: 28,
     height: 28,

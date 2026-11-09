@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing } from 'react-native';
 import { motion } from '../theme/motion';
 
-const DURATION_MS = motion.base;
+const DURATION_MS = motion.header;
 
 /** 0 = default (full) header, 1 = floating header. Animates between them when `scrolled` flips. */
 export function useHeaderProgress(scrolled: boolean): Animated.Value {
@@ -12,7 +12,7 @@ export function useHeaderProgress(scrolled: boolean): Animated.Value {
     Animated.timing(progress, {
       toValue: scrolled ? 1 : 0,
       duration: DURATION_MS,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.bezier(0.2, 0, 0, 1), // fast out of the gate, short settle,
       useNativeDriver: false, // drives layout-affecting transforms on web
     }).start();
   }, [scrolled, progress]);

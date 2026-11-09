@@ -6,6 +6,9 @@ import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollViewI
 const ACTIVE_LINE = 0.25;
 /** The page counts as "scrolled" (header collapses to its floating form) beyond this offset. */
 const SCROLLED_THRESHOLD = 8;
+/** When scrolling UP, the full header returns as soon as the offset gets this close to the top, so
+ * it doesn't wait for a long smooth/momentum scroll to creep the last few pixels. */
+const EXPAND_ZONE = 64;
 /** Sections land just below the floating header, not underneath it. */
 const TOP_INSET = HEADER_COLLAPSED_HEIGHT;
 /** Scroll events closer together than this (ms) belong to the same programmatic smooth scroll. */
@@ -21,6 +24,7 @@ export function useSectionNavigation(ids: readonly string[]) {
   const viewportHeight = useRef(0);
   const contentHeight = useRef(0);
   const programmatic = useRef(false);
+  const lastY = useRef(0);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeId, setActiveId] = useState(ids[0]);
   const [scrolled, setScrolled] = useState(false);
@@ -55,7 +59,12 @@ export function useSectionNavigation(ids: readonly string[]) {
 
   const onScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      setScrolled(e.nativeEvent.contentOffset.y > SCROLLED_THRESHOLD);
+      const y = e.nativeEvent.contentOffset.y;
+      const goingUp = y < lastY.current;
+      lastY.current = y;
+      if (y <= SCROLLED_THRESHOLD) setScrolled(false);
+      else if (goingUp && y <= EXPAND_ZONE) setScrolled(false);
+      else if (!goingUp || y > EXPAND_ZONE) setScrolled(true);
       // While a click-initiated smooth scroll is running, keep the clicked item active.
       if (programmatic.current) {
         armSettleTimer();

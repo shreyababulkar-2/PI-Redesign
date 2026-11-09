@@ -19,6 +19,57 @@ type Props = {
  * navigation pill (back, note type, current section) and an actions button, floating over a soft
  * white fade while the content scrolls underneath. 60px tall.
  */
+export function FloatingNavContent({ activeTab, activeSectionTitle }: Props) {
+  const back = useHover();
+  return (
+    <View style={styles.navContent}>
+      <View style={styles.titleRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          {...back.handlers}
+          style={[styles.back, back.hovered && styles.backHover]}
+        >
+          <Icon name="floatBack" size={13.714} />
+        </Pressable>
+        <View style={styles.title}>
+          <Text numberOfLines={1} style={[type.floatingTitle, { color: colors.slate800 }]}>
+            {noteTabs[activeTab]}
+          </Text>
+          <Icon name="floatChevron" size={18} />
+        </View>
+      </View>
+      <View style={styles.sectionChip}>
+        <Text numberOfLines={1} style={[type.floatingChip, { color: colors.pine800 }]}>
+          {activeSectionTitle}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/** Soft white fade + blur behind the floating pills (60px tall, fills its parent's width). */
+export function FloatingBackdrop() {
+  return (
+    <View pointerEvents="none" style={styles.backdrop}>
+      {Platform.OS === 'web' && <View style={webBlur} />}
+      <Image source={floatingHeaderBackdrop} contentFit="fill" style={StyleSheet.absoluteFill} />
+    </View>
+  );
+}
+
+export const FLOATING_NAV_WIDTH = 280;
+export const FLOATING_NAV_HEIGHT = 36;
+export const FLOATING_ACTIONS_SIZE = 36;
+export const FLOATING_GAP = 8;
+export const FLOATING_PADDING = 12;
+export const floatingShadows = {
+  nav: { boxShadow: `0px 2px 12px ${colors.floatingShadow}` } as ViewStyle,
+  actions: {
+    boxShadow: `0px 1px 2px ${colors.floatingShadowSoft}, 0px 2px 12px ${colors.floatingShadow}`,
+  } as ViewStyle,
+};
+
 export function FloatingHeader({ activeTab, activeSectionTitle }: Props) {
   const back = useHover();
   return (
@@ -86,6 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
+  navContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4 },
   navShadow: { boxShadow: `0px 2px 12px ${colors.floatingShadow}` },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   back: { width: 24, height: 24, borderRadius: 4, alignItems: 'center', justifyContent: 'center', ...pointer, ...transition(['background-color']) },

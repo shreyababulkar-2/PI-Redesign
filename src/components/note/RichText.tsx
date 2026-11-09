@@ -10,10 +10,14 @@ type Props = {
   scale?: number;
 };
 
+/** Web: balance line breaks so a paragraph doesn't end on a lone word. Ignored on native. */
+const prettyWrap = { textWrap: 'pretty' } as TextStyle;
+
 function scaleText(style: TextStyle, scale: number): TextStyle {
-  if (scale === 1) return style;
+  if (scale === 1) return { ...style, ...prettyWrap };
   return {
     ...style,
+    ...prettyWrap,
     fontSize: style.fontSize !== undefined ? style.fontSize * scale : undefined,
     lineHeight: style.lineHeight !== undefined ? style.lineHeight * scale : undefined,
     letterSpacing: style.letterSpacing !== undefined ? style.letterSpacing * scale : undefined,

@@ -10,7 +10,7 @@ import { Minimap } from '../components/note/Minimap';
 import { ZoomControls } from '../components/note/ZoomControls';
 import { useHeaderProgress } from '../hooks/useHeaderProgress';
 import { useSectionNavigation } from '../hooks/useSectionNavigation';
-import { AssistantPanel } from '../components/assistant/AssistantPanel';
+import { ResizableAssistant } from '../components/assistant/ResizableAssistant';
 
 const sectionIds = sections.map((s) => s.id);
 /** Body-text zoom: 10% steps between these bounds (1 = design size). */
@@ -68,7 +68,7 @@ export function ResearchNoteScreen() {
         />
       </View>
 
-      <AssistantPanel />
+      <ResizableAssistant />
       <SideNav />
     </View>
   );
