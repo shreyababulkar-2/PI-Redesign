@@ -8,7 +8,7 @@ const NAV_ITEMS: IconName[] = ['navItem1', 'navItemSelected', 'navItem2', 'navIt
 const SELECTED: IconName = 'navItemSelected';
 const FOOTER_ITEMS: IconName[] = ['navBottom1', 'navBottom2', 'navBottom3'];
 
-/** Two floating pods on the left edge: primary navigation (pine) and account/utilities (white). */
+/** Two floating white pods on the left edge: primary navigation and account/utilities. */
 export function SideNav() {
   return (
     <>
@@ -23,7 +23,8 @@ export function SideNav() {
               icon === SELECTED ? (
                 <View key={icon} style={styles.itemSlot}>
                   <View style={styles.selected}>
-                    <Icon name={icon} size={17.778} />
+                    <Icon name="navSelectedBg" size={32} style={StyleSheet.absoluteFill} />
+                    <Icon name={icon} size={20} />
                   </View>
                 </View>
               ) : (
@@ -65,14 +66,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     zIndex: 30,
   },
-  primaryPod: { top: 8, gap: 16, backgroundColor: colors.pine800, boxShadow: '0px 1px 2px rgba(0,0,0,0.1)' },
-  footerPod: { top: 658, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.cardBorder },
+  primaryPod: { top: 8, gap: 16, backgroundColor: colors.white, boxShadow: '0px 1px 6px rgba(0,0,0,0.08)' },
+  // Anchored to the bottom edge (8px inset, matching the primary pod's top inset) so it stays pinned at any viewport height.
+  footerPod: {
+    bottom: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    boxShadow: '0px 1px 6px rgba(0,0,0,0.08)',
+  },
   collapse: {
     width: 28,
     height: 28,
     padding: 4,
     borderRadius: 8,
-    backgroundColor: colors.white10,
+    backgroundColor: colors.dew75,
     alignItems: 'center',
     justifyContent: 'center',
     ...pointer,
@@ -81,18 +89,19 @@ const styles = StyleSheet.create({
   list: { gap: 8 },
   itemSlot: { width: 32, height: 32 },
   item: { padding: 4, alignItems: 'center', justifyContent: 'center', ...pointer },
+  // 32px tile with the pine gradient + inner edge behind the icon (radius 8, 20px icon), a 1px
+  // pine ring and a soft drop shadow.
   selected: {
-    padding: 7.111,
-    borderRadius: 7.111,
-    backgroundColor: colors.pine100,
-    alignSelf: 'flex-start',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: `0px 0px 0px 1px ${colors.pine700}, 0px 1px 2px rgba(0,0,0,0.15)`,
     ...pointer,
   },
   footerList: { gap: 6 },
   role: {
-    backgroundColor: colors.white10,
-    borderWidth: 1,
-    borderColor: colors.white10,
     borderRadius: 24,
     padding: 4,
     flexDirection: 'row',

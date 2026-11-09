@@ -6,6 +6,7 @@ import { HEADER_TOP } from '../../theme/layout';
 import { company, noteTabs } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { NoteTab } from './NoteTab';
+import { AssistantButton } from '../AssistantButton';
 import { pointer } from '../../theme/cursor';
 
 type Props = { activeTab: number };
@@ -14,6 +15,15 @@ type Props = { activeTab: number };
 export function NoteHeader({ activeTab }: Props) {
   return (
     <View style={styles.root}>
+      <NoteHeaderContent activeTab={activeTab} />
+    </View>
+  );
+}
+
+/** The header's inner layout without the card chrome, so it can live inside a morphing container. */
+export function NoteHeaderContent({ activeTab }: Props) {
+  return (
+    <View style={styles.content}>
       <View style={styles.left}>
         <View style={styles.company}>
           <View style={styles.logoOuter}>
@@ -37,21 +47,20 @@ export function NoteHeader({ activeTab }: Props) {
         </View>
         <Icon name="topbarDownload" size={28} style={pointer} />
         <Icon name="topbarMore" size={28} style={pointer} />
+        <AssistantButton size={28} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    marginTop: HEADER_TOP,
+  root: { marginTop: HEADER_TOP, backgroundColor: colors.white, borderRadius: 8 },
+  content: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: colors.white,
-    borderRadius: 8,
   },
   left: { gap: 12 },
   company: { flexDirection: 'row', alignItems: 'center', gap: 4 },

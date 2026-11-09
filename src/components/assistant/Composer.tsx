@@ -20,7 +20,7 @@ export function Composer() {
               <Icon name="dataRoom" size={16} />
             </View>
           </View>
-          <Icon name="send" size={22} style={pointer} />
+          <Icon name="send" size={24} style={pointer} />
         </View>
         <Stroke color={colors.slate100} radius={12} />
       </View>
@@ -43,8 +43,9 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   attach: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   attachButton: {
-    height: 30,
-    paddingHorizontal: 8,
+    // 24px square with a 16px icon (Figma 332:4138 composer), down from the older 30px-tall buttons.
+    width: 24,
+    height: 24,
     borderRadius: 6,
     backgroundColor: colors.slate50,
     alignItems: 'center',

@@ -6,6 +6,8 @@ export const motion = {
   fast: 150,
   /** Menus and header cross-fade. */
   base: 240,
+  /** Header morph between full and floating forms. */
+  header: 200,
 } as const;
 
 /**

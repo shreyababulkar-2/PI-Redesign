@@ -21,30 +21,47 @@ export const assistant = {
   answer: [
     {
       kind: 'paragraph',
-      marginBottom: 12,
+      marginBottom: 16,
       segments: [
-        t(
-          'Techfab is pitched as #1 organised player in a ~₹13,500 crore market growing ~9.0%, with FY25 revenue ₹593 crore and FY24 EBITDA margin 16.1%, and a ₹200 crore capex to double capacity.',
-        ),
+        t('Techfab is pitched as '),
+        t('#1 organised player', true),
+        t(' in a '),
+        t('~₹13,500 crore', true),
+        t(' market growing '),
+        t('~9.0%', true),
+        t(', with FY25 revenue '),
+        t('₹593 crore', true),
+        t(', FY24 EBITDA margin '),
+        t('16.1%', true),
+        t(', and a '),
+        t('₹200 crore', true),
+        t(' capex to double capacity.'),
       ],
     },
     { kind: 'paragraph', marginBottom: 8, segments: [t('Here is what was found before the stop:', true)] },
     {
       kind: 'bullet',
-      segments: [
-        t(
-          'Thesis: #1 organised player in ~₹13,500 crore geosynthetics market growing ~9.0% CAGR; FY25 revenue ₹593 crore, FY24 EBITDA margin 16.1%; ₹200 crore capex to double capacity.',
-        ),
-      ],
+      marginBottom: 6,
+      segments: [t('Thesis: ', true), t('#1 organised player in a ~₹13,500 crore geosynthetics market, growing ~9.0% CAGR.')],
     },
-    { kind: 'spacer' },
     {
       kind: 'bullet',
-      segments: [
-        t(
-          '2.6x MOIC / 21% IRR and peer margin benchmark of 20-23% carry no citation; entry 15.0x vs Garware 15.6x-23.5x.',
-        ),
-      ],
+      marginBottom: 6,
+      segments: [t('Financials: ', true), t('FY25 revenue ₹593 crore; FY24 EBITDA margin 16.1%.')],
+    },
+    {
+      kind: 'bullet',
+      marginBottom: 6,
+      segments: [t('Capex: ', true), t('₹200 crore to double capacity.')],
+    },
+    {
+      kind: 'bullet',
+      marginBottom: 6,
+      segments: [t('Uncited: ', true), t('2.6x MOIC / 21% IRR and the peer margin benchmark of 20–23% carry no citation.')],
+    },
+    {
+      kind: 'bullet',
+      segments: [t('Valuation: ', true), t('entry at 15.0x vs Garware at 15.6x–23.5x.')],
     },
   ] satisfies Block[],
   tableTitle: 'Investment analysis',
