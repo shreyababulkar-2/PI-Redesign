@@ -8,16 +8,20 @@ import { useHover } from '../../hooks/useHover';
 import { Icon } from '../Icon';
 import { AssistantButton } from '../AssistantButton';
 import { pointer } from '../../theme/cursor';
+import { Tone, useDesignOptions } from '../../state/designOptions';
 
 type Props = {
   activeTab: number;
+  /** White (default) or green navigation pill; the text and icons flip to white on green. */
+  tone?: Tone;
   /** Title of the section currently in view. */
   activeSectionTitle: string;
 };
 
 /** Contents of the navigation pill: back button, note type and the current section chip. */
-export function FloatingNavContent({ activeTab, activeSectionTitle }: Props) {
+export function FloatingNavContent({ activeTab, activeSectionTitle, tone = 'white' }: Props) {
   const back = useHover();
+  const green = tone === 'green';
   return (
     <View style={styles.navContent}>
       <View style={styles.titleRow}>
@@ -25,15 +29,15 @@ export function FloatingNavContent({ activeTab, activeSectionTitle }: Props) {
           accessibilityRole="button"
           accessibilityLabel="Back"
           {...back.handlers}
-          style={[styles.back, back.hovered && styles.backHover]}
+          style={[styles.back, back.hovered && (green ? styles.backHoverGreen : styles.backHover)]}
         >
-          <Icon name="floatBack" size={13.714} />
+          <Icon name={green ? "floatBackLight" : "floatBack"} size={13.714} />
         </Pressable>
         <View style={styles.title}>
-          <Text numberOfLines={1} style={[type.floatingTitle, { color: colors.slate800 }]}>
+          <Text numberOfLines={1} style={[type.floatingTitle, { color: green ? colors.white : colors.slate800 }]}>
             {noteTabs[activeTab]}
           </Text>
-          <Icon name="floatChevron" size={18} />
+          <Icon name={green ? "floatChevronLight" : "floatChevron"} size={18} />
         </View>
       </View>
       <View style={styles.sectionChip}>
@@ -66,12 +70,13 @@ type Variant = 'a' | 'b';
  * and the actions to the right edge of the column.
  */
 export function FloatingHeader({ activeTab, activeSectionTitle, variant }: Props & { variant: Variant }) {
+  const { floatingNav } = useDesignOptions();
   return (
     <View pointerEvents="box-none" style={styles.root}>
       <FloatingBackdrop />
       <View pointerEvents="box-none" style={[styles.group, variant === 'b' && styles.groupSplit]}>
-        <View style={[styles.nav, styles.navShadow]}>
-          <FloatingNavContent activeTab={activeTab} activeSectionTitle={activeSectionTitle} />
+        <View style={[styles.nav, styles.navShadow, floatingNav === 'green' && styles.navGreen]}>
+          <FloatingNavContent activeTab={activeTab} activeSectionTitle={activeSectionTitle} tone={floatingNav} />
         </View>
         <View style={styles.cluster}>
           <View style={[styles.actions, styles.actionsShadow]}>
@@ -107,10 +112,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   navContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4 },
+  navGreen: { backgroundColor: colors.pine800 },
   navShadow: { boxShadow: `0px 2px 12px ${colors.floatingShadow}` },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   back: { width: 24, height: 24, borderRadius: 4, alignItems: 'center', justifyContent: 'center', ...pointer, ...transition(['background-color']) },
   backHover: { backgroundColor: colors.dew75 },
+  backHoverGreen: { backgroundColor: colors.white10 },
   title: { flexDirection: 'row', alignItems: 'center', ...pointer },
   sectionChip: {
     flex: 1,

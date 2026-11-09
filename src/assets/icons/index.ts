@@ -5,8 +5,25 @@ export const icons = {
   navItem1: require('./nav-item-1.svg'),
   navItemSelected: require('./nav-item-selected.svg'),
   navSelectedBg: require('./nav-selected-bg.svg'),
+  navItem1Light: require('./nav-item-1-light.svg'),
+  navItem2Light: require('./nav-item-2-light.svg'),
+  navItem3Light: require('./nav-item-3-light.svg'),
+  navItem4Light: require('./nav-item-4-light.svg'),
+  navItem5Light: require('./nav-item-5-light.svg'),
+  navBottom1Light: require('./nav-bottom-1-light.svg'),
+  navBottom2Light: require('./nav-bottom-2-light.svg'),
+  navBottom3Light: require('./nav-bottom-3-light.svg'),
+  navCollapseLight: require('./nav-collapse-light.svg'),
+  navDividerLight: require('./nav-divider-light.svg'),
+  navItemSelectedGreen: require('./nav-item-selected-green.svg'),
+  floatBackLight: require('./float-back-light.svg'),
+  floatChevronLight: require('./float-chevron-light.svg'),
+
   menuButtonBg: require('./menu-button-bg.svg'),
   scrollTop: require('./scroll-top.svg'),
+  refresh: require('./refresh.svg'),
+  fileSmall: require('./file-small.svg'),
+  chipRemove: require('./chip-remove.svg'),
   navItem2: require('./nav-item-2.svg'),
   navItem3: require('./nav-item-3.svg'),
   navItem4: require('./nav-item-4.svg'),
@@ -56,6 +73,7 @@ export const icons = {
   upload: require('./upload.svg'),
   dataRoom: require('./data-room.svg'),
   send: require('./send.svg'),
+  sendActive: require('./send-active.svg'),
 } as const;
 
 export type IconName = keyof typeof icons;
