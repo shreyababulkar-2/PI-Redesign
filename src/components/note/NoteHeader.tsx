@@ -6,6 +6,7 @@ import { HEADER_TOP } from '../../theme/layout';
 import { company, noteTabs } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { NoteTab } from './NoteTab';
+import { AssistantButton } from '../AssistantButton';
 import { pointer } from '../../theme/cursor';
 
 type Props = { activeTab: number };
@@ -46,6 +47,7 @@ export function NoteHeaderContent({ activeTab }: Props) {
         </View>
         <Icon name="topbarDownload" size={28} style={pointer} />
         <Icon name="topbarMore" size={28} style={pointer} />
+        <AssistantButton size={28} />
       </View>
     </View>
   );

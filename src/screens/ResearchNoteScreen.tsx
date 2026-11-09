@@ -4,29 +4,34 @@ import { colors } from '../theme';
 import { HEADER_EXPANDED_HEIGHT } from '../theme/layout';
 import { sections } from '../data/researchNote';
 import { SideNav } from '../components/SideNav';
-import { AnimatedHeader } from '../components/note/AnimatedHeader';
+import { FloatingHeaderLayer } from '../components/note/FloatingHeaderLayer';
+import { NoteHeader } from '../components/note/NoteHeader';
+import { OptionsSwitcher } from '../components/OptionsSwitcher';
+import { useDesignOptions } from '../state/designOptions';
 import { SectionCard } from '../components/note/SectionCard';
 import { Minimap } from '../components/note/Minimap';
 import { ZoomControls } from '../components/note/ZoomControls';
-import { useHeaderProgress } from '../hooks/useHeaderProgress';
 import { useSectionNavigation } from '../hooks/useSectionNavigation';
 import { ResizableAssistant } from '../components/assistant/ResizableAssistant';
 
 const sectionIds = sections.map((s) => s.id);
-/** Body-text zoom: 10% steps between these bounds (1 = design size). */
-const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.7;
-const ZOOM_MAX = 1.5;
-const roundZoom = (z: number) => Math.round(z * 10) / 10;
+/**
+ * Body-text zoom ramp, as body font sizes in px. 12px is the design size and the minimum (zoom out is
+ * disabled there); three zoom-ins reach 18px. 2px steps are the smallest change that reads as a real
+ * step at this size, and 16px (typical web body) is the third stop.
+ */
+const BODY_BASE_PX = 12;
+const ZOOM_STEPS_PX = [12, 14, 16, 18] as const;
 
 /** Tick column sits 40px below the first card's top edge. */
 const MINIMAP_OFFSET = 40;
 
 export function ResearchNoteScreen() {
-  const { scrollRef, activeId, scrolled, onScroll, scrollToSection, onSectionLayout, onViewportLayout, onContentSizeChange } =
+  const { scrollRef, activeId, scrolled, headerProgress, onScroll, scrollToSection, scrollToTop, onSectionLayout, onViewportLayout, onContentSizeChange } =
     useSectionNavigation(sectionIds);
-  const progress = useHeaderProgress(scrolled);
-  const [zoom, setZoom] = useState(1);
+  const { scrolledHeader } = useDesignOptions();
+  const [zoomStep, setZoomStep] = useState(0);
+  const zoom = ZOOM_STEPS_PX[zoomStep] / BODY_BASE_PX;
 
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
 
@@ -44,6 +49,10 @@ export function ResearchNoteScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* The default header is part of the page: it scrolls away with the content. */}
+          <View style={styles.header}>
+            <NoteHeader activeTab={0} />
+          </View>
           {sections.map((section) => (
             <SectionCard key={section.id} section={section} zoom={zoom} onLayout={onSectionLayout(section.id)} />
           ))}
@@ -53,18 +62,24 @@ export function ResearchNoteScreen() {
           <Minimap sections={sections} activeId={activeId} onSelect={scrollToSection} />
         </View>
 
-        <AnimatedHeader
-          progress={progress}
-          scrolled={scrolled}
+        <FloatingHeaderLayer
+          progress={headerProgress}
+          active={scrolled}
+          variant={scrolledHeader}
           activeTab={0}
           activeSectionTitle={activeSection.title}
         />
 
+        <OptionsSwitcher />
+
         <ZoomControls
-          canZoomIn={zoom < ZOOM_MAX}
-          canZoomOut={zoom > ZOOM_MIN}
-          onZoomIn={() => setZoom((z) => Math.min(ZOOM_MAX, roundZoom(z + ZOOM_STEP)))}
-          onZoomOut={() => setZoom((z) => Math.max(ZOOM_MIN, roundZoom(z - ZOOM_STEP)))}
+          topProgress={headerProgress}
+          topActive={scrolled}
+          onScrollTop={scrollToTop}
+          canZoomIn={zoomStep < ZOOM_STEPS_PX.length - 1}
+          canZoomOut={zoomStep > 0}
+          onZoomIn={() => setZoomStep((i) => Math.min(ZOOM_STEPS_PX.length - 1, i + 1))}
+          onZoomOut={() => setZoomStep((i) => Math.max(0, i - 1))}
         />
       </View>
 
@@ -75,15 +90,16 @@ export function ResearchNoteScreen() {
 }
 
 const styles = StyleSheet.create({
-  // 56px left clears the floating side-nav pods; the assistant floats 12px from the right edge.
-  root: { flex: 1, flexDirection: 'row', gap: 12, paddingLeft: 56, paddingRight: 12, backgroundColor: colors.slate50 },
+  // 56px left clears the floating side-nav pods; 8px gap between the columns and 8px inset on the right (Figma 332:4138).
+  root: { flex: 1, flexDirection: 'row', gap: 8, paddingLeft: 56, paddingRight: 8, backgroundColor: colors.slate50 },
   main: { flex: 1 },
   scroll: { ...StyleSheet.absoluteFill },
   scrollContent: {
     alignItems: 'center',
     gap: 16,
-    paddingTop: HEADER_EXPANDED_HEIGHT,
     paddingHorizontal: 80,
   },
+  // Spans the full column (the scroll content is inset 80px each side); -4 trims the list gap to the design's 12px.
+  header: { alignSelf: 'stretch', marginHorizontal: -80, marginBottom: -4 },
   minimapSlot: { position: 'absolute', top: HEADER_EXPANDED_HEIGHT + MINIMAP_OFFSET, left: 4, width: 0, height: 0, zIndex: 10 },
 });

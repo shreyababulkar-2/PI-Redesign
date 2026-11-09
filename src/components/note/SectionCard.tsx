@@ -32,8 +32,10 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
     <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={[type.sectionTitle, { color: colors.slate900 }]}>{section.index}</Text>
-          <Text style={[type.sectionTitle, { color: colors.slate900 }]}>{section.title}</Text>
+          <Text style={[type.sectionTitle, styles.index, { color: colors.slate900 }]}>{section.index}</Text>
+          <Text numberOfLines={1} style={[type.sectionTitle, styles.title, { color: colors.slate900 }]}>
+            {section.title}
+          </Text>
         </View>
         <View style={styles.chips}>
           <StatusChip status={section.status} />
@@ -72,8 +74,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  chips: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // The title truncates with an ellipsis when the card gets narrow; the index and chips never shrink.
+  titleRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 12 },
+  index: { flexShrink: 0 },
+  title: { flexShrink: 1, minWidth: 0 },
+  chips: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   // Runs edge to edge: 2px in from each card edge (Figma: x 2, width 598 in a 602px card).
   divider: { height: 1, marginHorizontal: -14 },
   dividerImg: { width: '100%' },

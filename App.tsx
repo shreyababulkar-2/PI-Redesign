@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAppFonts } from './src/theme/useAppFonts';
 import { ResearchNoteScreen } from './src/screens/ResearchNoteScreen';
+import { DesignOptionsProvider } from './src/state/designOptions';
+import { AssistantOverlayProvider } from './src/state/assistantOverlay';
 
 export default function App() {
   const fontsReady = useAppFonts();
@@ -19,7 +21,11 @@ export default function App() {
   return (
     <>
       <StatusBar style="dark" />
-      <ResearchNoteScreen />
+      <DesignOptionsProvider>
+        <AssistantOverlayProvider>
+          <ResearchNoteScreen />
+        </AssistantOverlayProvider>
+      </DesignOptionsProvider>
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TextStyle, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextStyle, View } from "react-native";
 import { colors, type } from "../../theme";
 import { assistant } from "../../data/researchNote";
 import { Icon } from "../Icon";
@@ -9,7 +9,12 @@ import { Composer } from "./Composer";
 import { Stroke } from "../Stroke";
 import { pointer } from "../../theme/cursor";
 
-export function AssistantPanel() {
+type Props = {
+  /** When set, the collapse icon in the header calls this (used when the assistant is an overlay). */
+  onCollapse?: () => void;
+};
+
+export function AssistantPanel({ onCollapse }: Props) {
   const [thought, files, sources] = assistant.thought;
   const thoughtText = [type.thought, { color: colors.slate500 }];
 
@@ -29,9 +34,15 @@ export function AssistantPanel() {
           <View style={styles.headerButton}>
             <Icon name="history" size={20} />
           </View>
-          <View style={styles.headerButton}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Collapse assistant"
+            disabled={!onCollapse}
+            onPress={onCollapse}
+            style={styles.headerButton}
+          >
             <Icon name="collapse" size={20} />
-          </View>
+          </Pressable>
         </View>
       </View>
 
@@ -111,7 +122,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     marginTop: 8,
-    marginBottom: 7,
+    marginBottom: 8,
     backgroundColor: colors.white,
     borderRadius: 10,
     overflow: "hidden",
@@ -155,7 +166,8 @@ const styles = StyleSheet.create({
   chatContent: { paddingHorizontal: 16, gap: 20 },
   userRow: { width: "100%", alignItems: "flex-end", paddingLeft: 32 },
   userBubble: {
-    width: 265,
+    // 73% of the chat width = the design's 265px at the 396px panel, and it scales with the panel.
+    width: "73%",
     backgroundColor: colors.dew75,
     paddingHorizontal: 12,
     paddingVertical: 8,
