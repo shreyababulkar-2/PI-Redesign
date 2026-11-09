@@ -1,0 +1,13 @@
+# Netlify builds the Expo web export and publishes a Deploy Preview for every pull request.
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Single-page app: serve index.html for any path.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
