@@ -12,6 +12,24 @@ type Ctx = {
 
 const SelectionContext = createContext<Ctx | null>(null);
 
+const HIGHLIGHT_NAME = "pi-context";
+
+type HighlightApi = {
+  highlights?: { set: (name: string, h: unknown) => void; delete: (name: string) => void };
+};
+
+/**
+ * Keeps the context text highlighted in the note after the browser's own selection is gone (CSS Custom Highlight
+ * API; styled by `::highlight(pi-context)` in App.tsx). Browsers without it simply show no persistent highlight.
+ */
+function setContextHighlight(range: Range | null) {
+  const cssApi = (typeof CSS !== "undefined" ? CSS : undefined) as unknown as HighlightApi | undefined;
+  const Highlight = (window as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight;
+  if (!cssApi?.highlights || !Highlight) return;
+  if (range) cssApi.highlights.set(HIGHLIGHT_NAME, new Highlight(range));
+  else cssApi.highlights.delete(HIGHLIGHT_NAME);
+}
+
 /** Selected text as one line, so a selection across paragraphs reads as a single excerpt. */
 function tidy(raw: string) {
   return raw.replace(/\s+/g, " ").trim();
@@ -34,13 +52,26 @@ export function SelectionContextProvider({ children }: { children: ReactNode }) 
       const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
       if (!anchor?.closest(`#${NOTE_CONTENT_ID}`)) return;
       const value = tidy(sel.toString());
-      if (value) setText(value);
+      if (value) {
+        setText(value);
+        setContextHighlight(sel.getRangeAt(0).cloneRange());
+      }
     };
     // Let the browser finalise the selection (e.g. double-click word selection) before reading it.
     const onUp = () => setTimeout(read, 0);
+    // As soon as a new selection forms in the note (while still dragging), the previous highlight is dropped, so it
+    // never lingers beside the new one. A plain click collapses the selection instead and leaves it alone.
+    const onChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+      const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
+      if (anchor?.closest(`#${NOTE_CONTENT_ID}`)) setContextHighlight(null);
+    };
+    document.addEventListener("selectionchange", onChange);
     document.addEventListener("mouseup", onUp);
     document.addEventListener("keyup", onUp);
     return () => {
+      document.removeEventListener("selectionchange", onChange);
       document.removeEventListener("mouseup", onUp);
       document.removeEventListener("keyup", onUp);
     };
@@ -48,7 +79,10 @@ export function SelectionContextProvider({ children }: { children: ReactNode }) 
 
   const clear = useCallback(() => {
     setText(null);
-    if (Platform.OS === "web") window.getSelection()?.removeAllRanges();
+    if (Platform.OS === "web") {
+      window.getSelection()?.removeAllRanges();
+      setContextHighlight(null);
+    }
   }, []);
 
   const value = useMemo(() => ({ text, clear }), [text, clear]);
