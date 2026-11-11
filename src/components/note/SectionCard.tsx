@@ -59,7 +59,7 @@ function CopyAction({ action, text }: { action: (typeof actions)[number]; text: 
 function VersionHistory({ section }: { section: NoteSection }) {
   const latest = parseInt(section.version.replace(/\D/g, ''), 10) || 1;
   const [current, setCurrent] = useState(latest);
-  const items = Array.from({ length: Math.min(latest, 6) }, (_, i) => ({
+  const items = Array.from({ length: Math.min(latest, 4) }, (_, i) => ({
     label: `Version ${latest - i}`,
     subtitle: 'Updated by Canvs · 9 Nov ‘26, 12:40 PM',
   }));
@@ -138,7 +138,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 10,
   },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 },
+  // zIndex: every View is its own stacking context on web, so without this the body text that follows the header
+  // paints over the version menu that drops down from it.
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2, zIndex: 5 },
   // The title truncates with an ellipsis when the card gets narrow; the index and chips never shrink.
   titleRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 12 },
   index: { flexShrink: 0 },
@@ -147,6 +149,6 @@ const styles = StyleSheet.create({
   // Runs edge to edge: 2px in from each card edge (Figma: x 2, width 598 in a 602px card).
   divider: { height: 1, marginHorizontal: -14 },
   dividerImg: { width: '100%' },
-  actionsTrack: { position: 'absolute', top: 0, bottom: 0, right: -33, width: 28 },
+  actionsTrack: { position: 'absolute', top: 0, bottom: 0, right: -33, width: 28, zIndex: 5 },
   actions: { marginTop: 15, gap: 4, justifyContent: 'center' },
 });

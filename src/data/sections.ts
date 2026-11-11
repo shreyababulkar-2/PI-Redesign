@@ -29,7 +29,7 @@ export const sections: NoteSection[] = [
     index: '1.',
     title: 'Company overview',
     status: 'vetted',
-    version: 'v10',
+    version: 'v4',
     maxWidth: 602,
     body: [
       p(
