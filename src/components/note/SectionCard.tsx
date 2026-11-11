@@ -58,7 +58,9 @@ function CopyAction({ action, text }: { action: (typeof actions)[number]; text: 
 /** Version chip with its history dropdown (Figma 459:41993): newest first, the current one highlighted. */
 function VersionHistory({ section }: { section: NoteSection }) {
   const latest = parseInt(section.version.replace(/\D/g, ''), 10) || 1;
-  const [current, setCurrent] = useState(latest);
+  const [picked, setPicked] = useState(latest);
+  // Never beyond the newest version (also keeps a hot-reloaded page, whose data changed under it, consistent).
+  const current = Math.min(picked, latest);
   const items = Array.from({ length: Math.min(latest, 4) }, (_, i) => ({
     label: `Version ${latest - i}`,
     subtitle: 'Updated by Canvs · 9 Nov ‘26, 12:40 PM',
@@ -67,7 +69,7 @@ function VersionHistory({ section }: { section: NoteSection }) {
     <KebabMenu
       items={items}
       selected={`Version ${current}`}
-      onSelect={(label) => setCurrent(parseInt(label.replace(/\D/g, ''), 10))}
+      onSelect={(label) => setPicked(parseInt(label.replace(/\D/g, ''), 10))}
       minWidth={215}
     >
       {({ open, toggle }) => <VersionChip version={`v${current}`} open={open} onPress={toggle} />}
