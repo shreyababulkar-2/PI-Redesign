@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { FloatingHeader } from './FloatingHeader';
-import { HeaderOption } from '../../state/designOptions';
 
 type Props = {
   /** 0 = hidden, 1 = fully shown. Driven by scroll position (see useSectionNavigation). */
   progress: Animated.Value;
   /** True once the floating header is far enough in to take clicks. */
   active: boolean;
-  variant: HeaderOption;
+  variant: 'left' | 'center';
   activeTab: number;
   activeSectionTitle: string;
 };

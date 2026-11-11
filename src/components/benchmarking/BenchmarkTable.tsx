@@ -332,6 +332,8 @@ const text = {
   fontSize: 11,
   lineHeight: 18,
   letterSpacing: 0.08,
+  // Figures change when the unit flips between Mn and Cr, so keep digit widths equal.
+  fontVariant: ["tabular-nums"],
 } as const;
 
 const styles = StyleSheet.create({
@@ -394,6 +396,7 @@ const styles = StyleSheet.create({
   },
   value: text,
   statValue: {
+    fontVariant: ["tabular-nums"],
     fontFamily: fonts.geistMedium,
     fontSize: 11,
     lineHeight: 18,

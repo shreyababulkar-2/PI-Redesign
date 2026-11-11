@@ -254,5 +254,5 @@ const styles = StyleSheet.create({
     ...transition(["background-color", "transform"]),
   },
   actionHover: { backgroundColor: colors.slate100 },
-  actionPressed: { transform: [{ scale: 0.92 }] },
+  actionPressed: { transform: [{ scale: 0.96 }] },
 });

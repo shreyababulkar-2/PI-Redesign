@@ -33,11 +33,11 @@ export const sections: NoteSection[] = [
     maxWidth: 602,
     body: [
       p(
-        'Romsons was established in 1952 as "Romsons Scientific and Surgical Industries" and formally incorporated as a private limited company on November 28, 1977. It operates as a manufacturer and distributor of medical equipment and devices, classified within the Health Care Equipment & Supplies sectordata.',
+        'Romsons was established in 1952 as "Romsons Scientific and Surgical Industries" and formally incorporated as a private limited company on November 28, 1977. It operates as a manufacturer and distributor of medical equipment and devices, classified within the Health Care Equipment & Supplies sectordata[1,2].',
         12,
       ),
       p(
-        'The company manufactures a diverse portfolio of disposable medical devices, including urology catheters and surgical consumables, alongside a range of patient care products such as BP monitors, blood glucose meters, nebulizers, adult diapers, and breast pumps. Romsons serves healthcare providers in India and internationally, with a distribution network that includes warehouses in all state capitals and exports to 65-75 countries.',
+        'The company manufactures a diverse portfolio of disposable medical devices, including urology catheters and surgical consumables, alongside a range of patient care products such as BP monitors, blood glucose meters, nebulizers, adult diapers, and breast pumps[4]. Romsons serves healthcare providers in India and internationally, with a distribution network that includes warehouses in all state capitals and exports to 65-75 countries[7].',
         16,
       ),
       h('Key Milestones:'),
@@ -70,11 +70,11 @@ export const sections: NoteSection[] = [
       h('Management team and organizational health:', 0),
       spacer,
       p(
-        'The company describes itself as a professionally-managed enterprise, with a structured Sales & Marketing Team led by a Director, Marketing, overseeing regional and zonal operations.',
+        'The company describes itself as a professionally-managed enterprise, with a structured Sales & Marketing Team led by a Director, Marketing, overseeing regional and zonal operations[7,9].',
       ),
       spacer,
       p(
-        'What makes us pause is the general employee sentiment, which has been reported as negative and declining in 2026, according to Revelio Labs data. Employee reviews from platforms like Justdial indicate concerns about inefficient management, specifically that higher-level officials are perceived as not prioritizing timely work completion. Furthermore, reviews for "Romsons International" highlight issues such as delayed salaries and pending bonuses [#6]. System-derived: This suggests potential internal operational inefficiencies and compensation management issues that could impact talent retention and overall organizational health.',
+        'What makes us pause is the general employee sentiment, which has been reported as negative and declining in 2026, according to Revelio Labs data. Employee reviews from platforms like Justdial indicate concerns about inefficient management, specifically that higher-level officials are perceived as not prioritizing timely work completion. Furthermore, reviews for "Romsons International" highlight issues such as delayed salaries and pending bonuses[6]. System-derived: This suggests potential internal operational inefficiencies and compensation management issues that could impact talent retention and overall organizational health.',
         16,
       ),
       h('Corporate and regulatory standing'),

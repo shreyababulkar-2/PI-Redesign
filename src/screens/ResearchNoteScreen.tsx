@@ -1,20 +1,13 @@
-import { useEffect, useState } from "react";
-import {
-  Animated,
-  Easing,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../theme";
 import { HEADER_EXPANDED_HEIGHT } from "../theme/layout";
 import { noteTabs, sections } from "../data/researchNote";
 import { SideNav } from "../components/SideNav";
 import { FloatingHeaderLayer } from "../components/note/FloatingHeaderLayer";
+import { appear, leaving } from "../theme/motion";
+import { NOTE_CONTENT_ID } from "../state/selectionContext";
 import { NoteHeader } from "../components/note/NoteHeader";
-import { OptionsSwitcher } from "../components/OptionsSwitcher";
-import { useDesignOptions } from "../state/designOptions";
 import { SectionCard } from "../components/note/SectionCard";
 import { Minimap } from "../components/note/Minimap";
 import { ZoomControls } from "../components/note/ZoomControls";
@@ -22,6 +15,9 @@ import { useSectionNavigation } from "../hooks/useSectionNavigation";
 import { ResizableAssistant } from "../components/assistant/ResizableAssistant";
 import { BenchmarkingPage } from "../components/benchmarking/BenchmarkingPage";
 import { BENCHMARK_TABS, useActiveTab } from "../state/activeTab";
+
+/** How long the old page takes to leave when switching tabs from a scrolled position. */
+const SCROLLED_SWITCH_MS = 260;
 
 /** Header tab indexes (see `noteTabs`). */
 const TAB_RESEARCH = 0;
@@ -51,35 +47,43 @@ export function ResearchNoteScreen() {
     onViewportLayout,
     onContentSizeChange,
   } = useSectionNavigation(sectionIds);
-  const { scrolledHeader } = useDesignOptions();
-  const { tab, benchTab } = useActiveTab();
+  const { tab, pageTab, switching, setSwitchDelay, benchTab } = useActiveTab();
   const [sizeIndex, setSizeIndex] = useState(0);
   const zoom = TEXT_SIZES_PX[sizeIndex] / BODY_BASE_PX;
 
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
   // The floating header's chip names where you are: the section on the note, the sub-tab on Benchmarking.
   const floatingTitle =
-    tab === TAB_BENCHMARKING ? BENCHMARK_TABS[benchTab] : activeSection.title;
-  const wide = tab === TAB_BENCHMARKING; // benchmarking cards run the full column width
+    pageTab === TAB_BENCHMARKING
+      ? BENCHMARK_TABS[benchTab]
+      : activeSection.title;
+  const wide = pageTab === TAB_BENCHMARKING; // benchmarking cards run the full column width
 
-  // Each tab starts at the top, and the new page eases in instead of popping.
-  const [pageFade] = useState(() => new Animated.Value(1));
+  // Switching from a scrolled page: glide back to the top while the old page fades out, and give that glide the
+  // time it needs before the next page is shown, so the swap happens at the top instead of as a jump.
+  useEffect(() => {
+    setSwitchDelay(scrolled ? SCROLLED_SWITCH_MS : 90);
+  }, [scrolled, setSwitchDelay]);
+  const firstTab = useRef(true);
+  useEffect(() => {
+    if (firstTab.current) {
+      firstTab.current = false;
+      return;
+    }
+    if (scrolled) scrollToTop(SCROLLED_SWITCH_MS + 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  // Each tab starts at the top; its content eases in (see `appear` on the section cards and benchmarking blocks).
   useEffect(() => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
-    pageFade.setValue(0.4);
-    Animated.timing(pageFade, {
-      toValue: 1,
-      duration: 240,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [tab, scrollRef, pageFade]);
+  }, [pageTab, scrollRef]);
 
   return (
     <View style={styles.root}>
       <View style={styles.main}>
         {/* The scroll area spans the whole column; content starts below the header and scrolls under it. */}
-        <Animated.View style={[styles.scroll, { opacity: pageFade }]}>
+        <View nativeID={NOTE_CONTENT_ID} style={styles.scroll}>
           <ScrollView
             ref={scrollRef}
             onScroll={onScroll}
@@ -97,27 +101,28 @@ export function ResearchNoteScreen() {
             <View style={[styles.header, wide && styles.headerWide]}>
               <NoteHeader activeTab={tab} />
             </View>
-            {tab === TAB_RESEARCH &&
-              sections.map((section) => (
+            {pageTab === TAB_RESEARCH &&
+              sections.map((section, i) => (
                 <SectionCard
                   key={section.id}
+                  index={i}
                   section={section}
                   zoom={zoom}
                   onLayout={onSectionLayout(section.id)}
                 />
               ))}
-            {tab === TAB_BENCHMARKING && <BenchmarkingPage />}
-            {tab !== TAB_RESEARCH && tab !== TAB_BENCHMARKING && (
-              <View style={styles.placeholder}>
+            {pageTab === TAB_BENCHMARKING && <BenchmarkingPage />}
+            {pageTab !== TAB_RESEARCH && pageTab !== TAB_BENCHMARKING && (
+              <View style={[styles.placeholder, appear(0), leaving(switching)]}>
                 <Text style={styles.placeholderText}>
-                  {noteTabs[tab]} is not designed yet.
+                  {noteTabs[pageTab]} is not designed yet.
                 </Text>
               </View>
             )}
           </ScrollView>
-        </Animated.View>
+        </View>
 
-        {tab === TAB_RESEARCH && (
+        {pageTab === TAB_RESEARCH && (
           <View style={styles.minimapSlot}>
             <Minimap
               sections={sections}
@@ -130,12 +135,10 @@ export function ResearchNoteScreen() {
         <FloatingHeaderLayer
           progress={headerProgress}
           active={scrolled}
-          variant={scrolledHeader}
+          variant="left"
           activeTab={tab}
           activeSectionTitle={floatingTitle}
         />
-
-        <OptionsSwitcher />
 
         <ZoomControls
           topProgress={headerProgress}
@@ -143,7 +146,7 @@ export function ResearchNoteScreen() {
           onScrollTop={scrollToTop}
           sizeIndex={sizeIndex}
           onSelectSize={setSizeIndex}
-          showSize={tab === TAB_RESEARCH}
+          showSize={pageTab === TAB_RESEARCH}
         />
       </View>
 
@@ -181,7 +184,14 @@ const styles = StyleSheet.create({
     color: colors.slate500,
   },
   // Spans the full column (the scroll content is inset 80px each side); -4 trims the list gap to the design's 12px.
-  header: { alignSelf: "stretch", marginHorizontal: -80, marginBottom: -4 },
+  // zIndex keeps the header's kebab menu above the section cards that follow it.
+  header: {
+    alignSelf: "stretch",
+    marginHorizontal: -80,
+    marginBottom: -4,
+    position: "relative",
+    zIndex: 40,
+  },
   minimapSlot: {
     position: "absolute",
     top: HEADER_EXPANDED_HEIGHT + MINIMAP_OFFSET,

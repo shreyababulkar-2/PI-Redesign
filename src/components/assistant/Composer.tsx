@@ -12,9 +12,11 @@ import { colors, fonts, type } from "../../theme";
 import { assistant } from "../../data/researchNote";
 import { benchmarkAssistant } from "../../data/benchmarking";
 import { useActiveTab } from "../../state/activeTab";
+import { useSelectionContext } from "../../state/selectionContext";
 import { transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { Icon } from "../Icon";
+import { FadeIn } from "./FadeIn";
 import { Stroke } from "../Stroke";
 import { pointer } from "../../theme/cursor";
 
@@ -57,7 +59,12 @@ function pickFiles(): Promise<string[]> {
  */
 export function Composer({ onSend, generating = false, onStop }: Props) {
   const { tab } = useActiveTab();
-  const placeholder = tab === 2 ? benchmarkAssistant.placeholder : assistant.composerPlaceholder;
+  const selection = useSelectionContext();
+  const placeholder = selection.text
+    ? "Ask a question related to this selection"
+    : tab === 2
+      ? benchmarkAssistant.placeholder
+      : assistant.composerPlaceholder;
   const [text, setText] = useState("");
   const [height, setHeight] = useState(LINE_HEIGHT);
   const [focused, setFocused] = useState(false);
@@ -98,148 +105,193 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
   const addFiles = (names: string[]) =>
     setFiles((prev) => [...prev, ...names.filter((n) => !prev.includes(n))]);
 
-  const inputHeight = text
-    ? height
-    : PLACEHOLDER_LINE_HEIGHT;
+  const inputHeight = text ? height : PLACEHOLDER_LINE_HEIGHT;
 
   return (
     <View style={styles.wrap}>
-      <View
-        style={[
-          styles.composer,
-          stacked ? styles.composerStacked : styles.composerInline,
-          stacked && files.length > 0 && { paddingTop: 11 },
-          focused && styles.composerFocused,
-        ]}
-      >
+      {/* Text selected in the note sits above the composer as context (Figma 452:34840). */}
+      <View style={selection.text ? styles.contextBox : null}>
+        {selection.text && (
+          <ContextStrip text={selection.text} onRemove={selection.clear} />
+        )}
         <View
           style={[
-            styles.content,
-            stacked ? styles.contentStacked : styles.contentInline,
+            styles.composer,
+            stacked ? styles.composerStacked : styles.composerInline,
+            stacked && files.length > 0 && { paddingTop: 11 },
+            focused && styles.composerFocused,
           ]}
         >
-          {files.length > 0 && (
-            <View style={styles.chips}>
-              <Chip
-                label={files[0]}
-                file
-                onRemove={() => setFiles((prev) => prev.slice(1))}
-              />
-              {files.length > 1 && (
-                <Chip
-                  label={`+${files.length - 1} files`}
-                  onRemove={() => setFiles((prev) => prev.slice(0, 1))}
-                />
-              )}
-            </View>
-          )}
-          <TextInput
-            value={text}
-            onChangeText={onChangeText}
-            onContentSizeChange={(e) => {
-              const h = e.nativeEvent.contentSize.height;
-              if (text && h > LINE_HEIGHT * 1.5) setWrapped(true);
-              setHeight(
-                Math.min(Math.max(h, LINE_HEIGHT), LINE_HEIGHT * MAX_LINES),
-              );
-            }}
-            onKeyPress={onKeyPress}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            multiline
-            placeholder={placeholder}
-            placeholderTextColor={colors.slate500}
-            accessibilityLabel="Ask a follow up question"
+          <View
             style={[
-              type.composer,
-              styles.input,
-              {
-                height: inputHeight,
-                lineHeight: text ? LINE_HEIGHT : PLACEHOLDER_LINE_HEIGHT,
-                color: colors.slate800,
-              },
+              styles.content,
+              stacked ? styles.contentStacked : styles.contentInline,
             ]}
+          >
+            {files.length > 0 && (
+              <View style={styles.chips}>
+                <Chip
+                  label={files[0]}
+                  file
+                  onRemove={() => setFiles((prev) => prev.slice(1))}
+                />
+                {files.length > 1 && (
+                  <Chip
+                    label={`+${files.length - 1} files`}
+                    onRemove={() => setFiles((prev) => prev.slice(0, 1))}
+                  />
+                )}
+              </View>
+            )}
+            <TextInput
+              value={text}
+              onChangeText={onChangeText}
+              onContentSizeChange={(e) => {
+                const h = e.nativeEvent.contentSize.height;
+                if (text && h > LINE_HEIGHT * 1.5) setWrapped(true);
+                setHeight(
+                  Math.min(Math.max(h, LINE_HEIGHT), LINE_HEIGHT * MAX_LINES),
+                );
+              }}
+              onKeyPress={onKeyPress}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              multiline
+              placeholder={placeholder}
+              placeholderTextColor={colors.slate500}
+              accessibilityLabel="Ask a follow up question"
+              style={[
+                type.composer,
+                styles.input,
+                {
+                  height: inputHeight,
+                  lineHeight: text ? LINE_HEIGHT : PLACEHOLDER_LINE_HEIGHT,
+                  color: colors.slate800,
+                },
+              ]}
+            />
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add files"
+            accessibilityState={{ expanded: menuOpen }}
+            onPress={() => setMenuOpen((open) => !open)}
+            style={[
+              styles.plus,
+              stacked ? styles.atBottom : styles.atTop,
+              menuOpen && styles.plusOpen,
+            ]}
+          >
+            <Icon name={menuOpen ? "plusGreen" : "plus"} size={16} />
+          </Pressable>
+
+          {generating ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Stop generating"
+              onPress={onStop}
+              style={({ pressed }) => [
+                styles.send,
+                stacked ? styles.atBottom : styles.atTop,
+                styles.stop,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={styles.stopSquare} />
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Send"
+              accessibilityState={{ disabled: !canSend }}
+              disabled={!canSend}
+              onPress={send}
+              style={({ pressed }) => [
+                styles.send,
+                stacked ? styles.atBottom : styles.atTop,
+                canSend && pointer,
+                pressed && canSend && styles.pressed,
+              ]}
+            >
+              <Icon name={canSend ? "sendActive" : "send"} size={24} />
+            </Pressable>
+          )}
+
+          {menuOpen && (
+            <>
+              <Pressable
+                accessibilityLabel="Close menu"
+                onPress={() => setMenuOpen(false)}
+                style={styles.backdrop}
+              />
+              <FadeIn
+                rise={4}
+                duration={140}
+                style={{
+                  ...styles.menu,
+                  ...(stacked ? styles.menuStacked : styles.menuInline),
+                }}
+              >
+                <MenuItem
+                  icon="upload"
+                  label="Upload from device"
+                  onPress={async () => {
+                    setMenuOpen(false);
+                    addFiles(await pickFiles());
+                  }}
+                />
+                <MenuItem
+                  icon="dataRoom"
+                  label="Choose from data room"
+                  onPress={() => {
+                    setMenuOpen(false);
+                    addFiles(assistant.dataRoomFiles);
+                  }}
+                />
+              </FadeIn>
+            </>
+          )}
+          <Stroke
+            color={focused || menuOpen ? colors.pine700 : colors.slate100}
+            radius={12}
           />
         </View>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add files"
-          accessibilityState={{ expanded: menuOpen }}
-          onPress={() => setMenuOpen((open) => !open)}
-          style={[
-            styles.plus,
-            stacked ? styles.atBottom : styles.atTop,
-            menuOpen && styles.plusOpen,
-          ]}
-        >
-          <Icon name={menuOpen ? "plusGreen" : "plus"} size={16} />
-        </Pressable>
-
-        {generating ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Stop generating"
-            onPress={onStop}
-            style={({ pressed }) => [
-              styles.send,
-              stacked ? styles.atBottom : styles.atTop,
-              styles.stop,
-              pressed && styles.pressed,
-            ]}
-          >
-            <View style={styles.stopSquare} />
-          </Pressable>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Send"
-            accessibilityState={{ disabled: !canSend }}
-            disabled={!canSend}
-            onPress={send}
-            style={({ pressed }) => [
-              styles.send,
-              stacked ? styles.atBottom : styles.atTop,
-              canSend && pointer,
-              pressed && canSend && styles.pressed,
-            ]}
-          >
-            <Icon name={canSend ? "sendActive" : "send"} size={24} />
-          </Pressable>
-        )}
-
-        {menuOpen && (
-          <>
-            <Pressable
-              accessibilityLabel="Close menu"
-              onPress={() => setMenuOpen(false)}
-              style={styles.backdrop}
-            />
-            <View style={[styles.menu, stacked ? styles.menuStacked : styles.menuInline]}>
-              <MenuItem
-                icon="upload"
-                label="Upload from device"
-                onPress={async () => {
-                  setMenuOpen(false);
-                  addFiles(await pickFiles());
-                }}
-              />
-              <MenuItem
-                icon="dataRoom"
-                label="Choose from data room"
-                onPress={() => {
-                  setMenuOpen(false);
-                  addFiles(assistant.dataRoomFiles);
-                }}
-              />
-            </View>
-          </>
-        )}
-        <Stroke
-          color={focused || menuOpen ? colors.pine700 : colors.slate100}
-          radius={12}
-        />
       </View>
+    </View>
+  );
+}
+
+/** The selected excerpt (one line, truncated) with a Remove action, on the dark green strip above the composer. */
+function ContextStrip({
+  text,
+  onRemove,
+}: {
+  text: string;
+  onRemove: () => void;
+}) {
+  const hover = useHover();
+  return (
+    <View style={styles.strip}>
+      <View style={styles.stripMain}>
+        <Icon name="selectionSparkles" size={12} />
+        <Text numberOfLines={1} style={styles.stripText}>
+          {text}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Remove selected text from context"
+        onPress={onRemove}
+        {...hover.handlers}
+        style={styles.stripRemove}
+      >
+        <Text
+          style={[styles.stripRemoveText, { opacity: hover.hovered ? 1 : 0.8 }]}
+        >
+          Remove
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -302,6 +354,42 @@ function Chip({
 
 const styles = StyleSheet.create({
   wrap: { width: "100%", paddingHorizontal: 16 },
+  contextBox: {
+    paddingTop: 8,
+    // Same 12px corners as the composer inside it, so no green shows at its bottom corners.
+    borderRadius: 12,
+    backgroundColor: colors.pine900,
+    boxShadow: "0px 4px 12px rgba(0,0,0,0.08)",
+  },
+  strip: {
+    height: 16,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  stripMain: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  stripText: {
+    flex: 1,
+    fontFamily: fonts.geistRegular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.white,
+  },
+  stripRemove: { ...pointer, ...transition(["opacity"]) },
+  stripRemoveText: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 10,
+    lineHeight: 12,
+    color: colors.white,
+  },
   composer: {
     width: "100%",
     backgroundColor: colors.white,
@@ -316,7 +404,11 @@ const styles = StyleSheet.create({
   composerFocused: { boxShadow: "0px 0px 0px 2px rgba(34,115,62,0.15)" },
   content: { gap: 8 },
   // Leave room for the absolutely placed plus (24 + 8) and send (8 + 24) buttons.
-  contentInline: { minHeight: 24, justifyContent: "center", paddingHorizontal: 32 },
+  contentInline: {
+    minHeight: 24,
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
   contentStacked: { paddingBottom: 36 },
   chips: { flexDirection: "row", alignItems: "center", gap: 6 },
   input: {
@@ -365,7 +457,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.white,
   },
-  pressed: { transform: [{ scale: 0.92 }] },
+  pressed: { transform: [{ scale: 0.96 }] },
   // Catches taps outside the menu so any tap closes it. On web it is fixed to the viewport: an oversized
   // absolute box would make the assistant's overflow-hidden parent scrollable and shift the composer.
   backdrop: {

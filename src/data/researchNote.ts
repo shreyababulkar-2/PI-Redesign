@@ -10,9 +10,11 @@ export const company = {
   name: 'Romsons Group Private Limited',
   /** Shown in the floating (scrolled) header. */
   shortName: 'Romsons Group',
+  /** Deal stage, shown as a chip next to the name. */
+  stage: 'Stage 2',
 };
 
-export const noteTabs = ['Research note', 'IC memo', 'Benchmarking', 'Checklist'] as const;
+export const noteTabs = ['Research note', 'IC memo', 'Benchmarking', 'Checklist', 'Data Room'] as const;
 
 export const assistant = {
   userMessage:

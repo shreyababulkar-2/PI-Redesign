@@ -3,12 +3,13 @@ import { Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-na
 import { floatingHeaderBackdrop } from '../../assets/images';
 import { colors, type } from '../../theme';
 import { noteTabs } from '../../data/researchNote';
-import { transition } from '../../theme/motion';
-import { useHover } from '../../hooks/useHover';
+import { press, transition } from '../../theme/motion';
 import { Icon } from '../Icon';
 import { AssistantButton } from '../AssistantButton';
+import { KebabMenu } from './KebabMenu';
+import { useActiveTab } from '../../state/activeTab';
 import { pointer } from '../../theme/cursor';
-import { Tone, useDesignOptions } from '../../state/designOptions';
+export type Tone = 'white' | 'green';
 
 type Props = {
   activeTab: number;
@@ -18,28 +19,37 @@ type Props = {
   activeSectionTitle: string;
 };
 
-/** Contents of the navigation pill: back button, note type and the current section chip. */
+/** Contents of the navigation pill (Figma 459:41542): the note type with a chevron and the current section chip. */
 export function FloatingNavContent({ activeTab, activeSectionTitle, tone = 'white' }: Props) {
-  const back = useHover();
+  const { setTab } = useActiveTab();
   const green = tone === 'green';
   return (
     <View style={styles.navContent}>
-      <View style={styles.titleRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          {...back.handlers}
-          style={[styles.back, back.hovered && (green ? styles.backHoverGreen : styles.backHover)]}
-        >
-          <Icon name={green ? "floatBackLight" : "floatBack"} size={13.714} />
-        </Pressable>
-        <View style={styles.title}>
-          <Text numberOfLines={1} style={[type.floatingTitle, { color: green ? colors.white : colors.slate800 }]}>
-            {noteTabs[activeTab]}
-          </Text>
-          <Icon name={green ? "floatChevronLight" : "floatChevron"} size={18} />
-        </View>
-      </View>
+      {/* The note type opens a small menu to switch tab (Figma 459:41699). */}
+      <KebabMenu
+        items={noteTabs.map((label) => ({ label }))}
+        selected={noteTabs[activeTab]}
+        onSelect={(label) => setTab(noteTabs.indexOf(label as (typeof noteTabs)[number]))}
+        placement={{ right: undefined, left: -12, marginTop: 16 }}
+        minWidth={120}
+      >
+        {({ open, toggle }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Switch tab"
+            accessibilityState={{ expanded: open }}
+            onPress={toggle}
+            style={({ pressed }) => [styles.title, press(pressed)]}
+          >
+            <Text numberOfLines={1} style={[type.floatingTitle, { color: green ? colors.white : colors.slate900 }]}>
+              {noteTabs[activeTab]}
+            </Text>
+            <View style={[{ transform: [{ rotate: open ? '180deg' : '0deg' }] }, transition(['transform'], 200) as object]}>
+              <Icon name={green ? "floatChevronLight" : "floatChevron"} size={18} />
+            </View>
+          </Pressable>
+        )}
+      </KebabMenu>
       <View style={styles.sectionChip}>
         <Text numberOfLines={1} style={[type.floatingChip, { color: colors.pine800 }]}>
           {activeSectionTitle}
@@ -70,7 +80,7 @@ type Variant = 'left' | 'center';
  * and the actions to the right edge of the column.
  */
 export function FloatingHeader({ activeTab, activeSectionTitle, variant }: Props & { variant: Variant }) {
-  const { floatingNav } = useDesignOptions();
+  const floatingNav = 'white' as Tone;
   return (
     <View pointerEvents="box-none" style={styles.root}>
       <FloatingBackdrop />
@@ -79,9 +89,15 @@ export function FloatingHeader({ activeTab, activeSectionTitle, variant }: Props
           <FloatingNavContent activeTab={activeTab} activeSectionTitle={activeSectionTitle} tone={floatingNav} />
         </View>
         <View style={styles.cluster}>
-          <View style={[styles.actions, styles.actionsShadow]}>
-            <Icon name="floatMore" size={28} />
-          </View>
+          <KebabMenu>
+            {({ open, toggle }) => (
+              <Pressable accessibilityRole="button" accessibilityLabel="More actions" accessibilityState={{ expanded: open }} onPress={toggle} style={({ pressed }) => press(pressed)}>
+                <View style={[styles.actions, styles.actionsShadow]}>
+                  <Icon name="floatMore" size={28} />
+                </View>
+              </Pressable>
+            )}
+          </KebabMenu>
           <AssistantButton size={36} />
         </View>
       </View>
@@ -104,14 +120,16 @@ const styles = StyleSheet.create({
   cluster: { flexDirection: 'row', gap: 8 },
   group: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 8 },
   groupSplit: { width: '100%', justifyContent: 'space-between' },
+  // Hugs its content (Figma: 258 wide with "Background checks on the company"); the chip truncates when narrow.
   nav: {
-    width: 280,
+    flexShrink: 1,
+    minWidth: 0,
     height: 36,
     backgroundColor: colors.white,
     borderRadius: 8,
-    overflow: 'hidden',
   },
-  navContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 4 },
+  // Fills the pill's full 36px so the title and chip centre on it (at 34px they sat 1px high).
+  navContent: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 36, paddingRight: 4, paddingLeft: 12 },
   navGreen: { backgroundColor: colors.pine800 },
   navShadow: { boxShadow: `0px 2px 12px ${colors.floatingShadow}` },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -120,11 +138,11 @@ const styles = StyleSheet.create({
   backHoverGreen: { backgroundColor: colors.white10 },
   title: { flexDirection: 'row', alignItems: 'center', ...pointer },
   sectionChip: {
-    flex: 1,
+    flexShrink: 1,
     minWidth: 1,
+    height: 26,
     justifyContent: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: colors.dew75,
     overflow: 'hidden',

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../../theme";
-import { transition } from "../../theme/motion";
+import { press, transition } from "../../theme/motion";
 import { Icon } from "../Icon";
 import { Stroke } from "../Stroke";
 import { pointer } from "../../theme/cursor";
@@ -71,7 +71,7 @@ export function ZoomControls({
             accessibilityRole="button"
             accessibilityLabel="Scroll to top"
             onPress={onScrollTop}
-            style={styles.button}
+            style={({ pressed }) => [styles.button, press(pressed)]}
           >
             <Icon name="scrollTop" size={16} />
           </Pressable>
@@ -88,7 +88,7 @@ export function ZoomControls({
               accessibilityLabel={name}
               accessibilityState={{ selected }}
               onPress={() => onSelectSize(index)}
-              style={[styles.button, selected && styles.selected]}
+              style={({ pressed }) => [styles.button, selected && styles.selected, press(pressed)]}
             >
               <Text style={[styles.glyph, selected && styles.glyphSelected]}>
                 {label}

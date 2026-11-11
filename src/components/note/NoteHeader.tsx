@@ -1,13 +1,16 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { companyLogo } from '../../assets/images';
 import { colors, type } from '../../theme';
 import { HEADER_TOP } from '../../theme/layout';
 import { company, noteTabs } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { NoteTab } from './NoteTab';
+import { StageChip } from './Chip';
+import { KebabMenu } from './KebabMenu';
 import { AssistantButton } from '../AssistantButton';
 import { pointer } from '../../theme/cursor';
+import { press } from '../../theme/motion';
 import { useActiveTab } from '../../state/activeTab';
 
 type Props = { activeTab: number };
@@ -32,6 +35,9 @@ export function NoteHeaderContent({ activeTab }: Props) {
             <Image source={companyLogo} contentFit="cover" style={styles.logo} />
           </View>
           <Text style={[type.companyName, styles.companyName]}>{company.name}</Text>
+          <View style={styles.stage}>
+            <StageChip label={company.stage} />
+          </View>
         </View>
         <View style={styles.tabs}>
           {noteTabs.map((label, i) => (
@@ -41,14 +47,16 @@ export function NoteHeaderContent({ activeTab }: Props) {
       </View>
 
       <View style={styles.right}>
-        <View style={styles.dataRoom}>
-          <Icon name="headerDataRoom" size={16} />
-          <Text style={[type.buttonSmall, { color: colors.pine800 }]} numberOfLines={1}>
-            Data Room
-          </Text>
-        </View>
         <Icon name="topbarDownload" size={28} style={pointer} />
-        <Icon name="topbarMore" size={28} style={pointer} />
+        <KebabMenu>
+          {({ open, toggle }) => (
+            <Pressable accessibilityRole="button" accessibilityLabel="More actions" accessibilityState={{ expanded: open }} onPress={toggle} style={({ pressed }) => press(pressed)}>
+              <Icon name="topbarMore" size={28} style={pointer} />
+              {/* While the menu is open the button gets a hairline outline (Figma 441:32461). */}
+              {open && <View pointerEvents="none" style={styles.openOutline} />}
+            </Pressable>
+          )}
+        </KebabMenu>
         <AssistantButton size={28} />
       </View>
     </View>
@@ -57,7 +65,8 @@ export function NoteHeaderContent({ activeTab }: Props) {
 
 const styles = StyleSheet.create({
   // Soft drop shadow as on the header card in the Benchmarking design (0 1 6, 8% black).
-  root: { marginTop: HEADER_TOP, backgroundColor: colors.white, borderRadius: 8, boxShadow: '0px 1px 6px rgba(0,0,0,0.08)' },
+  // zIndex lifts the kebab menu above the section cards' action icons that follow the header.
+  root: { position: 'relative', zIndex: 40, marginTop: HEADER_TOP, backgroundColor: colors.white, borderRadius: 8, boxShadow: '0px 1px 6px rgba(0,0,0,0.08)' },
   content: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -77,18 +86,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: { width: 16, height: 16, borderRadius: 8 },
+  openOutline: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: 8, borderWidth: 1, borderColor: '#e1e4ea' },
+  // 8px between the name and the chip (the row gap is 4).
+  stage: { marginLeft: 4 },
   tabs: { flexDirection: 'row', gap: 8 },
   right: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dataRoom: {
-    height: 28,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    backgroundColor: colors.dew75,
-    borderRadius: 8,
-    overflow: 'hidden',
-    ...pointer,
-  },
 });

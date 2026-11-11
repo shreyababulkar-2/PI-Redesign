@@ -105,7 +105,8 @@ const styles = StyleSheet.create({
   },
   groups: { width: '100%', gap: 4 },
   item: { height: 32, flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 8, ...pointer, ...transition(['background-color']) },
-  itemActive: { backgroundColor: colors.pine100, borderRadius: 6 },
+  // Selected row fill per Figma 441:31176.
+  itemActive: { backgroundColor: '#f0f5f4', borderRadius: 6 },
   itemDefault: { borderRadius: 4 },
   itemHover: { backgroundColor: colors.slate100 },
   divider: { height: 0, width: '100%' },

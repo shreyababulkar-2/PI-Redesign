@@ -3,8 +3,11 @@ import { CARD_ACTIONS_STICKY_TOP } from '../../theme/layout';
 import { colors, type } from '../../theme';
 import { NoteSection } from '../../data/researchNote';
 import { Icon } from '../Icon';
+import { appear, leaving } from '../../theme/motion';
+import { useActiveTab } from '../../state/activeTab';
 import { ActionButton } from './ActionButton';
-import { StatusChip, VersionChip } from './Chip';
+import { KebabMenu, SECTION_MENU_ITEMS } from './KebabMenu';
+import { VersionChip } from './Chip';
 import { RichText } from './RichText';
 import { Stroke } from '../Stroke';
 
@@ -25,11 +28,14 @@ type Props = {
   onLayout?: (e: LayoutChangeEvent) => void;
   /** Body text zoom factor (1 = 100%). */
   zoom?: number;
+  /** Position on the page, for the staggered entrance. */
+  index?: number;
 };
 
-export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
+export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
+  const { switching } = useActiveTab();
   return (
-    <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }]}>
+    <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }, appear(index), leaving(switching)]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={[type.sectionTitle, styles.index, { color: colors.slate900 }]}>{section.index}</Text>
@@ -38,7 +44,6 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
           </Text>
         </View>
         <View style={styles.chips}>
-          <StatusChip status={section.status} />
           <VersionChip version={section.version} />
         </View>
       </View>
@@ -54,9 +59,15 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
       {/* Track spans the card; the icons stick below the floating header while the card scrolls. */}
       <View pointerEvents="box-none" style={styles.actionsTrack}>
         <View style={[styles.actions, stickyActions]}>
-          {actions.map((a) => (
-            <ActionButton key={a.icon} {...a} />
-          ))}
+          {actions.map((a) =>
+            a.icon === 'actionMore' ? (
+              <KebabMenu key={a.icon} items={SECTION_MENU_ITEMS}>
+                {({ open, toggle }) => <ActionButton {...a} active={open} onPress={toggle} />}
+              </KebabMenu>
+            ) : (
+              <ActionButton key={a.icon} {...a} />
+            ),
+          )}
         </View>
       </View>
     </View>

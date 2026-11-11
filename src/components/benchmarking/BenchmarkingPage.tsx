@@ -1,5 +1,11 @@
 import { ReactNode, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { colors, fonts } from "../../theme";
 import {
@@ -12,21 +18,32 @@ import { BENCHMARK_TABS, useActiveTab } from "../../state/activeTab";
 import { useHover } from "../../hooks/useHover";
 import { Icon } from "../Icon";
 import { pointer } from "../../theme/cursor";
-import { transition } from "../../theme/motion";
-import { BenchmarkTable, createScrollGroup, DotsIcon, TableItem, Unit } from "./BenchmarkTable";
+import { appear, leaving, press, transition } from "../../theme/motion";
+import {
+  BenchmarkTable,
+  createScrollGroup,
+  DotsIcon,
+  TableItem,
+  Unit,
+} from "./BenchmarkTable";
 
 /**
  * Benchmarking tab (Figma "Benchmarking - New", 373:23715): a sub-tab bar, the analysis summary and two
  * comparison cards. Returned as siblings so the screen's scroll list spaces them like the other pages.
  */
 export function BenchmarkingPage() {
+  const { benchTab } = useActiveTab();
   const overallItems = useMemo<TableItem[]>(
     () => [
       { type: "header" },
       { type: "gap", height: 4 },
       { type: "company", company: overallCompany },
       { type: "stat", label: "All companies: Mean", values: overallStats.mean },
-      { type: "stat", label: "All companies: Median", values: overallStats.median },
+      {
+        type: "stat",
+        label: "All companies: Median",
+        values: overallStats.median,
+      },
     ],
     [],
   );
@@ -35,7 +52,9 @@ export function BenchmarkingPage() {
     categoryGroups.forEach((g, i) => {
       if (i > 0) items.push({ type: "gap", height: 8 });
       items.push({ type: "title", text: g.title }, { type: "gap", height: 4 });
-      g.companies.forEach((company) => items.push({ type: "company", company }));
+      g.companies.forEach((company) =>
+        items.push({ type: "company", company }),
+      );
       items.push(
         { type: "stat", label: "All companies: Mean", values: g.mean },
         { type: "stat", label: "All companies: Median", values: g.median },
@@ -54,14 +73,20 @@ export function BenchmarkingPage() {
       <SubTabs />
       <Analysis />
 
-      <Card radius={10}>
+      <Card key={`overall-${benchTab}`} radius={10} index={2}>
         <CardHeader title="Overall comparison">
           <View style={styles.tools}>
-            <UnitChip unit={unit} onToggle={() => setUnit((u) => (u === "Mn" ? "Cr" : "Mn"))} />
+            <UnitChip
+              unit={unit}
+              onToggle={() => setUnit((u) => (u === "Mn" ? "Cr" : "Mn"))}
+            />
             <View style={styles.divider} />
             <View style={styles.iconPair}>
               <Icon name="tableExpand" size={28} style={pointer} />
-              <Pressable accessibilityRole="button" accessibilityLabel="Comments">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Comments"
+              >
                 <Icon name="tableComments" size={28} style={pointer} />
               </Pressable>
               <DotsIcon />
@@ -69,12 +94,21 @@ export function BenchmarkingPage() {
           </View>
         </CardHeader>
         <View style={styles.tableWrap}>
-          <BenchmarkTable items={overallItems} actionsWidth={50} unit={unit} scrollGroup={scrollGroup} />
+          <BenchmarkTable
+            items={overallItems}
+            actionsWidth={50}
+            unit={unit}
+            scrollGroup={scrollGroup}
+          />
         </View>
       </Card>
 
-      <Pressable {...hover.handlers} style={styles.cardPressable}>
-        <Card radius={12}>
+      <Pressable
+        key={`category-${benchTab}`}
+        {...hover.handlers}
+        style={styles.cardPressable}
+      >
+        <Card radius={12} index={3}>
           <CardHeader title="Category-wise comparison">
             <FilterChip label="Regulatory classification" />
           </CardHeader>
@@ -93,19 +127,54 @@ export function BenchmarkingPage() {
   );
 }
 
-/** Sub-tabs under the page header; the chosen one is dark with a short green underline. */
+/**
+ * Sub-tabs under the page header. The chosen one is dark and a short green underline slides to it (rather than
+ * disappearing from one tab and appearing on another).
+ */
 function SubTabs() {
-  const { benchTab, setBenchTab } = useActiveTab();
+  const { benchTab, setBenchTab, switching } = useActiveTab();
+  const [layouts, setLayouts] = useState<
+    Record<number, { x: number; y: number; width: number; height: number }>
+  >({});
+  const active = layouts[benchTab];
   return (
-    <View style={styles.subTabs} accessibilityRole="tablist">
+    <View
+      style={[styles.subTabs, appear(0), leaving(switching)]}
+      accessibilityRole="tablist"
+    >
       {BENCHMARK_TABS.map((label, i) => (
         <SubTab
           key={label}
           label={label}
           active={i === benchTab}
           onPress={() => setBenchTab(i)}
+          onLayout={(e: LayoutChangeEvent) => {
+            const l = e.nativeEvent.layout;
+            setLayouts((prev) =>
+              prev[i] &&
+              prev[i].x === l.x &&
+              prev[i].width === l.width &&
+              prev[i].y === l.y
+                ? prev
+                : { ...prev, [i]: l },
+            );
+          }}
         />
       ))}
+      {/* Mounted once the active tab has been measured, so it starts in place and only moves on later changes. */}
+      {active && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.underline,
+            {
+              left: active.x + active.width / 2 - 30,
+              top: active.y + active.height - 2,
+            },
+            transition(["left", "top"], 220),
+          ]}
+        />
+      )}
     </View>
   );
 }
@@ -114,10 +183,12 @@ function SubTab({
   label,
   active,
   onPress,
+  onLayout,
 }: {
   label: string;
   active: boolean;
   onPress: () => void;
+  onLayout: (e: LayoutChangeEvent) => void;
 }) {
   const hover = useHover();
   return (
@@ -125,25 +196,30 @@ function SubTab({
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       onPress={onPress}
+      onLayout={onLayout}
       {...hover.handlers}
       style={styles.subTab}
     >
       <Text
         style={[
           styles.subTabText,
-          { color: active || hover.hovered ? colors.slate700 : colors.slate500 },
+          {
+            color: active || hover.hovered ? colors.slate700 : colors.slate500,
+          },
+          transition(["color"], 200),
         ]}
       >
         {label}
       </Text>
-      {active && <View style={styles.underline} />}
     </Pressable>
   );
 }
 
 function Analysis() {
   return (
-    <View style={styles.analysis}>
+    <View
+      style={[styles.analysis, appear(1), leaving(useActiveTab().switching)]}
+    >
       <View style={styles.analysisIcon}>
         <Svg width={19} height={20} viewBox="0 0 19 20" fill="none">
           <Path
@@ -156,10 +232,14 @@ function Analysis() {
         <View style={styles.analysisHead}>
           <View style={styles.analysisTitleRow}>
             <Text style={styles.analysisTitle}>{benchmarkAnalysis.title}</Text>
-            <Text style={styles.analysisCounts}>{benchmarkAnalysis.counts}</Text>
+            <Text style={styles.analysisCounts}>
+              {benchmarkAnalysis.counts}
+            </Text>
           </View>
           <Pressable accessibilityRole="button" style={styles.analysisLink}>
-            <Text style={styles.analysisLinkText}>{benchmarkAnalysis.link}</Text>
+            <Text style={styles.analysisLinkText}>
+              {benchmarkAnalysis.link}
+            </Text>
             <Svg width={14} height={14} viewBox="0 0 14 14" fill="none">
               <Path
                 d="M5.2 3l4 4-4 4"
@@ -179,11 +259,29 @@ function Analysis() {
   );
 }
 
-function Card({ radius, children }: { radius: number; children: ReactNode }) {
-  return <View style={[styles.card, { borderRadius: radius }]}>{children}</View>;
+function Card({
+  radius,
+  index,
+  children,
+}: {
+  radius: number;
+  index: number;
+  children: ReactNode;
+}) {
+  return (
+    <View style={[styles.card, { borderRadius: radius }, appear(index)]}>
+      {children}
+    </View>
+  );
 }
 
-function CardHeader({ title, children }: { title: string; children: ReactNode }) {
+function CardHeader({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <View style={styles.cardHeader}>
       <Text style={styles.cardTitle}>{title}</Text>
@@ -200,7 +298,11 @@ function UnitChip({ unit, onToggle }: { unit: Unit; onToggle: () => void }) {
       accessibilityLabel={`Units: ₹ ${unit}. Switch to ₹ ${unit === "Mn" ? "Cr" : "Mn"}`}
       onPress={onToggle}
       {...hover.handlers}
-      style={[styles.chip, hover.hovered && styles.chipHover]}
+      style={({ pressed }) => [
+        styles.chip,
+        hover.hovered && styles.chipHover,
+        press(pressed),
+      ]}
     >
       <Text style={styles.chipText}>₹ {unit}</Text>
       <Icon name="unitCaret" size={14} />
@@ -214,7 +316,12 @@ function FilterChip({ label }: { label: string }) {
     <Pressable
       accessibilityRole="button"
       {...hover.handlers}
-      style={[styles.chip, styles.chipLarge, hover.hovered && styles.chipHover]}
+      style={({ pressed }) => [
+        styles.chip,
+        styles.chipLarge,
+        hover.hovered && styles.chipHover,
+        press(pressed),
+      ]}
     >
       <Text style={styles.chipText}>{label}</Text>
       <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
@@ -254,9 +361,6 @@ const styles = StyleSheet.create({
   },
   underline: {
     position: "absolute",
-    left: "50%",
-    marginLeft: -30,
-    bottom: 0,
     width: 60,
     height: 2,
     borderRadius: 2,
@@ -339,7 +443,12 @@ const styles = StyleSheet.create({
   },
   tools: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconPair: { flexDirection: "row", gap: 4 },
-  divider: { width: 1, height: 14, borderRadius: 100, backgroundColor: colors.slate200 },
+  divider: {
+    width: 1,
+    height: 14,
+    borderRadius: 100,
+    backgroundColor: colors.slate200,
+  },
   tableWrap: { marginTop: 12 },
   chip: {
     flexDirection: "row",

@@ -1,38 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, type } from '../../theme';
+import { colors, fonts, type } from '../../theme';
 import { Icon } from '../Icon';
-import { SectionStatus } from '../../data/researchNote';
 import { pointer } from '../../theme/cursor';
 
-/** Section header chips (Figma "Chips/Rounded"): 20px tall, 11px Mona Sans, ending in a chevron. */
-const STATUS = {
-  vetted: {
-    label: 'Vetted',
-    bg: colors.pine700,
-    fg: colors.white,
-    icon: 'successFilled',
-    chevron: 'chipChevronWhite',
-  },
-  unvetted: {
-    label: 'Unvetted',
-    bg: colors.neutralChipBg,
-    fg: colors.neutralChipText,
-    icon: 'errorFilled',
-    chevron: 'chipChevronWarning',
-  },
-} as const;
-
-export function StatusChip({ status }: { status: SectionStatus }) {
-  const s = STATUS[status];
-  return (
-    <View style={[styles.chip, { backgroundColor: s.bg, paddingHorizontal: 4 }]}>
-      <Icon name={s.icon} size={12} />
-      <Text style={[type.chip, { color: s.fg }]}>{s.label}</Text>
-      <Icon name={s.chevron} size={12} />
-    </View>
-  );
-}
-
+/** Section header chip (Figma "Chips/Rounded"): 20px tall, 11px Mona Sans, ending in a chevron. */
 export function VersionChip({ version }: { version: string }) {
   return (
     <View style={[styles.chip, { backgroundColor: colors.shark50 }]}>
@@ -43,6 +14,8 @@ export function VersionChip({ version }: { version: string }) {
 }
 
 const styles = StyleSheet.create({
+  stage: { backgroundColor: '#f0eeee', cursor: 'default' as never },
+  stageText: { fontFamily: fonts.interRegular, fontSize: 10, lineHeight: 16, color: '#333333' },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -54,3 +27,12 @@ const styles = StyleSheet.create({
     ...pointer,
   },
 });
+
+/** Deal stage next to the company name (Figma 441:32313): grey pill, Inter 10. */
+export function StageChip({ label }: { label: string }) {
+  return (
+    <View style={[styles.chip, styles.stage]}>
+      <Text style={styles.stageText}>{label}</Text>
+    </View>
+  );
+}

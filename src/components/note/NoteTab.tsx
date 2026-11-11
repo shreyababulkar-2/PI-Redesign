@@ -30,8 +30,16 @@ export function NoteTab({ label, active, onPress }: Props) {
       <View
         style={[
           styles.dot,
-          { width: active ? 4 : 0, marginRight: active ? 6 : 0, opacity: active ? 1 : 0 },
-          transition(['width', 'margin-right', 'opacity'], EASE_MS),
+          {
+            width: active ? 4 : 0,
+            marginRight: active ? 6 : 0,
+            opacity: active ? 1 : 0,
+            // Always travels left to right: it slides in from the left when a tab becomes active (keyframes below)
+            // and leaves toward the right when it stops being active, whichever way you are switching.
+            transform: [{ translateX: active ? 0 : 6 }],
+          },
+          transition(['width', 'margin-right', 'opacity', 'transform'], EASE_MS),
+          active ? dotEnter : null,
         ]}
       />
       <Text
@@ -46,6 +54,11 @@ export function NoteTab({ label, active, onPress }: Props) {
     </Pressable>
   );
 }
+
+/** Web: the dot's entrance (keyframes `pi-dot-in` are injected in App.tsx). */
+const dotEnter = (Platform.OS === 'web'
+  ? { animationName: 'pi-dot-in', animationDuration: `${EASE_MS}ms`, animationTimingFunction: 'cubic-bezier(0.2, 0, 0, 1)', animationFillMode: 'backwards' }
+  : null) as ViewStyle | null;
 
 /** Left-to-right dew fade; native falls back to the solid start colour. */
 const activeFill = (Platform.OS === 'web'
