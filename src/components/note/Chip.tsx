@@ -1,15 +1,40 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, type } from '../../theme';
 import { Icon } from '../Icon';
+import { useHover } from '../../hooks/useHover';
+import { press, transition } from '../../theme/motion';
 import { pointer } from '../../theme/cursor';
 
 /** Section header chip (Figma "Chips/Rounded"): 20px tall, 11px Mona Sans, ending in a chevron. */
-export function VersionChip({ version }: { version: string }) {
+export function VersionChip({
+  version,
+  open = false,
+  onPress,
+}: {
+  version: string;
+  /** The version history menu is open: the chevron flips. */
+  open?: boolean;
+  onPress?: () => void;
+}) {
+  const hover = useHover();
   return (
-    <View style={[styles.chip, { backgroundColor: colors.shark50 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Version ${version.replace(/^v/, '')}, show version history`}
+      accessibilityState={{ expanded: open }}
+      onPress={onPress}
+      {...hover.handlers}
+      style={({ pressed }) => [
+        styles.chip,
+        { backgroundColor: hover.hovered || open ? colors.slate100 : colors.shark50 },
+        press(pressed),
+      ]}
+    >
       <Text style={[type.chip, { color: colors.grey700 }]}>{version}</Text>
-      <Icon name="chevronDown12" size={12} />
-    </View>
+      <View style={[{ transform: [{ rotate: open ? '180deg' : '0deg' }] }, transition(['transform'], 200) as object]}>
+        <Icon name="chevronDown12" size={12} />
+      </View>
+    </Pressable>
   );
 }
 

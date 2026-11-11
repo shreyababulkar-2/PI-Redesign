@@ -17,7 +17,12 @@ import { FadeIn } from "../assistant/FadeIn";
 
 /** Page actions under the kebab (Figma 441:32753). */
 /** `icon`/`hover` are optional: text-only menus (the tab switcher) omit them. */
-export type MenuItem = { label: string; icon?: IconName; hover?: IconName };
+export type MenuItem = {
+  label: string;
+  icon?: IconName;
+  hover?: IconName;
+  subtitle?: string;
+};
 
 export const PAGE_MENU_ITEMS: MenuItem[] = [
   { label: "All comments", icon: "menuComments", hover: "menuCommentsDark" },
@@ -137,10 +142,12 @@ function MenuRow({
   label,
   icon,
   hover: hoverIcon,
+  subtitle,
   selected = false,
   onPress,
 }: {
   label: string;
+  subtitle?: string;
   icon?: IconName;
   hover?: IconName;
   selected?: boolean;
@@ -154,19 +161,43 @@ function MenuRow({
       {...hover.handlers}
       style={[
         styles.row,
+        subtitle ? styles.rowTwoLine : null,
         selected && styles.rowSelected,
+        selected && subtitle ? styles.rowTwoLineSelected : null,
         hover.hovered && !selected && styles.rowHover,
       ]}
     >
       {icon && (
         <Icon name={hover.hovered && hoverIcon ? hoverIcon : icon} size={20} />
       )}
-      <Text
-        numberOfLines={1}
-        style={[styles.label, (hover.hovered || selected) && styles.labelHover]}
-      >
-        {label}
-      </Text>
+      {subtitle ? (
+        <View style={styles.twoLine}>
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.label,
+              { lineHeight: 16 },
+              (hover.hovered || selected) && styles.labelHover,
+              selected && { fontFamily: fonts.geistSemiBold },
+            ]}
+          >
+            {label}
+          </Text>
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {subtitle}
+          </Text>
+        </View>
+      ) : (
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.label,
+            (hover.hovered || selected) && styles.labelHover,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -212,6 +243,22 @@ const styles = StyleSheet.create({
     ...transition(["background-color"]),
   },
   rowHover: { backgroundColor: colors.slate100 },
+  // Version history rows (Figma 459:41993): title over a 10px subtitle, 46px tall (50 when selected).
+  rowTwoLine: {
+    height: "auto",
+    minHeight: 46,
+    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingRight: 12,
+  },
+  rowTwoLineSelected: { paddingVertical: 8, paddingHorizontal: 8 },
+  twoLine: { flex: 1, minWidth: 0, gap: 2 },
+  subtitle: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 10,
+    lineHeight: 16,
+    color: "#717784",
+  },
   // Current choice in a switcher menu (Figma 459:41704).
   rowSelected: { backgroundColor: "#f0f5f4" },
   label: {

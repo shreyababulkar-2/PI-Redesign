@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { CARD_ACTIONS_STICKY_TOP } from '../../theme/layout';
 import { colors, type } from '../../theme';
@@ -23,6 +24,57 @@ const actions = [
   { icon: 'actionMore', hoverIcon: 'actionMoreHover', label: 'More' },
 ] as const;
 
+/** The section as plain text for the clipboard: title, then paragraphs and bullets. */
+function sectionText(section: NoteSection): string {
+  const lines = section.body.map((b) => {
+    if (b.kind === 'spacer') return '';
+    const text = b.segments.map((s) => s.text).join('');
+    return b.kind === 'bullet' ? `• ${text}` : text;
+  });
+  return [`${section.index} ${section.title}`, '', ...lines].join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+/** Copy action: copies the section, then shows a check for a moment as confirmation. */
+function CopyAction({ action, text }: { action: (typeof actions)[number]; text: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(id);
+  }, [copied]);
+  return (
+    <ActionButton
+      {...action}
+      label={copied ? 'Copied' : action.label}
+      done={copied}
+      onPress={() => {
+        if (Platform.OS === 'web') navigator.clipboard?.writeText(text).catch(() => {});
+        setCopied(true);
+      }}
+    />
+  );
+}
+
+/** Version chip with its history dropdown (Figma 459:41993): newest first, the current one highlighted. */
+function VersionHistory({ section }: { section: NoteSection }) {
+  const latest = parseInt(section.version.replace(/\D/g, ''), 10) || 1;
+  const [current, setCurrent] = useState(latest);
+  const items = Array.from({ length: Math.min(latest, 6) }, (_, i) => ({
+    label: `Version ${latest - i}`,
+    subtitle: 'Updated by Canvs · 9 Nov ‘26, 12:40 PM',
+  }));
+  return (
+    <KebabMenu
+      items={items}
+      selected={`Version ${current}`}
+      onSelect={(label) => setCurrent(parseInt(label.replace(/\D/g, ''), 10))}
+      minWidth={215}
+    >
+      {({ open, toggle }) => <VersionChip version={`v${current}`} open={open} onPress={toggle} />}
+    </KebabMenu>
+  );
+}
+
 type Props = {
   section: NoteSection;
   onLayout?: (e: LayoutChangeEvent) => void;
@@ -44,7 +96,7 @@ export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
           </Text>
         </View>
         <View style={styles.chips}>
-          <VersionChip version={section.version} />
+          <VersionHistory section={section} />
         </View>
       </View>
 
@@ -64,6 +116,8 @@ export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
               <KebabMenu key={a.icon} items={SECTION_MENU_ITEMS}>
                 {({ open, toggle }) => <ActionButton {...a} active={open} onPress={toggle} />}
               </KebabMenu>
+            ) : a.icon === 'actionCopy' ? (
+              <CopyAction key={a.icon} action={a} text={sectionText(section)} />
             ) : (
               <ActionButton key={a.icon} {...a} />
             ),
