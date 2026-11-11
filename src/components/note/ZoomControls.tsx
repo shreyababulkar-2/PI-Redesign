@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
-import { Animated, Pressable, StyleSheet, View } from "react-native";
-import { colors } from "../../theme";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { colors, fonts } from "../../theme";
 import { transition } from "../../theme/motion";
 import { Icon } from "../Icon";
+import { Stroke } from "../Stroke";
 import { pointer } from "../../theme/cursor";
 
+/** Top to bottom, as in Figma: A+ (16px), A (14px), A- (12px). `index` is into the 12/14/16 size list. */
+const SIZE_OPTIONS = [
+  { index: 2, label: "A+", name: "Larger text (16px)" },
+  { index: 1, label: "A", name: "Medium text (14px)" },
+  { index: 0, label: "A-", name: "Small text (12px)" },
+] as const;
+
 type Props = {
-  canZoomIn: boolean;
-  canZoomOut: boolean;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
+  /** Selected text size: 0 = 12px (A-), 1 = 14px (A), 2 = 16px (A+). */
+  sizeIndex: number;
+  onSelectSize: (index: number) => void;
   /** 0 = hidden, 1 = shown: the scroll-to-top button fades in above the zoom stack as the page scrolls. */
   topProgress: Animated.Value;
   /** True once the scroll-to-top button is visible enough to take clicks. */
@@ -18,14 +25,12 @@ type Props = {
 };
 
 /**
- * Zoom stepper (Figma "Zoom controls": Default / Plus disabled / Minus disabled) with a
- * scroll-to-top button stacked 8px above it once the page has been scrolled (Figma 332:4475).
+ * Text size control (Figma 332:4138): a stack of three segments, A+ / A / A-, the chosen one tinted green,
+ * with a scroll-to-top button stacked 8px above it once the page has been scrolled (Figma 332:4475).
  */
 export function ZoomControls({
-  canZoomIn,
-  canZoomOut,
-  onZoomIn,
-  onZoomOut,
+  sizeIndex,
+  onSelectSize,
   topProgress,
   topActive,
   onScrollTop,
@@ -69,27 +74,26 @@ export function ZoomControls({
           </Pressable>
         </Animated.View>
       )}
-      <View style={styles.group}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Zoom in"
-          accessibilityState={{ disabled: !canZoomIn }}
-          disabled={!canZoomIn}
-          onPress={onZoomIn}
-          style={[styles.button, !canZoomIn && styles.disabled]}
-        >
-          <Icon name={canZoomIn ? "plus" : "plusDisabled"} size={16} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Zoom out"
-          accessibilityState={{ disabled: !canZoomOut }}
-          disabled={!canZoomOut}
-          onPress={onZoomOut}
-          style={[styles.button, !canZoomOut && styles.disabled]}
-        >
-          <Icon name={canZoomOut ? "minus" : "minusDisabled"} size={16} />
-        </Pressable>
+      <View style={styles.group} accessibilityRole="radiogroup">
+        {SIZE_OPTIONS.map(({ index, label, name }) => {
+          const selected = index === sizeIndex;
+          return (
+            <Pressable
+              key={label}
+              accessibilityRole="radio"
+              accessibilityLabel={name}
+              accessibilityState={{ selected }}
+              onPress={() => onSelectSize(index)}
+              style={[styles.button, selected && styles.selected]}
+            >
+              <Text style={[styles.glyph, selected && styles.glyphSelected]}>
+                {label}
+              </Text>
+              {selected && <Stroke color={colors.white} radius={4} />}
+            </Pressable>
+          );
+        })}
+        <Stroke color={colors.white} radius={4} />
       </View>
     </View>
   );
@@ -119,5 +123,12 @@ const styles = StyleSheet.create({
     ...pointer,
     ...transition(["background-color"]),
   },
-  disabled: { backgroundColor: colors.grey50, cursor: "auto" },
+  selected: { backgroundColor: "#f0f5f4" },
+  glyph: {
+    fontFamily: fonts.geistMedium,
+    fontSize: 10,
+    lineHeight: 12,
+    color: colors.slate600,
+  },
+  glyphSelected: { color: colors.pine800 },
 });

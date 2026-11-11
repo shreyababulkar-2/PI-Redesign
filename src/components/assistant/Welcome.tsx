@@ -4,15 +4,28 @@ import { assistant } from "../../data/researchNote";
 import { transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { pointer } from "../../theme/cursor";
+import { useResponseScale } from "../../hooks/useResponseScale";
 
 type Props = { onPick: (question: string) => void };
 
 /** Empty state (Figma "Smart assist - default"): a short intro and suggested questions. */
 export function Welcome({ onPick }: Props) {
   const { intro, heading, suggestions } = assistant.welcome;
+  const scale = useResponseScale();
   return (
     <View style={styles.root}>
-      <Text style={[type.answer, { color: colors.slate800 }]}>{intro}</Text>
+      <Text
+        style={[
+          type.answer,
+          {
+            color: colors.slate800,
+            fontSize: type.answer.fontSize * scale,
+            lineHeight: type.answer.lineHeight * scale,
+          },
+        ]}
+      >
+        {intro}
+      </Text>
       <View style={styles.block}>
         <Text style={styles.heading}>{heading}</Text>
         <View style={styles.chips}>

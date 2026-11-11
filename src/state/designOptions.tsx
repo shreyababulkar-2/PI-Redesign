@@ -2,16 +2,18 @@ import { createContext, ReactNode, useCallback, useContext, useMemo, useState } 
 import { Platform } from 'react-native';
 
 /** Design variants that can be flipped at runtime to compare them side by side. */
-export type HeaderOption = 'a' | 'b';
+export type HeaderOption = 'left' | 'center';
 export type Tone = 'white' | 'green';
+/** Side-nav structure: `popout` keeps the account items in a hover flyout, `inplace` expands the pod itself. */
+export type NavLayout = 'popout' | 'inplace';
 
 export type DesignOptions = {
   /** Floating header layout once the page is scrolled. */
   scrolledHeader: HeaderOption;
-  /** Colour of the top side-nav pod. */
-  sideNavTop: Tone;
-  /** Colour of the bottom side-nav pod. */
-  sideNavBottom: Tone;
+  /** Side-nav structure. */
+  sideNavLayout: NavLayout;
+  /** Colour of the side-nav pod (the account items fold away under its caret). */
+  sideNav: Tone;
   /** Colour of the floating header's navigation pill. */
   floatingNav: Tone;
 };
@@ -20,22 +22,22 @@ type Ctx = DesignOptions & {
   setOption: <K extends keyof DesignOptions>(key: K, value: DesignOptions[K]) => void;
 };
 
-const DEFAULTS: DesignOptions = { scrolledHeader: 'a', sideNavTop: 'white', sideNavBottom: 'white', floatingNav: 'white' };
+const DEFAULTS: DesignOptions = { scrolledHeader: 'center', sideNavLayout: 'popout', sideNav: 'white', floatingNav: 'white' };
 const STORAGE_KEY = 'pi-redesign:design-options';
 
 /** Allowed values per option, which also drives the switcher and the URL/storage parsing. */
 export const OPTION_VALUES: { [K in keyof DesignOptions]: readonly DesignOptions[K][] } = {
-  scrolledHeader: ['a', 'b'],
-  sideNavTop: ['white', 'green'],
-  sideNavBottom: ['white', 'green'],
+  scrolledHeader: ['left', 'center'],
+  sideNavLayout: ['popout', 'inplace'],
+  sideNav: ['white', 'green'],
   floatingNav: ['white', 'green'],
 };
 
-/** URL parameter for each option, e.g. `?header=b&navTop=green&navBottom=white&pill=green`. */
+/** URL parameter for each option, e.g. `?header=left&navLayout=inplace&nav=green&pill=green`. */
 export const OPTION_PARAMS: { [K in keyof DesignOptions]: string } = {
   scrolledHeader: 'header',
-  sideNavTop: 'navTop',
-  sideNavBottom: 'navBottom',
+  sideNavLayout: 'navLayout',
+  sideNav: 'nav',
   floatingNav: 'pill',
 };
 

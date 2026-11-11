@@ -62,11 +62,11 @@ export function FloatingBackdrop() {
   );
 }
 
-type Variant = 'a' | 'b';
+type Variant = 'left' | 'center';
 
 /**
  * Header shown once the page is scrolled: a navigation pill (back, note type, current section) and an
- * actions button over a soft white fade. Variant A centres both; variant B pins the pill to the left
+ * actions button over a soft white fade. The `center` variant centres both; `left` pins the pill to the left
  * and the actions to the right edge of the column.
  */
 export function FloatingHeader({ activeTab, activeSectionTitle, variant }: Props & { variant: Variant }) {
@@ -74,7 +74,7 @@ export function FloatingHeader({ activeTab, activeSectionTitle, variant }: Props
   return (
     <View pointerEvents="box-none" style={styles.root}>
       <FloatingBackdrop />
-      <View pointerEvents="box-none" style={[styles.group, variant === 'b' && styles.groupSplit]}>
+      <View pointerEvents="box-none" style={[styles.group, variant === 'left' && styles.groupSplit]}>
         <View style={[styles.nav, styles.navShadow, floatingNav === 'green' && styles.navGreen]}>
           <FloatingNavContent activeTab={activeTab} activeSectionTitle={activeSectionTitle} tone={floatingNav} />
         </View>

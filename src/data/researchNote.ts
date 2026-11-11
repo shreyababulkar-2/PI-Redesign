@@ -86,7 +86,7 @@ export const assistant = {
       'What are the key growth drivers?',
       'Highlight the key risks and red flags',
       'What does the benchmarking analysis reveal?',
-      'What has changed across the deal materials?',
+      'What has changed across the deal materials…',
     ],
   },
   /** Steps shown while the answer is being worked out (Figma "Answer generating"). */

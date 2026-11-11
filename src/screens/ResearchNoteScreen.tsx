@@ -16,12 +16,11 @@ import { ResizableAssistant } from '../components/assistant/ResizableAssistant';
 
 const sectionIds = sections.map((s) => s.id);
 /**
- * Body-text zoom ramp, as body font sizes in px. 12px is the design size and the minimum (zoom out is
- * disabled there); three zoom-ins reach 18px. 2px steps are the smallest change that reads as a real
- * step at this size, and 16px (typical web body) is the third stop.
+ * Body text size options, as body font sizes in px, shown as A- / A / A+. 12px is the design size and the
+ * default (A-).
  */
 const BODY_BASE_PX = 12;
-const ZOOM_STEPS_PX = [12, 14, 16, 18] as const;
+const TEXT_SIZES_PX = [12, 14, 16] as const;
 
 /** Tick column sits 40px below the first card's top edge. */
 const MINIMAP_OFFSET = 40;
@@ -30,8 +29,8 @@ export function ResearchNoteScreen() {
   const { scrollRef, activeId, scrolled, headerProgress, onScroll, scrollToSection, scrollToTop, onSectionLayout, onViewportLayout, onContentSizeChange } =
     useSectionNavigation(sectionIds);
   const { scrolledHeader } = useDesignOptions();
-  const [zoomStep, setZoomStep] = useState(0);
-  const zoom = ZOOM_STEPS_PX[zoomStep] / BODY_BASE_PX;
+  const [sizeIndex, setSizeIndex] = useState(0);
+  const zoom = TEXT_SIZES_PX[sizeIndex] / BODY_BASE_PX;
 
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
 
@@ -76,10 +75,8 @@ export function ResearchNoteScreen() {
           topProgress={headerProgress}
           topActive={scrolled}
           onScrollTop={scrollToTop}
-          canZoomIn={zoomStep < ZOOM_STEPS_PX.length - 1}
-          canZoomOut={zoomStep > 0}
-          onZoomIn={() => setZoomStep((i) => Math.min(ZOOM_STEPS_PX.length - 1, i + 1))}
-          onZoomOut={() => setZoomStep((i) => Math.max(0, i - 1))}
+          sizeIndex={sizeIndex}
+          onSelectSize={setSizeIndex}
         />
       </View>
 

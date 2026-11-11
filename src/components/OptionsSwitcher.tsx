@@ -7,13 +7,14 @@ import { pointer } from '../theme/cursor';
 
 type Row = { key: keyof DesignOptions; label: string; format: (v: string) => string };
 
-const upper = (v: string) => v.toUpperCase();
+const LABELS: Record<string, string> = { popout: 'Pop out', inplace: 'In place' };
+const label = (v: string) => LABELS[v] ?? v[0].toUpperCase() + v.slice(1);
 const cap = (v: string) => v[0].toUpperCase() + v.slice(1);
 
 const ROWS: Row[] = [
-  { key: 'scrolledHeader', label: 'Scrolled header', format: upper },
-  { key: 'sideNavTop', label: 'Side nav – top', format: cap },
-  { key: 'sideNavBottom', label: 'Side nav – bottom', format: cap },
+  { key: 'scrolledHeader', label: 'Scrolled header', format: label },
+  { key: 'sideNavLayout', label: 'Side nav layout', format: label },
+  { key: 'sideNav', label: 'Side nav colour', format: cap },
   { key: 'floatingNav', label: 'Floating nav', format: cap },
 ];
 

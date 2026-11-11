@@ -58,6 +58,7 @@ export const icons = {
   floatMore: require('./float-more.svg'),
   menuDivider: require('./menu-divider.svg'),
   plusWhite: require('./plus-white.svg'),
+  plusGreen: require('./plus-green.svg'),
   assistantLogo: require('./assistant-logo.svg'),
   assistantSparkles: require('./assistant-sparkles.svg'),
   assistantPillBg: require('./assistant-pill-bg.svg'),
