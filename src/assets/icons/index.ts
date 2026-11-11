@@ -62,6 +62,7 @@ export const icons = {
   unitCaret: require('./unit-caret.svg'),
   tableExpand: require('./table-expand.svg'),
   tableMore: require('./table-more.svg'),
+  tableComments: require('./table-comments.svg'),
   assistantLogo: require('./assistant-logo.svg'),
   assistantSparkles: require('./assistant-sparkles.svg'),
   assistantPillBg: require('./assistant-pill-bg.svg'),

@@ -56,7 +56,8 @@ export function NoteHeaderContent({ activeTab }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { marginTop: HEADER_TOP, backgroundColor: colors.white, borderRadius: 8 },
+  // Soft drop shadow as on the header card in the Benchmarking design (0 1 6, 8% black).
+  root: { marginTop: HEADER_TOP, backgroundColor: colors.white, borderRadius: 8, boxShadow: '0px 1px 6px rgba(0,0,0,0.08)' },
   content: {
     flexDirection: 'row',
     alignItems: 'flex-start',

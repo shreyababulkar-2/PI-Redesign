@@ -61,6 +61,9 @@ export function BenchmarkingPage() {
             <View style={styles.divider} />
             <View style={styles.iconPair}>
               <Icon name="tableExpand" size={28} style={pointer} />
+              <Pressable accessibilityRole="button" accessibilityLabel="Comments">
+                <Icon name="tableComments" size={28} style={pointer} />
+              </Pressable>
               <DotsIcon />
             </View>
           </View>
