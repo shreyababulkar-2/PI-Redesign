@@ -8,6 +8,7 @@ import { Icon } from '../Icon';
 import { NoteTab } from './NoteTab';
 import { AssistantButton } from '../AssistantButton';
 import { pointer } from '../../theme/cursor';
+import { useActiveTab } from '../../state/activeTab';
 
 type Props = { activeTab: number };
 
@@ -22,6 +23,7 @@ export function NoteHeader({ activeTab }: Props) {
 
 /** The header's inner layout without the card chrome, so it can live inside a morphing container. */
 export function NoteHeaderContent({ activeTab }: Props) {
+  const { setTab } = useActiveTab();
   return (
     <View style={styles.content}>
       <View style={styles.left}>
@@ -33,7 +35,7 @@ export function NoteHeaderContent({ activeTab }: Props) {
         </View>
         <View style={styles.tabs}>
           {noteTabs.map((label, i) => (
-            <NoteTab key={label} label={label} active={i === activeTab} />
+            <NoteTab key={label} label={label} active={i === activeTab} onPress={() => setTab(i)} />
           ))}
         </View>
       </View>

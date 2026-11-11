@@ -5,6 +5,7 @@ import { useAppFonts } from './src/theme/useAppFonts';
 import { ResearchNoteScreen } from './src/screens/ResearchNoteScreen';
 import { DesignOptionsProvider } from './src/state/designOptions';
 import { AssistantOverlayProvider } from './src/state/assistantOverlay';
+import { ActiveTabProvider } from './src/state/activeTab';
 
 export default function App() {
   const fontsReady = useAppFonts();
@@ -23,7 +24,9 @@ export default function App() {
       <StatusBar style="dark" />
       <DesignOptionsProvider>
         <AssistantOverlayProvider>
-          <ResearchNoteScreen />
+          <ActiveTabProvider>
+            <ResearchNoteScreen />
+          </ActiveTabProvider>
         </AssistantOverlayProvider>
       </DesignOptionsProvider>
     </>

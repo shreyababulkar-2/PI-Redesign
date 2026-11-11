@@ -4,13 +4,13 @@ import { transition } from '../../theme/motion';
 import { useHover } from '../../hooks/useHover';
 import { pointer } from '../../theme/cursor';
 
-type Props = { label: string; active: boolean };
+type Props = { label: string; active: boolean; onPress?: () => void };
 
 /**
  * Header tab. Active: dew gradient pill with a pine dot. Inactive: plain label that gets a
  * slate-100 fill on hover.
  */
-export function NoteTab({ label, active }: Props) {
+export function NoteTab({ label, active, onPress }: Props) {
   const { hovered, handlers } = useHover();
 
   if (active) {
@@ -22,7 +22,7 @@ export function NoteTab({ label, active }: Props) {
     );
   }
   return (
-    <Pressable accessibilityRole="tab" {...handlers} style={[styles.tab, styles.inactive, hovered && styles.hover]}>
+    <Pressable accessibilityRole="tab" onPress={onPress} {...handlers} style={[styles.tab, styles.inactive, hovered && styles.hover]}>
       <Text style={[type.noteTab, { color: colors.slate500 }]}>{label}</Text>
     </Pressable>
   );

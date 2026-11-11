@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { colors, fonts, type } from "../../theme";
 import { assistant } from "../../data/researchNote";
+import { benchmarkAssistant } from "../../data/benchmarking";
+import { useActiveTab } from "../../state/activeTab";
 import { transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { Icon } from "../Icon";
@@ -54,6 +56,8 @@ function pickFiles(): Promise<string[]> {
  * focus when it switches.
  */
 export function Composer({ onSend, generating = false, onStop }: Props) {
+  const { tab } = useActiveTab();
+  const placeholder = tab === 2 ? benchmarkAssistant.placeholder : assistant.composerPlaceholder;
   const [text, setText] = useState("");
   const [height, setHeight] = useState(LINE_HEIGHT);
   const [focused, setFocused] = useState(false);
@@ -143,7 +147,7 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             multiline
-            placeholder={assistant.composerPlaceholder}
+            placeholder={placeholder}
             placeholderTextColor={colors.slate500}
             accessibilityLabel="Ask a follow up question"
             style={[

@@ -17,6 +17,8 @@ type Props = {
   /** Selected text size: 0 = 12px (A-), 1 = 14px (A), 2 = 16px (A+). */
   sizeIndex: number;
   onSelectSize: (index: number) => void;
+  /** Hides the text size control (pages without body text keep only the scroll-to-top button). */
+  showSize?: boolean;
   /** 0 = hidden, 1 = shown: the scroll-to-top button fades in above the zoom stack as the page scrolls. */
   topProgress: Animated.Value;
   /** True once the scroll-to-top button is visible enough to take clicks. */
@@ -31,6 +33,7 @@ type Props = {
 export function ZoomControls({
   sizeIndex,
   onSelectSize,
+  showSize = true,
   topProgress,
   topActive,
   onScrollTop,
@@ -74,6 +77,7 @@ export function ZoomControls({
           </Pressable>
         </Animated.View>
       )}
+      {showSize && (
       <View style={styles.group} accessibilityRole="radiogroup">
         {SIZE_OPTIONS.map(({ index, label, name }) => {
           const selected = index === sizeIndex;
@@ -95,6 +99,7 @@ export function ZoomControls({
         })}
         <Stroke color={colors.white} radius={4} />
       </View>
+      )}
     </View>
   );
 }

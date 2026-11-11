@@ -5,12 +5,16 @@ import { transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { pointer } from "../../theme/cursor";
 import { useResponseScale } from "../../hooks/useResponseScale";
+import { useActiveTab } from "../../state/activeTab";
+import { benchmarkAssistant } from "../../data/benchmarking";
 
 type Props = { onPick: (question: string) => void };
 
 /** Empty state (Figma "Smart assist - default"): a short intro and suggested questions. */
 export function Welcome({ onPick }: Props) {
-  const { intro, heading, suggestions } = assistant.welcome;
+  // The assistant is the same on every tab; only the opening text and suggestions follow the page.
+  const { tab } = useActiveTab();
+  const { intro, heading, suggestions } = tab === 2 ? benchmarkAssistant : assistant.welcome;
   const scale = useResponseScale();
   return (
     <View style={styles.root}>

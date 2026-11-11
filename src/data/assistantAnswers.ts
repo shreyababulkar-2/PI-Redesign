@@ -364,6 +364,7 @@ export function answerIdFor(question: string): AnswerId {
   if (/growth|driver|trend|revenue/.test(q)) return "growth";
   if (/benchmark|valuation multiple/.test(q)) return "benchmark";
   if (/compet|market share|moat|rival/.test(q)) return "compete";
+  if (/peer|gap|lead|improv|perform|compare/.test(q)) return "benchmark";
   if (/cash|working capital|receivable|debt|leverage/.test(q)) return "cash";
   if (/exit|moic|irr|return|ipo/.test(q)) return "exit";
   if (/manage|governance|promoter|board|team/.test(q)) return "management";
