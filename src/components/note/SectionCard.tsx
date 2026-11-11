@@ -55,6 +55,14 @@ function CopyAction({ action, text }: { action: (typeof actions)[number]; text: 
   );
 }
 
+/** Who updated each version and when, newest first (example data from Figma 459:41993). */
+const VERSION_UPDATES = [
+  'Updated by Amogh · 9 Nov ‘26, 1:40 PM',
+  'Updated by Seeta · 8 Nov ‘26, 12:40 PM',
+  'Updated by Vishnu · 7 Nov ‘26, 2:44 PM',
+  'Updated by Seeta · 7 Nov ‘26, 11:40 AM',
+];
+
 /** Version chip with its history dropdown (Figma 459:41993): newest first, the current one highlighted. */
 function VersionHistory({ section }: { section: NoteSection }) {
   const latest = parseInt(section.version.replace(/\D/g, ''), 10) || 1;
@@ -62,15 +70,15 @@ function VersionHistory({ section }: { section: NoteSection }) {
   // Never beyond the newest version (also keeps a hot-reloaded page, whose data changed under it, consistent).
   const current = Math.min(picked, latest);
   const items = Array.from({ length: Math.min(latest, 4) }, (_, i) => ({
-    label: `Version ${latest - i}`,
-    subtitle: 'Updated by Canvs · 9 Nov ‘26, 12:40 PM',
+    label: `v${latest - i}`,
+    subtitle: VERSION_UPDATES[i] ?? VERSION_UPDATES[VERSION_UPDATES.length - 1],
   }));
   return (
     <KebabMenu
       items={items}
-      selected={`Version ${current}`}
+      selected={`v${current}`}
       onSelect={(label) => setPicked(parseInt(label.replace(/\D/g, ''), 10))}
-      minWidth={215}
+      minWidth={209}
     >
       {({ open, toggle }) => <VersionChip version={`v${current}`} open={open} onPress={toggle} />}
     </KebabMenu>

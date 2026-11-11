@@ -176,14 +176,17 @@ function MenuRow({
             numberOfLines={1}
             style={[
               styles.label,
-              { lineHeight: 16 },
+              { lineHeight: 16, color: "#2b303b" },
               (hover.hovered || selected) && styles.labelHover,
               selected && { fontFamily: fonts.geistSemiBold },
             ]}
           >
             {label}
           </Text>
-          <Text numberOfLines={1} style={styles.subtitle}>
+          <Text
+            numberOfLines={1}
+            style={[styles.subtitle, selected && { color: "#525866" }]}
+          >
             {subtitle}
           </Text>
         </View>
@@ -243,15 +246,9 @@ const styles = StyleSheet.create({
     ...transition(["background-color"]),
   },
   rowHover: { backgroundColor: colors.slate100 },
-  // Version history rows (Figma 459:41993): title over a 10px subtitle, 46px tall (50 when selected).
-  rowTwoLine: {
-    height: "auto",
-    minHeight: 46,
-    paddingVertical: 6,
-    paddingLeft: 8,
-    paddingRight: 12,
-  },
-  rowTwoLineSelected: { paddingVertical: 8, paddingHorizontal: 8 },
+  // Version history rows (Figma 459:41993): title over a 10px subtitle, 50px tall, 8px padding.
+  rowTwoLine: { height: "auto", minHeight: 50, padding: 8 },
+  rowTwoLineSelected: {},
   twoLine: { flex: 1, minWidth: 0, gap: 2 },
   subtitle: {
     fontFamily: fonts.geistRegular,
