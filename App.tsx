@@ -14,7 +14,7 @@ export default function App() {
     if (Platform.OS !== "web") return;
     const style = document.createElement("style");
     style.textContent =
-      "body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-kerning:normal}::selection{background:#e0f8e7;color:inherit}@keyframes pi-dot-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}@keyframes pi-appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}";
+      "body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-kerning:normal}::selection{background:#e0f8e7;color:inherit}@keyframes pi-dot-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}@keyframes pi-appear{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}";
     document.head.appendChild(style);
     return () => style.remove();
   }, []);

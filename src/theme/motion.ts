@@ -43,7 +43,7 @@ export function enableAppear() {
 const KEYFRAMES = 'pi-appear';
 
 /**
- * Web-only entrance for a block of content when its page is shown: a short fade and 8px rise, staggered by
+ * Web-only entrance for a block of content when its page is shown: a fade and 12px rise over 600ms, staggered by
  * `index` (capped so a long page doesn't wait). It is a CSS animation with a backwards fill, so nothing is left
  * on the element afterwards (no lingering transform or stacking context to trap menus). Skipped on the first
  * paint, for reduced-motion users, and on native. The `pi-appear` keyframes are injected in App.tsx.
@@ -53,9 +53,9 @@ export function appear(index = 0): ViewStyle | null {
   if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return null;
   return {
     animationName: KEYFRAMES,
-    animationDuration: '260ms',
-    animationDelay: `${Math.min(index, 4) * 60}ms`,
-    animationTimingFunction: 'cubic-bezier(0.2, 0, 0, 1)',
+    animationDuration: '600ms',
+    animationDelay: `${Math.min(index, 4) * 90}ms`,
+    animationTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
     animationFillMode: 'backwards',
   } as ViewStyle;
 }

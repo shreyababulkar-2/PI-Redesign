@@ -19,6 +19,13 @@ type Props = {
   activeSectionTitle: string;
 };
 
+/** The section chip shows at most this many characters; anything longer is cut with an ellipsis. */
+const SECTION_CHIP_MAX_CHARS = 25;
+
+function truncate(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
+}
+
 /** Contents of the navigation pill (Figma 459:41542): the note type with a chevron and the current section chip. */
 export function FloatingNavContent({ activeTab, activeSectionTitle, tone = 'white' }: Props) {
   const { setTab } = useActiveTab();
@@ -52,7 +59,7 @@ export function FloatingNavContent({ activeTab, activeSectionTitle, tone = 'whit
       </KebabMenu>
       <View style={styles.sectionChip}>
         <Text numberOfLines={1} style={[type.floatingChip, { color: colors.pine800 }]}>
-          {activeSectionTitle}
+          {truncate(activeSectionTitle, SECTION_CHIP_MAX_CHARS)}
         </Text>
       </View>
     </View>
