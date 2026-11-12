@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { colors, fonts, type } from "../../theme";
+import { useTextSize } from "../../state/textSize";
 import { thinking } from "../../data/assistantAnswers";
 import { useConversation } from "../../hooks/useConversation";
 import { Icon } from "../Icon";
@@ -34,6 +35,7 @@ type Props = {
  * in the header clears the conversation.
  */
 export function AssistantPanel({ onCollapse }: Props) {
+  const { scale: textScale } = useTextSize();
   const {
     turns,
     generating,
@@ -152,7 +154,11 @@ export function AssistantPanel({ onCollapse }: Props) {
                         style={[
                           type.chatBubble,
                           styles.userText,
-                          { color: colors.slate800 },
+                          {
+                            color: colors.slate800,
+                            fontSize: type.chatBubble.fontSize * textScale,
+                            lineHeight: type.chatBubble.lineHeight * textScale,
+                          },
                         ]}
                       >
                         {turn.question}

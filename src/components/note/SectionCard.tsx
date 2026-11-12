@@ -1,3 +1,4 @@
+import { useTextSize } from '../../state/textSize';
 import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { CARD_ACTIONS_STICKY_TOP } from '../../theme/layout';
@@ -97,7 +98,8 @@ type Props = {
   index?: number;
 };
 
-export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
+export function SectionCard({ section, onLayout, zoom, index = 0 }: Props) {
+  const { scale } = useTextSize();
   const { switching } = useActiveTab();
   const { open: openSources } = useSourcesDrawer();
   return (
@@ -118,7 +120,7 @@ export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
         <Icon name={section.status === 'vetted' ? 'line3' : 'line4'} size={0} height={1} style={styles.dividerImg} />
       </View>
 
-      <RichText blocks={section.body} regular={type.body} bold={type.bodyBold} color={colors.slate700} scale={zoom} />
+      <RichText blocks={section.body} regular={type.body} bold={type.bodyBold} color={colors.slate700} scale={zoom ?? scale} />
 
       <Stroke color={colors.cardBorder} radius={8} />
 

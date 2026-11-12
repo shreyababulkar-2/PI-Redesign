@@ -1,12 +1,6 @@
-import { useWindowDimensions } from "react-native";
+import { useTextSize } from "../state/textSize";
 
-/** Wider than this, the assistant's response text steps up from 12px to 14px. */
-export const RESPONSE_WIDE_BREAKPOINT = 1440;
-const BASE_PX = 12;
-const WIDE_PX = 14;
-
-/** Scale factor for assistant response text: 1 (12px) normally, 14/12 on viewports wider than 1440px. */
+/** Scale factor for the assistant's message text: 1 at the 12px default, larger when the reader picks Medium or Large. */
 export function useResponseScale(): number {
-  const { width } = useWindowDimensions();
-  return width > RESPONSE_WIDE_BREAKPOINT ? WIDE_PX / BASE_PX : 1;
+  return useTextSize().scale;
 }
