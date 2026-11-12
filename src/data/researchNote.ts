@@ -10,9 +10,11 @@ export const company = {
   name: 'Romsons Group Private Limited',
   /** Shown in the floating (scrolled) header. */
   shortName: 'Romsons Group',
+  /** Deal stage, shown as a chip next to the name. */
+  stage: 'Stage 2',
 };
 
-export const noteTabs = ['Research note', 'IC memo', 'Benchmarking', 'Checklist'] as const;
+export const noteTabs = ['Research note', 'IC memo', 'Benchmarking', 'Checklist', 'Data Room'] as const;
 
 export const assistant = {
   userMessage:
@@ -86,7 +88,7 @@ export const assistant = {
       'What are the key growth drivers?',
       'Highlight the key risks and red flags',
       'What does the benchmarking analysis reveal?',
-      'What has changed across the deal materials?',
+      'What has changed across the deal materials…',
     ],
   },
   /** Steps shown while the answer is being worked out (Figma "Answer generating"). */

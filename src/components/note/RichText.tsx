@@ -24,6 +24,17 @@ function scaleText(style: TextStyle, scale: number): TextStyle {
   };
 }
 
+/** Citation markers such as `[1,2]` or `[#6]` in the copy render as small raised green references. */
+const CITATION = /(\[#?\d+(?:\s*,\s*\d+)*\])/;
+const citation = { color: '#22733e', verticalAlign: 'super', fontWeight: '400' } as unknown as TextStyle;
+
+function splitCitations(text: string): { text: string; cite: boolean }[] {
+  return text
+    .split(CITATION)
+    .filter(Boolean)
+    .map((part, i) => (i % 2 === 1 ? { text: part.replace('#', ''), cite: true } : { text: part, cite: false }));
+}
+
 /** Marker column: text is indented 18px, the disc sits 6px in (matches the design's list-disc). */
 const BULLET_INDENT = 18;
 const BULLET_SIZE = 4;
@@ -41,7 +52,15 @@ export function RichText({ blocks, regular: baseRegular, bold: baseBold, color, 
           <Text style={[regular, { color }]}>
             {block.segments.map((s, j) => (
               <Text key={j} style={s.bold ? bold : undefined}>
-                {s.text}
+                {splitCitations(s.text).map((part, k) =>
+                  part.cite ? (
+                    <Text key={k} style={[citation, { fontSize: (regular.fontSize ?? 12) * 0.7 }]}>
+                      {part.text}
+                    </Text>
+                  ) : (
+                    part.text
+                  ),
+                )}
               </Text>
             ))}
           </Text>

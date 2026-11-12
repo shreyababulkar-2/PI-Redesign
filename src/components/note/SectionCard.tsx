@@ -1,10 +1,14 @@
+import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { CARD_ACTIONS_STICKY_TOP } from '../../theme/layout';
 import { colors, type } from '../../theme';
 import { NoteSection } from '../../data/researchNote';
 import { Icon } from '../Icon';
+import { appear, leaving } from '../../theme/motion';
+import { useActiveTab } from '../../state/activeTab';
 import { ActionButton } from './ActionButton';
-import { StatusChip, VersionChip } from './Chip';
+import { KebabMenu, SECTION_MENU_ITEMS } from './KebabMenu';
+import { VersionChip } from './Chip';
 import { RichText } from './RichText';
 import { Stroke } from '../Stroke';
 
@@ -20,16 +24,80 @@ const actions = [
   { icon: 'actionMore', hoverIcon: 'actionMoreHover', label: 'More' },
 ] as const;
 
+/** The section as plain text for the clipboard: title, then paragraphs and bullets. */
+function sectionText(section: NoteSection): string {
+  const lines = section.body.map((b) => {
+    if (b.kind === 'spacer') return '';
+    const text = b.segments.map((s) => s.text).join('');
+    return b.kind === 'bullet' ? `• ${text}` : text;
+  });
+  return [`${section.index} ${section.title}`, '', ...lines].join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
+/** Copy action: copies the section, then shows a check for a moment as confirmation. */
+function CopyAction({ action, text }: { action: (typeof actions)[number]; text: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(false), 1600);
+    return () => clearTimeout(id);
+  }, [copied]);
+  return (
+    <ActionButton
+      {...action}
+      label={copied ? 'Copied' : action.label}
+      done={copied}
+      onPress={() => {
+        if (Platform.OS === 'web') navigator.clipboard?.writeText(text).catch(() => {});
+        setCopied(true);
+      }}
+    />
+  );
+}
+
+/** Who updated each version and when, newest first (example data from Figma 459:41993). */
+const VERSION_UPDATES = [
+  'Updated by Amogh · 9 Nov ‘26, 1:40 PM',
+  'Updated by Seeta · 8 Nov ‘26, 12:40 PM',
+  'Updated by Vishnu · 7 Nov ‘26, 2:44 PM',
+  'Updated by Seeta · 7 Nov ‘26, 11:40 AM',
+];
+
+/** Version chip with its history dropdown (Figma 459:41993): newest first, the current one highlighted. */
+function VersionHistory({ section }: { section: NoteSection }) {
+  const latest = parseInt(section.version.replace(/\D/g, ''), 10) || 1;
+  const [picked, setPicked] = useState(latest);
+  // Never beyond the newest version (also keeps a hot-reloaded page, whose data changed under it, consistent).
+  const current = Math.min(picked, latest);
+  const items = Array.from({ length: Math.min(latest, 4) }, (_, i) => ({
+    label: `v${latest - i}`,
+    subtitle: VERSION_UPDATES[i] ?? VERSION_UPDATES[VERSION_UPDATES.length - 1],
+  }));
+  return (
+    <KebabMenu
+      items={items}
+      selected={`v${current}`}
+      onSelect={(label) => setPicked(parseInt(label.replace(/\D/g, ''), 10))}
+      minWidth={209}
+    >
+      {({ open, toggle }) => <VersionChip version={`v${current}`} open={open} onPress={toggle} />}
+    </KebabMenu>
+  );
+}
+
 type Props = {
   section: NoteSection;
   onLayout?: (e: LayoutChangeEvent) => void;
   /** Body text zoom factor (1 = 100%). */
   zoom?: number;
+  /** Position on the page, for the staggered entrance. */
+  index?: number;
 };
 
-export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
+export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
+  const { switching } = useActiveTab();
   return (
-    <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }]}>
+    <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }, appear(index), leaving(switching)]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={[type.sectionTitle, styles.index, { color: colors.slate900 }]}>{section.index}</Text>
@@ -38,8 +106,7 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
           </Text>
         </View>
         <View style={styles.chips}>
-          <StatusChip status={section.status} />
-          <VersionChip version={section.version} />
+          <VersionHistory section={section} />
         </View>
       </View>
 
@@ -54,9 +121,17 @@ export function SectionCard({ section, onLayout, zoom = 1 }: Props) {
       {/* Track spans the card; the icons stick below the floating header while the card scrolls. */}
       <View pointerEvents="box-none" style={styles.actionsTrack}>
         <View style={[styles.actions, stickyActions]}>
-          {actions.map((a) => (
-            <ActionButton key={a.icon} {...a} />
-          ))}
+          {actions.map((a) =>
+            a.icon === 'actionMore' ? (
+              <KebabMenu key={a.icon} items={SECTION_MENU_ITEMS}>
+                {({ open, toggle }) => <ActionButton {...a} active={open} onPress={toggle} />}
+              </KebabMenu>
+            ) : a.icon === 'actionCopy' ? (
+              <CopyAction key={a.icon} action={a} text={sectionText(section)} />
+            ) : (
+              <ActionButton key={a.icon} {...a} />
+            ),
+          )}
         </View>
       </View>
     </View>
@@ -73,7 +148,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 10,
   },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 },
+  // zIndex: every View is its own stacking context on web, so without this the body text that follows the header
+  // paints over the version menu that drops down from it.
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2, zIndex: 5 },
   // The title truncates with an ellipsis when the card gets narrow; the index and chips never shrink.
   titleRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 12 },
   index: { flexShrink: 0 },
@@ -82,6 +159,6 @@ const styles = StyleSheet.create({
   // Runs edge to edge: 2px in from each card edge (Figma: x 2, width 598 in a 602px card).
   divider: { height: 1, marginHorizontal: -14 },
   dividerImg: { width: '100%' },
-  actionsTrack: { position: 'absolute', top: 0, bottom: 0, right: -33, width: 28 },
+  actionsTrack: { position: 'absolute', top: 0, bottom: 0, right: -33, width: 28, zIndex: 5 },
   actions: { marginTop: 15, gap: 4, justifyContent: 'center' },
 });

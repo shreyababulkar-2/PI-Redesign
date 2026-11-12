@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from "react-native";
 import { colors } from "../theme";
-import { transition } from "../theme/motion";
+import { press, transition } from "../theme/motion";
 import { useHover } from "../hooks/useHover";
 import { useAssistantOverlay } from "../state/assistantOverlay";
 import { Icon } from "./Icon";
@@ -26,7 +26,7 @@ export function AssistantButton({ size }: Props) {
       accessibilityLabel="Open assistant"
       onPress={() => setOpen(true)}
       {...hover.handlers}
-      style={[styles.pill, { width: size, height: size }, hover.hovered && styles.hovered]}
+      style={({ pressed }) => [styles.pill, { width: size, height: size }, hover.hovered && styles.hovered, press(pressed)]}
     >
       <Icon
         name={size === 36 ? "assistantPillBg" : "assistantPillBg28"}

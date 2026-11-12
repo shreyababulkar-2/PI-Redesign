@@ -7,6 +7,7 @@ import { AnswerId, answers } from "../../data/assistantAnswers";
 import { Phase } from "../../hooks/useConversation";
 import { transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
+import { useResponseScale } from "../../hooks/useResponseScale";
 import { Icon } from "../Icon";
 import { RichText } from "../note/RichText";
 import { AnswerTable } from "./AnswerTable";
@@ -77,6 +78,7 @@ export function AnswerView({
     [content, visible],
   );
   const complete = phase === "done";
+  const scale = useResponseScale();
 
   return (
     <View style={styles.root}>
@@ -86,20 +88,21 @@ export function AnswerView({
           regular={type.answer}
           bold={type.answerBold}
           color={colors.slate800}
+          scale={scale}
         />
       )}
       {stopped && <Text style={styles.stopped}>You stopped this response</Text>}
 
       {complete && content.table && (
         <FadeIn rise={8} duration={300}>
-          <Section title={content.table.title}>
+          <Section title={content.table.title} scale={scale}>
             <AnswerTable spec={content.table} />
           </Section>
         </FadeIn>
       )}
       {complete && content.chart && (
         <FadeIn rise={8} duration={300}>
-          <Section title={assistant.chart.title}>
+          <Section title={assistant.chart.title} scale={scale}>
             <RevenueChart />
           </Section>
         </FadeIn>
@@ -127,15 +130,26 @@ export function AnswerView({
 
 function Section({
   title,
+  scale,
   children,
 }: {
   title: string;
+  scale: number;
   children: React.ReactNode;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={[type.answerBold, { color: colors.slate800 }]}>
+        <Text
+          style={[
+            type.answerBold,
+            {
+              color: colors.slate800,
+              fontSize: type.answerBold.fontSize * scale,
+              lineHeight: type.answerBold.lineHeight * scale,
+            },
+          ]}
+        >
           {title}
         </Text>
         <View style={styles.expand}>
@@ -240,5 +254,5 @@ const styles = StyleSheet.create({
     ...transition(["background-color", "transform"]),
   },
   actionHover: { backgroundColor: colors.slate100 },
-  actionPressed: { transform: [{ scale: 0.92 }] },
+  actionPressed: { transform: [{ scale: 0.96 }] },
 });
