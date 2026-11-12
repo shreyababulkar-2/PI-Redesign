@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Image } from "expo-image";
 import {
   Pressable,
@@ -27,6 +27,10 @@ const HEADER_H = 69;
 const COMPANY_H = 34;
 const STAT_H = 40;
 const TITLE_H = 32;
+/** White space between two rows, with the 1px hairline centred in it (Figma 499:17736: a 34px row, 2px, line, 2px). */
+const ROW_GAP = 4;
+/** The grey 1px lines in the header: between the name column and the metrics, between column groups and between sub-columns. The body has none. */
+const GUTTER = colors.slate200;
 
 /** Total width of the scrolling metric columns: each group's leaf columns plus 1px between groups. */
 const MID_W =
@@ -118,6 +122,12 @@ export function BenchmarkTable({
 }: Props) {
   // Once the metrics have moved, the name column gets an edge shadow to show it is pinned over them.
   const [scrolled, setScrolled] = useState(false);
+  const scroller = useRef<ScrollViewInstance | null>(null);
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => void (settle.current && clearTimeout(settle.current)),
+    [],
+  );
   // A thin rule separates a row from the row above it (not from a header, title or gap).
   const ruled = (i: number) => {
     const here = items[i].type;
@@ -127,9 +137,13 @@ export function BenchmarkTable({
       (prev === "company" || prev === "stat")
     );
   };
+  // Each row sits ROW_GAP below the row above it; the hairline lives in that gap.
+  const heights = items.map(
+    (item, i) => heightOf(item) + (ruled(i) ? ROW_GAP : 0),
+  );
   // Top edge of each item: the sum of the heights above it.
   const titleTops = items.map((_, i) =>
-    items.slice(0, i).reduce((sum, item) => sum + heightOf(item), 0),
+    heights.slice(0, i).reduce((sum, h) => sum + h, 0),
   );
 
   const lane = (render: (item: TableItem, i: number) => ReactNode) =>
@@ -139,8 +153,9 @@ export function BenchmarkTable({
       return (
         <View
           key={i}
-          style={[{ height: heightOf(item) }, ruled(i) && styles.rule]}
+          style={[{ height: heights[i] }, ruled(i) && { paddingTop: ROW_GAP }]}
         >
+          {ruled(i) && <View pointerEvents="none" style={styles.rule} />}
           {body}
         </View>
       );
@@ -176,11 +191,23 @@ export function BenchmarkTable({
         contentContainerStyle={styles.scrollerContent}
         scrollEventThrottle={16}
         ref={(view) => {
+          scroller.current = view;
           if (scrollGroup && view) scrollGroup.register(view);
         }}
         onScroll={(e) => {
           const x = e.nativeEvent.contentOffset.x;
           setScrolled(x > 1);
+          // Scroll events are throttled and the last one can be dropped (e.g. when another table moves this one
+          // back to 0), so read the real offset once scrolling has stopped.
+          if (settle.current) clearTimeout(settle.current);
+          settle.current = setTimeout(() => {
+            const node = (
+              scroller.current as unknown as {
+                getScrollableNode?: () => HTMLElement;
+              } | null
+            )?.getScrollableNode?.();
+            if (node) setScrolled(node.scrollLeft > 1);
+          }, 100);
           scrollGroup?.moved(x);
         }}
       >
@@ -410,14 +437,21 @@ const styles = StyleSheet.create({
   scroller: { flex: 1, minWidth: 0 },
   scrollerContent: { flexGrow: 1 },
   mid: { flexGrow: 1, minWidth: MID_W },
-  rule: { borderTopWidth: 1, borderTopColor: colors.slate100 },
+  rule: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: (ROW_GAP - 1) / 2,
+    height: 1,
+    backgroundColor: colors.slate100,
+  },
   nameHead: {
     height: "100%",
     justifyContent: "center",
     paddingHorizontal: 12,
     backgroundColor: colors.slate100,
     borderRightWidth: 1,
-    borderRightColor: colors.white,
+    borderRightColor: GUTTER,
   },
   headText: { ...text, color: colors.slate800 },
   nameCell: {
@@ -436,17 +470,28 @@ const styles = StyleSheet.create({
     color: "#0e121b",
   },
   logo: { width: 16, height: 16 },
-  metricHeader: { flexDirection: "row", gap: 1, height: HEADER_H },
+  metricHeader: {
+    flexDirection: "row",
+    gap: 1,
+    height: HEADER_H,
+    // The 1px gutters between the column groups show this grey, not white (sampled from Figma 507:14578).
+    backgroundColor: GUTTER,
+  },
   group: { backgroundColor: colors.slate100, gap: 1 },
   groupTitle: {
     height: 34,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(225,228,234,0.4)",
+    backgroundColor: "#ebeef3",
   },
   subRow: { height: 34, flexDirection: "row" },
-  subCell: { height: 34, alignItems: "center", justifyContent: "center" },
-  subDivider: { borderRightWidth: 1, borderRightColor: colors.white },
+  subCell: {
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.slate100,
+  },
+  subDivider: { borderRightWidth: 1, borderRightColor: GUTTER },
   asOf: { fontSize: 10 },
   metricRow: { flexDirection: "row", height: "100%" },
   metricCell: {

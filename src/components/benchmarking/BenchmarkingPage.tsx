@@ -52,7 +52,7 @@ export function BenchmarkingPage() {
   const categoryItems = useMemo<TableItem[]>(() => {
     const items: TableItem[] = [{ type: "header" }, { type: "gap", height: 4 }];
     categoryGroups.forEach((g, i) => {
-      if (i > 0) items.push({ type: "gap", height: 8 });
+      if (i > 0) items.push({ type: "gap", height: 10 });
       items.push({ type: "title", text: g.title }, { type: "gap", height: 4 });
       g.companies.forEach((company) =>
         items.push({ type: "company", company }),
