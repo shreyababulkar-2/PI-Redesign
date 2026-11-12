@@ -1,10 +1,26 @@
-import { ReactNode } from "react";
-import { ScrollView, ScrollViewInstance, StyleSheet, Text, View } from "react-native";
-import Svg, { Path, Rect } from "react-native-svg";
+import { ReactNode, useState } from "react";
+import { Image } from "expo-image";
+import {
+  Pressable,
+  ScrollView,
+  ScrollViewInstance,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { colors, fonts } from "../../theme";
-import { benchmarkColumns, Cell, Company, Trend } from "../../data/benchmarking";
+import {
+  benchmarkColumns,
+  Cell,
+  Company,
+  Trend,
+} from "../../data/benchmarking";
 import { Icon } from "../Icon";
 import { pointer } from "../../theme/cursor";
+import { press, transition } from "../../theme/motion";
+import { useHover } from "../../hooks/useHover";
+import { WithTooltip } from "../Tooltip";
 
 const NAME_W = 219;
 const HEADER_H = 69;
@@ -21,14 +37,17 @@ const MID_W =
   (benchmarkColumns.length - 1);
 
 /** Currency unit of the Market cap and EV columns. 1 Cr = 10 Mn. */
-export type Unit = 'Mn' | 'Cr';
+export type Unit = "Mn" | "Cr";
 
 /** Re-expresses a figure given in ₹ Mn in the chosen unit (e.g. 1,553 Mn is 155.3 Cr). */
 function inUnit(text: string, unit: Unit): string {
-  if (unit === 'Mn') return text;
-  const n = parseFloat(text.replace(/,/g, ''));
+  if (unit === "Mn") return text;
+  const n = parseFloat(text.replace(/,/g, ""));
   if (Number.isNaN(n)) return text;
-  return (n / 10).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return (n / 10).toLocaleString("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
 }
 
 /**
@@ -67,14 +86,12 @@ export type TableItem =
 
 type Props = {
   items: TableItem[];
-  /** Width of the fixed actions column: 50 holds the notes icon, 76 adds the "more" menu. */
-  actionsWidth: 50 | 76;
+  /** Adds a fixed 36px column on the right with a chevron on each company row (Figma 499:16408). */
+  rowAction?: boolean;
   /** Keeps this table's horizontal scroll in step with the other tables in the group. */
   scrollGroup?: ScrollGroup;
   /** Unit for the Market cap and EV columns. */
   unit?: Unit;
-  /** Shows the expand and "more" icons in the actions column's header (revealed while the table is hovered). */
-  headerIcons?: boolean;
 };
 
 const heightOf = (item: TableItem) =>
@@ -93,12 +110,22 @@ const heightOf = (item: TableItem) =>
  * company name column on the left, the metric columns in a horizontal scroller in the middle, and a fixed
  * actions column on the right with a soft edge shadow. Group titles are drawn over all three lanes.
  */
-export function BenchmarkTable({ items, actionsWidth, headerIcons, unit = 'Mn', scrollGroup }: Props) {
+export function BenchmarkTable({
+  items,
+  rowAction = false,
+  unit = "Mn",
+  scrollGroup,
+}: Props) {
+  // Once the metrics have moved, the name column gets an edge shadow to show it is pinned over them.
+  const [scrolled, setScrolled] = useState(false);
   // A thin rule separates a row from the row above it (not from a header, title or gap).
   const ruled = (i: number) => {
     const here = items[i].type;
     const prev = items[i - 1]?.type;
-    return (here === "company" || here === "stat") && (prev === "company" || prev === "stat");
+    return (
+      (here === "company" || here === "stat") &&
+      (prev === "company" || prev === "stat")
+    );
   };
   // Top edge of each item: the sum of the heights above it.
   const titleTops = items.map((_, i) =>
@@ -107,14 +134,12 @@ export function BenchmarkTable({ items, actionsWidth, headerIcons, unit = 'Mn', 
 
   const lane = (render: (item: TableItem, i: number) => ReactNode) =>
     items.map((item, i) => {
-      const body = item.type === "gap" || item.type === "title" ? null : render(item, i);
+      const body =
+        item.type === "gap" || item.type === "title" ? null : render(item, i);
       return (
         <View
           key={i}
-          style={[
-            { height: heightOf(item) },
-            ruled(i) && styles.rule,
-          ]}
+          style={[{ height: heightOf(item) }, ruled(i) && styles.rule]}
         >
           {body}
         </View>
@@ -123,7 +148,7 @@ export function BenchmarkTable({ items, actionsWidth, headerIcons, unit = 'Mn', 
 
   return (
     <View style={styles.root}>
-      <View style={{ width: NAME_W }}>
+      <View style={[styles.nameLane, scrolled && styles.nameLaneScrolled]}>
         {lane((item) =>
           item.type === "header" ? (
             <View style={styles.nameHead}>
@@ -153,7 +178,11 @@ export function BenchmarkTable({ items, actionsWidth, headerIcons, unit = 'Mn', 
         ref={(view) => {
           if (scrollGroup && view) scrollGroup.register(view);
         }}
-        onScroll={(e) => scrollGroup?.moved(e.nativeEvent.contentOffset.x)}
+        onScroll={(e) => {
+          const x = e.nativeEvent.contentOffset.x;
+          setScrolled(x > 1);
+          scrollGroup?.moved(x);
+        }}
       >
         {/* At the design width the columns are exactly as drawn; wider, they share the extra space. */}
         <View style={styles.mid}>
@@ -173,25 +202,17 @@ export function BenchmarkTable({ items, actionsWidth, headerIcons, unit = 'Mn', 
         </View>
       </ScrollView>
 
-      <View style={[styles.actions, { width: actionsWidth }]}>
-        {lane((item) =>
-          item.type === "header" ? (
-            <View style={styles.actionsHead}>
-              {headerIcons && (
-                <View style={styles.headIcons}>
-                  <Icon name="tableExpand" size={28} style={pointer} />
-                  <DotsIcon />
-                </View>
-              )}
-            </View>
-          ) : item.type === "company" ? (
-            <View style={styles.actionsCell}>
-              <NoteIcon dot={item.company.note} />
-              {actionsWidth === 76 && <DotsIcon />}
-            </View>
-          ) : null,
-        )}
-      </View>
+      {rowAction && (
+        <View style={styles.actions}>
+          {lane((item) =>
+            item.type === "header" ? (
+              <View style={styles.actionsHead} />
+            ) : item.type === "company" ? (
+              <RowChevron company={item.company.name} />
+            ) : null,
+          )}
+        </View>
+      )}
 
       {/* Group titles sit over all three lanes. */}
       {items.map((item, i) =>
@@ -215,7 +236,10 @@ function MetricHeader() {
       {benchmarkColumns.map((group) => {
         const width = group.subs.reduce((s, c) => s + c.width, 0);
         return (
-          <View key={group.title} style={[styles.group, { flexGrow: width, flexBasis: width }]}>
+          <View
+            key={group.title}
+            style={[styles.group, { flexGrow: width, flexBasis: width }]}
+          >
             <View style={styles.groupTitle}>
               <Text style={styles.headText}>{group.title}</Text>
             </View>
@@ -229,7 +253,12 @@ function MetricHeader() {
                     si < group.subs.length - 1 && styles.subDivider,
                   ]}
                 >
-                  <Text style={[styles.headText, sub.label.startsWith("As of") && styles.asOf]}>
+                  <Text
+                    style={[
+                      styles.headText,
+                      sub.label.startsWith("As of") && styles.asOf,
+                    ]}
+                  >
                     {sub.label}
                   </Text>
                 </View>
@@ -242,7 +271,15 @@ function MetricHeader() {
   );
 }
 
-function MetricRow({ cells, stat, unit }: { cells: Cell[]; stat?: boolean; unit: Unit }) {
+function MetricRow({
+  cells,
+  stat,
+  unit,
+}: {
+  cells: Cell[];
+  stat?: boolean;
+  unit: Unit;
+}) {
   const widths = benchmarkColumns.flatMap((g) => g.subs.map((s) => s.width));
   // Group starts get the 1px gutter the header has between groups.
   const gutter = new Set<number>();
@@ -290,7 +327,11 @@ function TrendMark({ trend }: { trend: Trend }) {
   return (
     <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
       <Path
-        d={trend === "up" ? "M6 10.5V2M2.8 5.2L6 2l3.2 3.2" : "M6 1.5V10M2.8 6.8L6 10l3.2-3.2"}
+        d={
+          trend === "up"
+            ? "M6 10.5V2M2.8 5.2L6 2l3.2 3.2"
+            : "M6 1.5V10M2.8 6.8L6 10l3.2-3.2"
+        }
         stroke={color}
         strokeWidth={1.2}
         strokeLinecap="round"
@@ -301,30 +342,50 @@ function TrendMark({ trend }: { trend: Trend }) {
 }
 
 function Logo({ company }: { company: Company }) {
-  const { bg, fg, mark } = company.logo;
+  const { source, radius } = company.logo;
   return (
-    <View style={[styles.logo, { backgroundColor: bg }]}>
-      <Text style={[styles.logoMark, { color: fg }]}>{mark}</Text>
-    </View>
-  );
-}
-
-/** Notes icon (a page with lines); the red dot marks unread notes. */
-function NoteIcon({ dot }: { dot?: boolean }) {
-  return (
-    <View style={styles.noteWrap}>
-      <Svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-        <Rect x={3} y={2.5} width={12} height={13} rx={2} stroke={colors.slate600} strokeWidth={1.1} />
-        <Path d="M6 6.5h6M6 9h6M6 11.5h3.5" stroke={colors.slate600} strokeWidth={1.1} strokeLinecap="round" />
-      </Svg>
-      {dot && <View style={styles.noteDot} />}
-    </View>
+    <Image
+      source={source}
+      contentFit="cover"
+      style={[styles.logo, { borderRadius: radius }]}
+    />
   );
 }
 
 /** The "more" (three dots) icon, as drawn in Figma at 28px. */
 export function DotsIcon() {
   return <Icon name="tableMore" size={28} style={pointer} />;
+}
+
+/** Chevron at the end of a company row: opens that company's details. Shows a tooltip on hover. */
+function RowChevron({ company }: { company: string }) {
+  const hover = useHover();
+  return (
+    <View style={styles.actionsCell}>
+      <WithTooltip text="Company details" side="bottom">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View details for ${company}`}
+          {...hover.handlers}
+          style={({ pressed }) => [
+            styles.chevron,
+            hover.hovered && styles.chevronHover,
+            press(pressed),
+          ]}
+        >
+          <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+            <Path
+              d="M6 3.5L10.5 8L6 12.5"
+              stroke={hover.hovered ? colors.pine800 : colors.slate600}
+              strokeWidth={1.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        </Pressable>
+      </WithTooltip>
+    </View>
+  );
 }
 
 const text = {
@@ -338,6 +399,14 @@ const text = {
 
 const styles = StyleSheet.create({
   root: { flexDirection: "row", width: "100%", position: "relative" },
+  nameLane: {
+    width: NAME_W,
+    backgroundColor: colors.white,
+    zIndex: 2,
+    boxShadow: "2px 0px 4px rgba(0,0,0,0)",
+    ...transition(["box-shadow"], 200),
+  },
+  nameLaneScrolled: { boxShadow: "2px 0px 4px rgba(0,0,0,0.08)" },
   scroller: { flex: 1, minWidth: 0 },
   scrollerContent: { flexGrow: 1 },
   mid: { flexGrow: 1, minWidth: MID_W },
@@ -366,14 +435,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.08,
     color: "#0e121b",
   },
-  logo: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoMark: { fontFamily: fonts.geistSemiBold, fontSize: 8, lineHeight: 10 },
+  logo: { width: 16, height: 16 },
   metricHeader: { flexDirection: "row", gap: 1, height: HEADER_H },
   group: { backgroundColor: colors.slate100, gap: 1 },
   groupTitle: {
@@ -405,37 +467,23 @@ const styles = StyleSheet.create({
   },
   approx: { ...text, fontSize: 12 },
   actions: {
+    width: 36,
     backgroundColor: colors.white,
     boxShadow: "-2px 0px 4px rgba(0,0,0,0.04)",
     zIndex: 2,
   },
-  actionsHead: {
-    height: "100%",
-    backgroundColor: colors.slate100,
+  actionsHead: { height: "100%", backgroundColor: colors.slate100 },
+  actionsCell: { flex: 1, alignItems: "center", justifyContent: "center" },
+  chevron: {
+    width: 28,
+    height: 24,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
+    ...pointer,
+    ...transition(["background-color"]),
   },
-  headIcons: { flexDirection: "row", alignItems: "center", gap: 4 },
-  actionsCell: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 0,
-    paddingHorizontal: 0,
-  },
-  noteWrap: { width: 18, height: 18, ...pointer },
-  noteDot: {
-    position: "absolute",
-    top: -2,
-    right: -3,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "#e5333f",
-    borderWidth: 1,
-    borderColor: colors.white,
-  },
+  chevronHover: { backgroundColor: colors.slate100 },
   title: {
     position: "absolute",
     left: 0,

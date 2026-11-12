@@ -17,12 +17,14 @@ import {
 import { BENCHMARK_TABS, useActiveTab } from "../../state/activeTab";
 import { useHover } from "../../hooks/useHover";
 import { Icon } from "../Icon";
+import { IconName } from "../../assets/icons";
+import { WithTooltip } from "../Tooltip";
+import { COMPARISON_MENU_ITEMS, KebabMenu } from "../note/KebabMenu";
 import { pointer } from "../../theme/cursor";
 import { appear, leaving, press, transition } from "../../theme/motion";
 import {
   BenchmarkTable,
   createScrollGroup,
-  DotsIcon,
   TableItem,
   Unit,
 } from "./BenchmarkTable";
@@ -62,7 +64,6 @@ export function BenchmarkingPage() {
     });
     return items;
   }, []);
-  const hover = useHover();
   // Both tables share one horizontal scroll position.
   const [scrollGroup] = useState(createScrollGroup);
   // Market cap and EV are shown in ₹ Mn or ₹ Cr; the chip in the first card flips both tables.
@@ -76,54 +77,78 @@ export function BenchmarkingPage() {
       <Card key={`overall-${benchTab}`} radius={10} index={2}>
         <CardHeader title="Overall comparison">
           <View style={styles.tools}>
-            <UnitChip
-              unit={unit}
-              onToggle={() => setUnit((u) => (u === "Mn" ? "Cr" : "Mn"))}
-            />
+            <WithTooltip text="Switch units" side="bottom">
+              <UnitChip
+                unit={unit}
+                onToggle={() => setUnit((u) => (u === "Mn" ? "Cr" : "Mn"))}
+              />
+            </WithTooltip>
             <View style={styles.divider} />
             <View style={styles.iconPair}>
-              <Icon name="tableExpand" size={28} style={pointer} />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Comments"
-              >
-                <Icon name="tableComments" size={28} style={pointer} />
-              </Pressable>
-              <DotsIcon />
+              <IconTool icon="tableExpand" label="Expand" />
+              <IconTool icon="tableComments" label="Comments" />
+              <KebabMenu items={COMPARISON_MENU_ITEMS} width={195}>
+                {({ open, toggle }) => (
+                  <WithTooltip text="More" side="bottom" disabled={open}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="More"
+                      accessibilityState={{ expanded: open }}
+                      onPress={toggle}
+                      style={({ pressed }) => press(pressed)}
+                    >
+                      <Icon name="tableMore" size={28} style={pointer} />
+                    </Pressable>
+                  </WithTooltip>
+                )}
+              </KebabMenu>
             </View>
           </View>
         </CardHeader>
         <View style={styles.tableWrap}>
           <BenchmarkTable
             items={overallItems}
-            actionsWidth={50}
             unit={unit}
             scrollGroup={scrollGroup}
           />
         </View>
       </Card>
 
-      <Pressable
-        key={`category-${benchTab}`}
-        {...hover.handlers}
-        style={styles.cardPressable}
-      >
+      <View key={`category-${benchTab}`} style={styles.cardPressable}>
         <Card radius={12} index={3}>
           <CardHeader title="Category-wise comparison">
-            <FilterChip label="Regulatory classification" />
+            <View style={styles.tools}>
+              <FilterChip label="By Regulatory classification" />
+              <View style={styles.divider} />
+              <IconTool icon="tableComments" label="Comments" />
+            </View>
           </CardHeader>
           <View style={styles.tableWrap}>
             <BenchmarkTable
               items={categoryItems}
-              actionsWidth={76}
+              rowAction
               unit={unit}
               scrollGroup={scrollGroup}
-              headerIcons={hover.hovered}
             />
           </View>
         </Card>
-      </Pressable>
+      </View>
     </>
+  );
+}
+
+/** A 28px icon button in a card header (Figma "Segmented Control"): press feedback and a tooltip below it. */
+function IconTool({ icon, label }: { icon: IconName; label: string }) {
+  return (
+    <WithTooltip text={label} side="bottom">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={({ pressed }) => press(pressed)}
+      >
+        <Icon name={icon} size={28} style={pointer} />
+      </Pressable>
+    </WithTooltip>
   );
 }
 
@@ -147,6 +172,7 @@ function SubTabs() {
           key={label}
           label={label}
           active={i === benchTab}
+          disabled={i === BENCHMARK_TABS.length - 1}
           onPress={() => setBenchTab(i)}
           onLayout={(e: LayoutChangeEvent) => {
             const l = e.nativeEvent.layout;
@@ -182,11 +208,14 @@ function SubTabs() {
 function SubTab({
   label,
   active,
+  disabled = false,
   onPress,
   onLayout,
 }: {
   label: string;
   active: boolean;
+  /** Not built yet: looks like the other tabs but does nothing. */
+  disabled?: boolean;
   onPress: () => void;
   onLayout: (e: LayoutChangeEvent) => void;
 }) {
@@ -194,17 +223,21 @@ function SubTab({
   return (
     <Pressable
       accessibilityRole="tab"
-      accessibilityState={{ selected: active }}
+      accessibilityState={{ selected: active, disabled }}
+      disabled={disabled}
       onPress={onPress}
       onLayout={onLayout}
       {...hover.handlers}
-      style={styles.subTab}
+      style={[styles.subTab, disabled && { cursor: "default" as never }]}
     >
       <Text
         style={[
           styles.subTabText,
           {
-            color: active || hover.hovered ? colors.slate700 : colors.slate500,
+            color:
+              active || (hover.hovered && !disabled)
+                ? colors.slate700
+                : colors.slate500,
           },
           transition(["color"], 200),
         ]}
@@ -310,30 +343,12 @@ function UnitChip({ unit, onToggle }: { unit: Unit; onToggle: () => void }) {
   );
 }
 
+/** A plain label pill (Figma 499:17736): it states how the table is grouped and is not interactive. */
 function FilterChip({ label }: { label: string }) {
-  const hover = useHover();
   return (
-    <Pressable
-      accessibilityRole="button"
-      {...hover.handlers}
-      style={({ pressed }) => [
-        styles.chip,
-        styles.chipLarge,
-        hover.hovered && styles.chipHover,
-        press(pressed),
-      ]}
-    >
+    <View style={[styles.chip, styles.chipLarge, styles.chipStatic]}>
       <Text style={styles.chipText}>{label}</Text>
-      <Svg width={12} height={12} viewBox="0 0 12 12" fill="none">
-        <Path
-          d="M3 4.8l3 3 3-3"
-          stroke={colors.slate500}
-          strokeWidth={1}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
-    </Pressable>
+    </View>
   );
 }
 
@@ -432,6 +447,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     minHeight: 28,
+    // Above the table below, so the header's dropdowns aren't painted underneath it.
+    zIndex: 5,
   },
   cardTitle: {
     fontFamily: fonts.geistMedium,
@@ -463,6 +480,7 @@ const styles = StyleSheet.create({
     ...transition(["background-color"]),
   },
   chipLarge: { height: 24 },
+  chipStatic: { paddingRight: 8, cursor: "default" as never },
   chipHover: { backgroundColor: colors.slate100 },
   chipText: {
     fontFamily: fonts.geistRegular,

@@ -24,6 +24,8 @@ export type MenuItem = {
   subtitle?: string;
   /** Small green status after the title, e.g. "Published" on the latest version. */
   badge?: string;
+  /** Destructive action: its label stays red (Figma "Delete report"). */
+  danger?: boolean;
 };
 
 export const PAGE_MENU_ITEMS: MenuItem[] = [
@@ -35,7 +37,6 @@ export const PAGE_MENU_ITEMS: MenuItem[] = [
     hover: "menuInstructionsDark",
   },
   { label: "User activity", icon: "menuActivity", hover: "menuActivityDark" },
-  { label: "Notes", icon: "menuNotes", hover: "menuNotesDark" },
 ];
 
 /**
@@ -46,6 +47,31 @@ export const SCROLLED_MENU_ITEMS: MenuItem[] = [
   { label: "Download", icon: "menuSave", hover: "menuSaveDark" },
   { label: "Manage members", icon: "menuMembers", hover: "menuMembersDark" },
   ...PAGE_MENU_ITEMS,
+];
+
+/**
+ * The page menu on the Benchmarking tab (Figma 507:15506): the usual actions, then report actions, ending in a
+ * red "Delete report".
+ */
+export const BENCHMARK_MENU_ITEMS: MenuItem[] = [
+  ...PAGE_MENU_ITEMS,
+  { label: "Regenerate report", icon: "menuRegenerate", hover: "menuRegenerateDark" },
+  { label: "Save report as template", icon: "menuTemplate", hover: "menuTemplateDark" },
+  { label: "Delete report", icon: "menuDelete", hover: "menuDeleteDark", danger: true },
+];
+
+/** The same for the scrolled header, with Download and Manage members first. */
+export const BENCHMARK_SCROLLED_MENU_ITEMS: MenuItem[] = [
+  { label: "Download", icon: "menuSave", hover: "menuSaveDark" },
+  { label: "Manage members", icon: "menuMembers", hover: "menuMembersDark" },
+  ...BENCHMARK_MENU_ITEMS,
+];
+
+/** The "…" menu on the Overall comparison card (Figma 519:1413). */
+export const COMPARISON_MENU_ITEMS: MenuItem[] = [
+  { label: "Additional notes", icon: "menuInstructions", hover: "menuInstructionsDark" },
+  { label: "Edit keywords and filters", icon: "menuEdit", hover: "menuEditDark" },
+  { label: "Edit metrics", icon: "menuMetrics", hover: "menuMetricsDark" },
 ];
 
 /** Section-level actions under a section card's "more" button (Figma 448:33700). */
@@ -178,12 +204,14 @@ function MenuRow({
   hover: hoverIcon,
   subtitle,
   badge,
+  danger = false,
   selected = false,
   onPress,
 }: {
   label: string;
   subtitle?: string;
   badge?: string;
+  danger?: boolean;
   icon?: IconName;
   hover?: IconName;
   selected?: boolean;
@@ -242,6 +270,7 @@ function MenuRow({
           style={[
             styles.label,
             (hover.hovered || selected) && styles.labelHover,
+            danger && styles.labelDanger,
           ]}
         >
           {label}
@@ -324,4 +353,5 @@ const styles = StyleSheet.create({
     color: "#525866",
   },
   labelHover: { color: "#2b303b" },
+  labelDanger: { color: "#e93544" },
 });

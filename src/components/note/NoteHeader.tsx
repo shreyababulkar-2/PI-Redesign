@@ -7,7 +7,7 @@ import { company, noteTabs } from "../../data/researchNote";
 import { Icon } from "../Icon";
 import { NoteTab } from "./NoteTab";
 import { StageChip } from "./Chip";
-import { KebabMenu } from "./KebabMenu";
+import { BENCHMARK_MENU_ITEMS, KebabMenu } from "./KebabMenu";
 import { WithTooltip } from "../Tooltip";
 import { AssistantButton } from "../AssistantButton";
 import { pointer } from "../../theme/cursor";
@@ -84,7 +84,11 @@ export function NoteHeaderContent({ activeTab }: Props) {
               <Icon name="topbarDownload" size={28} style={pointer} />
             </Pressable>
           </WithTooltip>
-          <KebabMenu>
+          <KebabMenu
+            {...(activeTab === 2
+              ? { items: BENCHMARK_MENU_ITEMS, width: 191 }
+              : null)}
+          >
             {({ open, toggle }) => (
               <WithTooltip text="More" side="bottom" disabled={open}>
                 <Pressable

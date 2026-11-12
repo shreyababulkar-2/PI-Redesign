@@ -72,7 +72,8 @@ const styles = StyleSheet.create({
   group: {
     backgroundColor: colors.white,
     borderRadius: 4,
-    boxShadow: "0px 1px 2px rgba(0,0,0,0.04)",
+    // Lifted off the table beneath it: a hairline edge plus a soft two-layer shadow (same as the floating header).
+    boxShadow: `0px 0px 0px 1px rgba(0,0,0,0.04), 0px 1px 2px ${colors.floatingShadowSoft}, 0px 2px 12px ${colors.floatingShadow}`,
   },
   button: {
     width: 28,
