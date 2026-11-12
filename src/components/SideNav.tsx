@@ -59,6 +59,9 @@ const NAV_ITEMS: {
   },
 ];
 
+/** The prototype stays inside one deal: the other destinations light up on hover but do not navigate. */
+const ACTIVE_KEY = "deals";
+
 /** Account items that fold away under the caret, top to bottom. */
 const ACCOUNT_ITEMS: { label: string; icon: IconName }[] = [
   { label: "Help & support", icon: "navBottom3Light" },
@@ -86,7 +89,6 @@ function readLevel(): NavLevel {
  * and accessibility. Hovering an item lights its tile and shows its name beside the pod.
  */
 export function SideNav({ level = readLevel() }: { level?: NavLevel }) {
-  const [activeKey, setActiveKey] = useState("deals");
   const [expanded, setExpanded] = useState(false);
   const pod = useRef<ComponentRef<typeof View>>(null);
   // While expanded, a click anywhere outside the pod (or Escape) folds it back up.
@@ -119,8 +121,7 @@ export function SideNav({ level = readLevel() }: { level?: NavLevel }) {
               label={item.label}
               icon={item.icon}
               activeIcon={item.activeIcon}
-              active={item.key === activeKey}
-              onPress={() => setActiveKey(item.key)}
+              active={item.key === ACTIVE_KEY}
             />
           ))}
         </View>

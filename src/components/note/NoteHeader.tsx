@@ -11,7 +11,8 @@ import { BENCHMARK_MENU_ITEMS, KebabMenu } from "./KebabMenu";
 import { WithTooltip } from "../Tooltip";
 import { AssistantButton } from "../AssistantButton";
 import { pointer } from "../../theme/cursor";
-import { press } from "../../theme/motion";
+import { press, transition } from "../../theme/motion";
+import { useHover } from "../../hooks/useHover";
 import { useActiveTab } from "../../state/activeTab";
 
 type Props = { activeTab: number };
@@ -27,6 +28,7 @@ export function NoteHeader({ activeTab }: Props) {
 
 /** The header's inner layout without the card chrome, so it can live inside a morphing container. */
 export function NoteHeaderContent({ activeTab }: Props) {
+  const hoverDownload = useHover();
   const { setTab } = useActiveTab();
   return (
     <View style={styles.content}>
@@ -79,9 +81,21 @@ export function NoteHeaderContent({ activeTab }: Props) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Download"
+              {...hoverDownload.handlers}
               style={({ pressed }) => press(pressed)}
             >
+              {/* Hover (Figma 501:8232): the button darkens a step and the arrow turns green; the two fade into each other. */}
               <Icon name="topbarDownload" size={28} style={pointer} />
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.downloadHover,
+                  { opacity: hoverDownload.hovered ? 1 : 0 },
+                  transition(["opacity"], 150),
+                ]}
+              >
+                <Icon name="topbarDownloadHover" size={28} />
+              </View>
             </Pressable>
           </WithTooltip>
           <KebabMenu
@@ -144,6 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: { width: 16, height: 16, borderRadius: 8 },
+  downloadHover: { position: "absolute", left: 0, top: 0 },
   openOutline: {
     position: "absolute",
     top: 0,

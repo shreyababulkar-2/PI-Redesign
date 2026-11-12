@@ -271,7 +271,7 @@ function HostLink({ host, kind }: { host: string; kind: "web" | "dataroom" }) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 4,
+        gap: 0,
         fontSize: 11,
         lineHeight: "14px",
         color,
@@ -296,13 +296,14 @@ function HostLink({ host, kind }: { host: string; kind: "web" | "dataroom" }) {
   );
 }
 
+/** The "opens a web page" arrow beside a host name (Figma 501:7948, 12px). */
 function ExternalIcon({ color }: { color: string }) {
   return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
       <path
-        d="M4 2H2.5A.5.5 0 0 0 2 2.5v5a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5V6M6 2h2v2M8 2 4.5 5.5"
+        d="M5.3125 2.56256L3.71875 2.5625C3.44525 2.5625 3.05794 2.67115 2.86455 2.86455C2.67115 3.05794 2.5625 3.32025 2.5625 3.59375V8.40625C2.5625 8.67975 2.67115 8.94206 2.86455 9.13545C3.05794 9.32885 3.32025 9.4375 3.59375 9.4375H8.40625C8.67975 9.4375 8.94206 9.32885 9.13545 9.13545C9.32885 8.94206 9.4375 8.67975 9.4375 8.40625V6.69141M6.1875 5.8125L9.4375 2.5625M9.4375 4.96875V2.5625H7.03125"
         stroke={color}
-        strokeWidth="0.9"
+        strokeWidth="0.75"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -310,10 +311,11 @@ function ExternalIcon({ color }: { color: string }) {
   );
 }
 
+/** The Data Room folder beside "Data Room" (Figma 501:7948, 12px). */
 function FolderIcon({ color }: { color: string }) {
   return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill={color} aria-hidden>
-      <path d="M1.5 2.5A.5.5 0 0 1 2 2h2l1 1h3a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5v-5Z" />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill={color} aria-hidden>
+      <path d="M9.33331 10C9.68693 10 10.0261 9.85952 10.2761 9.60948C10.5262 9.35943 10.6666 9.02029 10.6666 8.66667V6.66667C10.6666 6.31304 10.5262 5.97391 10.2761 5.72386C10.0261 5.47381 9.68693 5.33333 9.33331 5.33333H2.66665C2.31302 5.33333 1.97389 5.47381 1.72384 5.72386C1.47379 5.97391 1.33331 6.31304 1.33331 6.66667V8.66667C1.33331 9.02029 1.47379 9.35943 1.72384 9.60948C1.97389 9.85952 2.31302 10 2.66665 10H9.33331ZM1.33331 5.176V3.33333C1.33331 2.97971 1.47379 2.64057 1.72384 2.39052C1.97389 2.14048 2.31302 2 2.66665 2H5.05731C5.32238 2.00012 5.57655 2.10546 5.76398 2.29289L6.70709 3.23556C6.76931 3.29822 6.8542 3.33333 6.94265 3.33333H9.33331C9.68693 3.33333 10.0261 3.47381 10.2761 3.72386C10.5262 3.97391 10.6666 4.31304 10.6666 4.66667V5.176C10.3003 4.84739 9.8254 4.66597 9.33331 4.66667H2.66665C2.17455 4.66597 1.69961 4.84739 1.33331 5.176Z" />
     </svg>
   );
 }

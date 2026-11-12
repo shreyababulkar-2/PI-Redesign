@@ -35,6 +35,7 @@ export const icons = {
   navBottom4: require('./nav-bottom-4.svg'),
   headerDataRoom: require('./header-data-room.svg'),
   topbarDownload: require('./topbar-download.svg'),
+  topbarDownloadHover: require('./topbar-download-hover.svg'),
   topbarMore: require('./topbar-more.svg'),
   successFilled: require('./success-filled.svg'),
   errorFilled: require('./error-filled.svg'),
