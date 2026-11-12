@@ -20,6 +20,18 @@ const MAX_RATIO = 0.5;
 const DEFAULT_RATIO = ASSISTANT_MIN_WIDTH / 1280;
 const STORAGE_KEY = "pi-redesign:assistant-ratio";
 
+/**
+ * The assistant's default width for a window: its design share of the window, between the minimum and half the
+ * screen. Ignores any resizing by the user. The sources drawer is fixed at this size.
+ */
+export function defaultAssistantWidth(windowWidth: number): number {
+  const max = Math.floor(windowWidth * MAX_RATIO);
+  return Math.min(
+    Math.max(Math.round(DEFAULT_RATIO * windowWidth), ASSISTANT_MIN_WIDTH),
+    Math.max(max, ASSISTANT_MIN_WIDTH),
+  );
+}
+
 /** Share of the window chosen earlier in this browser session (survives reloads, not new sessions). */
 function readStoredRatio(): number {
   if (Platform.OS !== "web") return DEFAULT_RATIO;

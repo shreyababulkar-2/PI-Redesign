@@ -6,6 +6,7 @@ import { ResearchNoteScreen } from "./src/screens/ResearchNoteScreen";
 import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
 import { ActiveTabProvider } from "./src/state/activeTab";
+import { SourcesDrawerProvider } from "./src/state/sourcesDrawer";
 
 export default function App() {
   const fontsReady = useAppFonts();
@@ -25,7 +26,9 @@ export default function App() {
       <AssistantOverlayProvider>
         <ActiveTabProvider>
           <SelectionContextProvider>
-            <ResearchNoteScreen />
+            <SourcesDrawerProvider>
+              <ResearchNoteScreen />
+            </SourcesDrawerProvider>
           </SelectionContextProvider>
         </ActiveTabProvider>
       </AssistantOverlayProvider>

@@ -8,6 +8,7 @@ import { Icon } from "../Icon";
 import { NoteTab } from "./NoteTab";
 import { StageChip } from "./Chip";
 import { KebabMenu } from "./KebabMenu";
+import { WithTooltip } from "../Tooltip";
 import { AssistantButton } from "../AssistantButton";
 import { pointer } from "../../theme/cursor";
 import { press } from "../../theme/motion";
@@ -59,30 +60,47 @@ export function NoteHeaderContent({ activeTab }: Props) {
 
       <View style={styles.right}>
         {/* Collaborators (Figma 439:25170): three overlapping avatars, then a hairline divider. */}
-        <Image
-          source={avatarGroup}
-          contentFit="contain"
-          accessibilityLabel="Collaborators"
-          style={styles.avatars}
-        />
+        <WithTooltip text="Manage members" side="bottom">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Manage members"
+            style={({ pressed }) => press(pressed)}
+          >
+            <Image
+              source={avatarGroup}
+              contentFit="contain"
+              style={styles.avatars}
+            />
+          </Pressable>
+        </WithTooltip>
         <View style={styles.rightDivider} />
         <View style={styles.rightButtons}>
-          <Icon name="topbarDownload" size={28} style={pointer} />
+          <WithTooltip text="Download" side="bottom">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Download"
+              style={({ pressed }) => press(pressed)}
+            >
+              <Icon name="topbarDownload" size={28} style={pointer} />
+            </Pressable>
+          </WithTooltip>
           <KebabMenu>
             {({ open, toggle }) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="More actions"
-                accessibilityState={{ expanded: open }}
-                onPress={toggle}
-                style={({ pressed }) => press(pressed)}
-              >
-                <Icon name="topbarMore" size={28} style={pointer} />
-                {/* While the menu is open the button gets a hairline outline (Figma 441:32461). */}
-                {open && (
-                  <View pointerEvents="none" style={styles.openOutline} />
-                )}
-              </Pressable>
+              <WithTooltip text="More" side="bottom" disabled={open}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="More actions"
+                  accessibilityState={{ expanded: open }}
+                  onPress={toggle}
+                  style={({ pressed }) => press(pressed)}
+                >
+                  <Icon name="topbarMore" size={28} style={pointer} />
+                  {/* While the menu is open the button gets a hairline outline (Figma 441:32461). */}
+                  {open && (
+                    <View pointerEvents="none" style={styles.openOutline} />
+                  )}
+                </Pressable>
+              </WithTooltip>
             )}
           </KebabMenu>
           <AssistantButton size={28} />

@@ -29,6 +29,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web && node scripts/postexport.js",
+    "deploy": "npm run export:web && npx wrangler deploy",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },

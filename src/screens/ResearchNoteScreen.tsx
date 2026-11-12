@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../theme";
 import { HEADER_EXPANDED_HEIGHT } from "../theme/layout";
@@ -10,7 +10,8 @@ import { NOTE_CONTENT_ID } from "../state/selectionContext";
 import { NoteHeader } from "../components/note/NoteHeader";
 import { SectionCard } from "../components/note/SectionCard";
 import { Minimap } from "../components/note/Minimap";
-import { ZoomControls } from "../components/note/ZoomControls";
+import { ScrollTopButton } from "../components/note/ScrollTopButton";
+import { SourcesDrawer } from "../components/note/SourcesDrawer";
 import { useSectionNavigation } from "../hooks/useSectionNavigation";
 import { ResizableAssistant } from "../components/assistant/ResizableAssistant";
 import { BenchmarkingPage } from "../components/benchmarking/BenchmarkingPage";
@@ -24,13 +25,6 @@ const TAB_RESEARCH = 0;
 const TAB_BENCHMARKING = 2;
 
 const sectionIds = sections.map((s) => s.id);
-/**
- * Body text size options, as body font sizes in px, shown as A- / A / A+. 12px is the design size and the
- * default (A-).
- */
-const BODY_BASE_PX = 12;
-const TEXT_SIZES_PX = [12, 14, 16] as const;
-
 /** Tick column sits 40px below the first card's top edge. */
 const MINIMAP_OFFSET = 40;
 
@@ -48,8 +42,6 @@ export function ResearchNoteScreen() {
     onContentSizeChange,
   } = useSectionNavigation(sectionIds);
   const { tab, pageTab, switching, setSwitchDelay, benchTab } = useActiveTab();
-  const [sizeIndex, setSizeIndex] = useState(0);
-  const zoom = TEXT_SIZES_PX[sizeIndex] / BODY_BASE_PX;
 
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
   // The floating header's chip names where you are: the section on the note, the sub-tab on Benchmarking.
@@ -107,7 +99,6 @@ export function ResearchNoteScreen() {
                   key={section.id}
                   index={i}
                   section={section}
-                  zoom={zoom}
                   onLayout={onSectionLayout(section.id)}
                 />
               ))}
@@ -140,18 +131,16 @@ export function ResearchNoteScreen() {
           activeSectionTitle={floatingTitle}
         />
 
-        <ZoomControls
-          topProgress={headerProgress}
-          topActive={scrolled}
-          onScrollTop={scrollToTop}
-          sizeIndex={sizeIndex}
-          onSelectSize={setSizeIndex}
-          showSize={pageTab === TAB_RESEARCH}
+        <ScrollTopButton
+          progress={headerProgress}
+          active={scrolled}
+          onPress={scrollToTop}
         />
       </View>
 
       <ResizableAssistant />
       <SideNav />
+      <SourcesDrawer />
     </View>
   );
 }

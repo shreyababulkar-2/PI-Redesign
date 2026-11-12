@@ -158,7 +158,9 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
               onBlur={() => setFocused(false)}
               multiline
               placeholder={placeholder}
-              placeholderTextColor={colors.slate500}
+              placeholderTextColor={
+                selection.text ? "#717784" : colors.slate500
+              }
               accessibilityLabel="Ask a follow up question"
               style={[
                 type.composer,
@@ -168,6 +170,8 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
                   lineHeight: text ? LINE_HEIGHT : PLACEHOLDER_LINE_HEIGHT,
                   color: colors.slate800,
                 },
+                // With a selection as context the prompt is set a size down (Figma 452:34848).
+                selection.text ? { fontSize: 11 } : null,
               ]}
             />
           </View>
@@ -274,7 +278,7 @@ function ContextStrip({
   return (
     <View style={styles.strip}>
       <View style={styles.stripMain}>
-        <Icon name="selectionSparkles" size={12} />
+        <Icon name="contextReply" size={12} />
         <Text numberOfLines={1} style={styles.stripText}>
           {text}
         </Text>
@@ -284,13 +288,9 @@ function ContextStrip({
         accessibilityLabel="Remove selected text from context"
         onPress={onRemove}
         {...hover.handlers}
-        style={styles.stripRemove}
+        style={[styles.stripRemove, { opacity: hover.hovered ? 1 : 0.8 }]}
       >
-        <Text
-          style={[styles.stripRemoveText, { opacity: hover.hovered ? 1 : 0.8 }]}
-        >
-          Remove
-        </Text>
+        <Icon name="contextClose" size={12} />
       </Pressable>
     </View>
   );
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 20,
   },
   stripMain: {
     flex: 1,
@@ -384,12 +384,6 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   stripRemove: { ...pointer, ...transition(["opacity"]) },
-  stripRemoveText: {
-    fontFamily: fonts.geistRegular,
-    fontSize: 10,
-    lineHeight: 12,
-    color: colors.white,
-  },
   composer: {
     width: "100%",
     backgroundColor: colors.white,

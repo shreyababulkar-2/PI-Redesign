@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ComponentRef, ReactNode, useEffect, useRef, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -22,6 +22,8 @@ export type MenuItem = {
   icon?: IconName;
   hover?: IconName;
   subtitle?: string;
+  /** Small green status after the title, e.g. "Published" on the latest version. */
+  badge?: string;
 };
 
 export const PAGE_MENU_ITEMS: MenuItem[] = [
@@ -34,6 +36,16 @@ export const PAGE_MENU_ITEMS: MenuItem[] = [
   },
   { label: "User activity", icon: "menuActivity", hover: "menuActivityDark" },
   { label: "Notes", icon: "menuNotes", hover: "menuNotesDark" },
+];
+
+/**
+ * The page menu once the header has scrolled into its floating form (Figma 507:10399): the Download and Manage
+ * members buttons that left the bar move in on top of the usual actions.
+ */
+export const SCROLLED_MENU_ITEMS: MenuItem[] = [
+  { label: "Download", icon: "menuSave", hover: "menuSaveDark" },
+  { label: "Manage members", icon: "menuMembers", hover: "menuMembersDark" },
+  ...PAGE_MENU_ITEMS,
 ];
 
 /** Section-level actions under a section card's "more" button (Figma 448:33700). */
@@ -57,6 +69,8 @@ type Props = {
   selected?: string;
   onSelect?: (label: string) => void;
   minWidth?: number;
+  /** Fixed menu width, for the page menus (171 in Figma). */
+  width?: number;
 };
 
 /** Wraps a kebab button and shows the page actions menu under it when pressed. */
@@ -68,8 +82,10 @@ export function KebabMenu({
   selected,
   onSelect,
   minWidth,
+  width,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const anchorRef = useRef<ComponentRef<typeof View>>(null);
   useEffect(() => {
     if (!open) return;
     const close = () => setOpen(false);
@@ -81,7 +97,18 @@ export function KebabMenu({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
-    if (Platform.OS === "web") document.addEventListener("keydown", onKey);
+    // Clicking (or tapping) anywhere outside the trigger and menu closes it, whatever is under the pointer, and
+    // the click still reaches that element. Pointer down in the capture phase so nothing can swallow it first.
+    const onPointerDown = (e: PointerEvent) => {
+      const anchor = anchorRef.current as unknown as HTMLElement | null;
+      if (anchor && e.target instanceof Node && anchor.contains(e.target))
+        return;
+      close();
+    };
+    if (Platform.OS === "web") {
+      document.addEventListener("keydown", onKey);
+      document.addEventListener("pointerdown", onPointerDown, true);
+    }
     const events = ["scroll", "wheel", "touchmove"];
     if (Platform.OS === "web")
       events.forEach((e) =>
@@ -89,22 +116,28 @@ export function KebabMenu({
       );
     return () => {
       if (closeOpenMenu === close) closeOpenMenu = null;
-      if (Platform.OS === "web") document.removeEventListener("keydown", onKey);
+      if (Platform.OS === "web") {
+        document.removeEventListener("keydown", onKey);
+        document.removeEventListener("pointerdown", onPointerDown, true);
+      }
       if (Platform.OS === "web")
         events.forEach((e) => document.removeEventListener(e, close, true));
     };
   }, [open]);
   return (
-    <View style={[styles.anchor, style]}>
+    <View ref={anchorRef} style={[styles.anchor, style]}>
       {children({ open, toggle: () => setOpen((v) => !v) })}
       {open && (
         <>
-          {/* Click-away layer; fixed on web so it covers the page without making it scroll. */}
-          <Pressable
-            accessibilityLabel="Close menu"
-            onPress={() => setOpen(false)}
-            style={Platform.OS === "web" ? styles.backdropWeb : styles.backdrop}
-          />
+          {/* Native click-away layer. On web a document-level listener does this (see above), so that clicks on
+              the assistant, side nav and other panels close the menu too. */}
+          {Platform.OS !== "web" && (
+            <Pressable
+              accessibilityLabel="Close menu"
+              onPress={() => setOpen(false)}
+              style={styles.backdrop}
+            />
+          )}
           {/* Eases in from just above (a small drop and fade); the wrapper carries the placement. */}
           <FadeIn
             rise={-4}
@@ -117,6 +150,7 @@ export function KebabMenu({
                 styles.menu,
                 items === PAGE_MENU_ITEMS && styles.menuPage,
                 minWidth ? { minWidth } : null,
+                width ? { width } : null,
               ]}
             >
               {items.map((item) => (
@@ -143,11 +177,13 @@ function MenuRow({
   icon,
   hover: hoverIcon,
   subtitle,
+  badge,
   selected = false,
   onPress,
 }: {
   label: string;
   subtitle?: string;
+  badge?: string;
   icon?: IconName;
   hover?: IconName;
   selected?: boolean;
@@ -172,17 +208,27 @@ function MenuRow({
       )}
       {subtitle ? (
         <View style={styles.twoLine}>
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.label,
-              { lineHeight: 16, color: "#2b303b" },
-              (hover.hovered || selected) && styles.labelHover,
-              selected && { fontFamily: fonts.geistSemiBold },
-            ]}
-          >
-            {label}
-          </Text>
+          <View style={styles.titleRow}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.label,
+                { lineHeight: 16, color: "#2b303b" },
+                (hover.hovered || selected) && styles.labelHover,
+                selected && { fontFamily: fonts.geistSemiBold },
+              ]}
+            >
+              {label}
+            </Text>
+            {badge ? (
+              <>
+                <View style={styles.badgeDot} />
+                <Text numberOfLines={1} style={styles.badgeText}>
+                  {badge}
+                </Text>
+              </>
+            ) : null}
+          </View>
           <Text
             numberOfLines={1}
             style={[styles.subtitle, selected && { color: "#525866" }]}
@@ -249,6 +295,19 @@ const styles = StyleSheet.create({
   // Version history rows (Figma 459:41993): title over a 10px subtitle, 50px tall, 8px padding.
   rowTwoLine: { height: "auto", minHeight: 50, padding: 8 },
   rowTwoLineSelected: {},
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  badgeDot: {
+    width: 2,
+    height: 2,
+    borderRadius: 100,
+    backgroundColor: "#205b34",
+  },
+  badgeText: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 11,
+    lineHeight: 16,
+    color: "#205b34",
+  },
   twoLine: { flex: 1, minWidth: 0, gap: 2 },
   subtitle: {
     fontFamily: fonts.geistRegular,
