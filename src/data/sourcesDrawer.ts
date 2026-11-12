@@ -1,51 +1,61 @@
 import { CITATION_GROUP, citationNumbers, sourceFor } from "./citations";
 import { NoteSection } from "./types";
 
-/** Every citation number used in a section's text, ascending. */
-export function sectionCitationNumbers(section: NoteSection): number[] {
-  const found = new Set<number>();
+/**
+ * How many times each citation number is cited in a section's text. A group like `[1,2,3,8]` counts once for each
+ * of its numbers; the same number cited again elsewhere adds to its count.
+ */
+export function sectionCitationCounts(
+  section: NoteSection,
+): Map<number, number> {
+  const counts = new Map<number, number>();
   for (const block of section.body) {
     if (block.kind === "spacer") continue;
     for (const seg of block.segments) {
       seg.text.split(CITATION_GROUP).forEach((part, i) => {
-        if (i % 2 === 1) citationNumbers(part).forEach((n) => found.add(n));
+        if (i % 2 === 1)
+          citationNumbers(part).forEach((n) =>
+            counts.set(n, (counts.get(n) ?? 0) + 1),
+          );
       });
     }
   }
-  return [...found].sort((a, b) => a - b);
+  return counts;
 }
 
-export type DrawerSource = { n: number; title: string; url: string };
+/** Every citation number used in a section's text, ascending. They need not be consecutive. */
+export function sectionCitationNumbers(section: NoteSection): number[] {
+  return [...sectionCitationCounts(section).keys()].sort((a, b) => a - b);
+}
 
-const slug = (t: string) =>
-  t
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48);
+/** One row of the drawer: its citation number, title, where it lives (domain or folder) and times cited. */
+export type DrawerSource = {
+  n: number;
+  title: string;
+  origin: string;
+  cited: number;
+};
 
 /** The section's sources split by where they live: web pages ("Internet") and data room files ("Sharepoint"). */
 export function sectionSources(section: NoteSection): {
   internet: DrawerSource[];
   sharepoint: DrawerSource[];
 } {
+  const counts = sectionCitationCounts(section);
   const internet: DrawerSource[] = [];
   const sharepoint: DrawerSource[] = [];
   for (const n of sectionCitationNumbers(section)) {
     const s = sourceFor(n);
+    const cited = counts.get(n) ?? 1;
     if (s.kind === "web")
-      internet.push({
-        n,
-        title: s.title,
-        // Shown without the scheme, as in Figma ("startuptalky.com/juspay-success-story/").
-        url: `${s.host}/${slug(s.title)}`,
-      });
+      internet.push({ n, title: s.title, origin: s.host, cited });
+    // Data room files show the folder they live in.
     else
       sharepoint.push({
         n,
         title: s.title,
-        // Data room files show the folder they live in.
-        url: ".../Healthcare/MedTech/Romsons Group",
+        origin: ".../MedTech/Romsons Group",
+        cited,
       });
   }
   return { internet, sharepoint };

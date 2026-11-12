@@ -261,11 +261,17 @@ function SourceRow({ item }: { item: DrawerSource }) {
             {item.title}
           </Text>
         </WithTooltip>
-        <WithTooltip text={item.url} side="bottom" size="small" onlyIfTruncated>
-          <Text numberOfLines={1} style={styles.rowUrl}>
-            {item.url}
-          </Text>
-        </WithTooltip>
+        {/* Where it comes from, and how many times the section cites it. */}
+        <View style={styles.chips}>
+          <View style={styles.chip}>
+            <Text numberOfLines={1} style={styles.chipText}>
+              {item.origin}
+            </Text>
+          </View>
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>Cited ×{item.cited}</Text>
+          </View>
+        </View>
       </View>
     </Pressable>
   );
@@ -356,6 +362,22 @@ const styles = StyleSheet.create({
   card: { padding: 16, borderRadius: 8, backgroundColor: "#f5f7fa" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, ...pointer },
   rowText: { flex: 1, minWidth: 0, gap: 4 },
+  chips: { flexDirection: "row", alignItems: "center", gap: 8 },
+  // White pills on the grey card (Figma 507:10539): the origin, then "Cited ×N".
+  chip: {
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    justifyContent: "center",
+    backgroundColor: colors.white,
+    flexShrink: 1,
+  },
+  chipText: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 10,
+    lineHeight: 16,
+    color: "#525866",
+  },
   number: {
     width: 20,
     height: 20,
@@ -383,13 +405,6 @@ const styles = StyleSheet.create({
     color: "#181b25",
   },
   rowTitleHover: { color: colors.pine800, textDecorationLine: "underline" },
-  rowUrl: {
-    fontFamily: fonts.geistRegular,
-    fontSize: 11,
-    lineHeight: 16,
-    letterSpacing: 0.06,
-    color: "#525866",
-  },
   rule: { height: 1, backgroundColor: "#e1e4ea" },
   perspective: {
     fontFamily: fonts.geistRegular,
