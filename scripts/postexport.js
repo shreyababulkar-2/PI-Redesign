@@ -1,7 +1,7 @@
-// Netlify (and some other hosts) never upload folders named "node_modules", and Expo puts the bundled font
-// files in dist/assets/node_modules/... That leaves the fonts missing on the deployed site, so the page
-// falls back to the browser's default serif font. This moves them to dist/assets/vendor and updates the
-// references in the bundle.
+// Static hosts such as Cloudflare Workers assets (and Netlify before it) skip folders named "node_modules", and
+// Expo puts the bundled font files in dist/assets/node_modules/... That leaves the fonts missing on the deployed
+// site, so the page falls back to the browser's default serif font. This moves them to dist/assets/vendor and
+// updates the references in the bundle.
 const fs = require('fs');
 const path = require('path');
 

@@ -7,10 +7,12 @@ import { company, noteTabs } from "../../data/researchNote";
 import { Icon } from "../Icon";
 import { NoteTab } from "./NoteTab";
 import { StageChip } from "./Chip";
-import { KebabMenu } from "./KebabMenu";
+import { BENCHMARK_MENU_ITEMS, KebabMenu } from "./KebabMenu";
+import { WithTooltip } from "../Tooltip";
 import { AssistantButton } from "../AssistantButton";
 import { pointer } from "../../theme/cursor";
-import { press } from "../../theme/motion";
+import { press, transition } from "../../theme/motion";
+import { useHover } from "../../hooks/useHover";
 import { useActiveTab } from "../../state/activeTab";
 
 type Props = { activeTab: number };
@@ -26,6 +28,7 @@ export function NoteHeader({ activeTab }: Props) {
 
 /** The header's inner layout without the card chrome, so it can live inside a morphing container. */
 export function NoteHeaderContent({ activeTab }: Props) {
+  const hoverDownload = useHover();
   const { setTab } = useActiveTab();
   return (
     <View style={styles.content}>
@@ -59,30 +62,63 @@ export function NoteHeaderContent({ activeTab }: Props) {
 
       <View style={styles.right}>
         {/* Collaborators (Figma 439:25170): three overlapping avatars, then a hairline divider. */}
-        <Image
-          source={avatarGroup}
-          contentFit="contain"
-          accessibilityLabel="Collaborators"
-          style={styles.avatars}
-        />
+        <WithTooltip text="Manage members" side="bottom">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Manage members"
+            style={({ pressed }) => press(pressed)}
+          >
+            <Image
+              source={avatarGroup}
+              contentFit="contain"
+              style={styles.avatars}
+            />
+          </Pressable>
+        </WithTooltip>
         <View style={styles.rightDivider} />
         <View style={styles.rightButtons}>
-          <Icon name="topbarDownload" size={28} style={pointer} />
-          <KebabMenu>
-            {({ open, toggle }) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="More actions"
-                accessibilityState={{ expanded: open }}
-                onPress={toggle}
-                style={({ pressed }) => press(pressed)}
+          <WithTooltip text="Download" side="bottom">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Download"
+              {...hoverDownload.handlers}
+              style={({ pressed }) => press(pressed)}
+            >
+              {/* Hover (Figma 501:8232): the button darkens a step and the arrow turns green; the two fade into each other. */}
+              <Icon name="topbarDownload" size={28} style={pointer} />
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.downloadHover,
+                  { opacity: hoverDownload.hovered ? 1 : 0 },
+                  transition(["opacity"], 150),
+                ]}
               >
-                <Icon name="topbarMore" size={28} style={pointer} />
-                {/* While the menu is open the button gets a hairline outline (Figma 441:32461). */}
-                {open && (
-                  <View pointerEvents="none" style={styles.openOutline} />
-                )}
-              </Pressable>
+                <Icon name="topbarDownloadHover" size={28} />
+              </View>
+            </Pressable>
+          </WithTooltip>
+          <KebabMenu
+            {...(activeTab === 2
+              ? { items: BENCHMARK_MENU_ITEMS, width: 191 }
+              : null)}
+          >
+            {({ open, toggle }) => (
+              <WithTooltip text="More" side="bottom" disabled={open}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="More actions"
+                  accessibilityState={{ expanded: open }}
+                  onPress={toggle}
+                  style={({ pressed }) => press(pressed)}
+                >
+                  <Icon name="topbarMore" size={28} style={pointer} />
+                  {/* While the menu is open the button gets a hairline outline (Figma 441:32461). */}
+                  {open && (
+                    <View pointerEvents="none" style={styles.openOutline} />
+                  )}
+                </Pressable>
+              </WithTooltip>
             )}
           </KebabMenu>
           <AssistantButton size={28} />
@@ -122,6 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: { width: 16, height: 16, borderRadius: 8 },
+  downloadHover: { position: "absolute", left: 0, top: 0 },
   openOutline: {
     position: "absolute",
     top: 0,

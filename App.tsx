@@ -6,6 +6,8 @@ import { ResearchNoteScreen } from "./src/screens/ResearchNoteScreen";
 import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
 import { ActiveTabProvider } from "./src/state/activeTab";
+import { TextSizeProvider } from "./src/state/textSize";
+import { SourcesDrawerProvider } from "./src/state/sourcesDrawer";
 
 export default function App() {
   const fontsReady = useAppFonts();
@@ -22,13 +24,17 @@ export default function App() {
   return (
     <>
       <StatusBar style="dark" />
-      <AssistantOverlayProvider>
-        <ActiveTabProvider>
-          <SelectionContextProvider>
-            <ResearchNoteScreen />
-          </SelectionContextProvider>
-        </ActiveTabProvider>
-      </AssistantOverlayProvider>
+      <TextSizeProvider>
+        <AssistantOverlayProvider>
+          <ActiveTabProvider>
+            <SelectionContextProvider>
+              <SourcesDrawerProvider>
+                <ResearchNoteScreen />
+              </SourcesDrawerProvider>
+            </SelectionContextProvider>
+          </ActiveTabProvider>
+        </AssistantOverlayProvider>
+      </TextSizeProvider>
     </>
   );
 }

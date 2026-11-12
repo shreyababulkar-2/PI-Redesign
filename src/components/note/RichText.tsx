@@ -1,5 +1,7 @@
-import { StyleSheet, Text, TextStyle, View } from 'react-native';
-import { Block } from '../../data/researchNote';
+import { StyleSheet, Text, TextStyle, View } from "react-native";
+import { Block } from "../../data/researchNote";
+import { CITATION_GROUP, citationNumbers } from "../../data/citations";
+import { Citation } from "./Citation";
 
 type Props = {
   blocks: Block[];
@@ -11,7 +13,7 @@ type Props = {
 };
 
 /** Web: balance line breaks so a paragraph doesn't end on a lone word. Ignored on native. */
-const prettyWrap = { textWrap: 'pretty' } as TextStyle;
+const prettyWrap = { textWrap: "pretty" } as TextStyle;
 
 function scaleText(style: TextStyle, scale: number): TextStyle {
   if (scale === 1) return { ...style, ...prettyWrap };
@@ -19,33 +21,44 @@ function scaleText(style: TextStyle, scale: number): TextStyle {
     ...style,
     ...prettyWrap,
     fontSize: style.fontSize !== undefined ? style.fontSize * scale : undefined,
-    lineHeight: style.lineHeight !== undefined ? style.lineHeight * scale : undefined,
-    letterSpacing: style.letterSpacing !== undefined ? style.letterSpacing * scale : undefined,
+    lineHeight:
+      style.lineHeight !== undefined ? style.lineHeight * scale : undefined,
+    letterSpacing:
+      style.letterSpacing !== undefined
+        ? style.letterSpacing * scale
+        : undefined,
   };
 }
 
-/** Citation markers such as `[1,2]` or `[#6]` in the copy render as small raised green references. */
-const CITATION = /(\[#?\d+(?:\s*,\s*\d+)*\])/;
-const citation = { color: '#22733e', verticalAlign: 'super', fontWeight: '400' } as unknown as TextStyle;
-
-function splitCitations(text: string): { text: string; cite: boolean }[] {
+/** Splits copy into plain text and citation groups; adjacent markers like `[7][9]` become one group. */
+function splitCitations(text: string): { text: string; numbers?: number[] }[] {
   return text
-    .split(CITATION)
+    .split(CITATION_GROUP)
     .filter(Boolean)
-    .map((part, i) => (i % 2 === 1 ? { text: part.replace('#', ''), cite: true } : { text: part, cite: false }));
+    .map((part, i) =>
+      i % 2 === 1
+        ? { text: part, numbers: citationNumbers(part) }
+        : { text: part },
+    );
 }
 
 /** Marker column: text is indented 18px, the disc sits 6px in (matches the design's list-disc). */
 const BULLET_INDENT = 18;
 const BULLET_SIZE = 4;
 
-export function RichText({ blocks, regular: baseRegular, bold: baseBold, color, scale = 1 }: Props) {
+export function RichText({
+  blocks,
+  regular: baseRegular,
+  bold: baseBold,
+  color,
+  scale = 1,
+}: Props) {
   const regular = scaleText(baseRegular, scale);
   const bold = scaleText(baseBold, scale);
   return (
     <View style={styles.root}>
       {blocks.map((block, i) => {
-        if (block.kind === 'spacer') {
+        if (block.kind === "spacer") {
           return <View key={i} style={{ height: regular.lineHeight }} />;
         }
         const content = (
@@ -53,10 +66,8 @@ export function RichText({ blocks, regular: baseRegular, bold: baseBold, color, 
             {block.segments.map((s, j) => (
               <Text key={j} style={s.bold ? bold : undefined}>
                 {splitCitations(s.text).map((part, k) =>
-                  part.cite ? (
-                    <Text key={k} style={[citation, { fontSize: (regular.fontSize ?? 12) * 0.7 }]}>
-                      {part.text}
-                    </Text>
+                  part.numbers ? (
+                    <Citation key={k} numbers={part.numbers} />
                   ) : (
                     part.text
                   ),
@@ -65,10 +76,25 @@ export function RichText({ blocks, regular: baseRegular, bold: baseBold, color, 
             ))}
           </Text>
         );
-        if (block.kind === 'bullet') {
+        if (block.kind === "bullet") {
           return (
-            <View key={i} style={[styles.bulletRow, { marginBottom: (block.marginBottom ?? 0) * scale }]}>
-              <View style={[styles.bulletMarker, { height: regular.lineHeight, width: BULLET_INDENT * scale, paddingLeft: 6 * scale }]}>
+            <View
+              key={i}
+              style={[
+                styles.bulletRow,
+                { marginBottom: (block.marginBottom ?? 0) * scale },
+              ]}
+            >
+              <View
+                style={[
+                  styles.bulletMarker,
+                  {
+                    height: regular.lineHeight,
+                    width: BULLET_INDENT * scale,
+                    paddingLeft: 6 * scale,
+                  },
+                ]}
+              >
                 <View style={[styles.dot, { backgroundColor: color }]} />
               </View>
               <View style={styles.bulletText}>{content}</View>
@@ -76,7 +102,10 @@ export function RichText({ blocks, regular: baseRegular, bold: baseBold, color, 
           );
         }
         return (
-          <View key={i} style={{ marginBottom: (block.marginBottom ?? 0) * scale }}>
+          <View
+            key={i}
+            style={{ marginBottom: (block.marginBottom ?? 0) * scale }}
+          >
             {content}
           </View>
         );
@@ -86,9 +115,17 @@ export function RichText({ blocks, regular: baseRegular, bold: baseBold, color, 
 }
 
 const styles = StyleSheet.create({
-  root: { width: '100%' },
-  bulletRow: { flexDirection: 'row' },
-  bulletMarker: { width: BULLET_INDENT, justifyContent: 'center', paddingLeft: 6 },
-  dot: { width: BULLET_SIZE, height: BULLET_SIZE, borderRadius: BULLET_SIZE / 2 },
+  root: { width: "100%" },
+  bulletRow: { flexDirection: "row" },
+  bulletMarker: {
+    width: BULLET_INDENT,
+    justifyContent: "center",
+    paddingLeft: 6,
+  },
+  dot: {
+    width: BULLET_SIZE,
+    height: BULLET_SIZE,
+    borderRadius: BULLET_SIZE / 2,
+  },
   bulletText: { flex: 1 },
 });

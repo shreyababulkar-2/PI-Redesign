@@ -26,7 +26,9 @@ export function VersionChip({
       {...hover.handlers}
       style={({ pressed }) => [
         styles.chip,
-        { backgroundColor: hover.hovered || open ? colors.slate100 : colors.shark50 },
+        { backgroundColor: hover.hovered && !open ? colors.slate100 : colors.shark50 },
+        // Open: the same fill with a hairline outline (Figma 459:41734).
+        open && { boxShadow: 'inset 0px 0px 0px 1px #f0eeee' },
         press(pressed),
       ]}
     >

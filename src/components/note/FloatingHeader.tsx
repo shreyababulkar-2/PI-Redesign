@@ -6,7 +6,8 @@ import { noteTabs } from '../../data/researchNote';
 import { press, transition } from '../../theme/motion';
 import { Icon } from '../Icon';
 import { AssistantButton } from '../AssistantButton';
-import { KebabMenu } from './KebabMenu';
+import { BENCHMARK_SCROLLED_MENU_ITEMS, KebabMenu, SCROLLED_MENU_ITEMS } from './KebabMenu';
+import { WithTooltip } from '../Tooltip';
 import { useActiveTab } from '../../state/activeTab';
 import { pointer } from '../../theme/cursor';
 export type Tone = 'white' | 'green';
@@ -96,13 +97,18 @@ export function FloatingHeader({ activeTab, activeSectionTitle, variant }: Props
           <FloatingNavContent activeTab={activeTab} activeSectionTitle={activeSectionTitle} tone={floatingNav} />
         </View>
         <View style={styles.cluster}>
-          <KebabMenu>
+          <KebabMenu
+            items={activeTab === 2 ? BENCHMARK_SCROLLED_MENU_ITEMS : SCROLLED_MENU_ITEMS}
+            width={activeTab === 2 ? 191 : 171}
+          >
             {({ open, toggle }) => (
-              <Pressable accessibilityRole="button" accessibilityLabel="More actions" accessibilityState={{ expanded: open }} onPress={toggle} style={({ pressed }) => press(pressed)}>
-                <View style={[styles.actions, styles.actionsShadow]}>
-                  <Icon name="floatMore" size={28} />
-                </View>
-              </Pressable>
+              <WithTooltip text="More" side="bottom" disabled={open}>
+                <Pressable accessibilityRole="button" accessibilityLabel="More actions" accessibilityState={{ expanded: open }} onPress={toggle} style={({ pressed }) => press(pressed)}>
+                  <View style={[styles.actions, styles.actionsShadow]}>
+                    <Icon name="floatMore" size={28} />
+                  </View>
+                </Pressable>
+              </WithTooltip>
             )}
           </KebabMenu>
           <AssistantButton size={36} />

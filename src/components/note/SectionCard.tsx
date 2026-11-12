@@ -1,3 +1,4 @@
+import { useTextSize } from '../../state/textSize';
 import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { CARD_ACTIONS_STICKY_TOP } from '../../theme/layout';
@@ -6,6 +7,7 @@ import { NoteSection } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { appear, leaving } from '../../theme/motion';
 import { useActiveTab } from '../../state/activeTab';
+import { useSourcesDrawer } from '../../state/sourcesDrawer';
 import { ActionButton } from './ActionButton';
 import { KebabMenu, SECTION_MENU_ITEMS } from './KebabMenu';
 import { VersionChip } from './Chip';
@@ -18,10 +20,10 @@ const stickyActions = (Platform.OS === 'web'
   : null) as ViewStyle | null;
 
 const actions = [
-  { icon: 'actionComment', hoverIcon: 'actionCommentHover', label: 'Comments' },
-  { icon: 'actionCopy', hoverIcon: 'actionCopyHover', label: 'Copy' },
-  { icon: 'actionLink', hoverIcon: 'actionLinkHover', label: 'Copy link', size: 16 },
-  { icon: 'actionMore', hoverIcon: 'actionMoreHover', label: 'More' },
+  { icon: 'actionComment', hoverIcon: 'actionCommentHover', label: 'Comments', tooltip: 'Comments' },
+  { icon: 'actionCopy', hoverIcon: 'actionCopyHover', label: 'Copy section', tooltip: 'Copy section' },
+  { icon: 'actionLink', hoverIcon: 'actionLinkHover', label: 'View sources', tooltip: 'View sources', size: 16 },
+  { icon: 'actionMore', hoverIcon: 'actionMoreHover', label: 'More', tooltip: 'More' },
 ] as const;
 
 /** The section as plain text for the clipboard: title, then paragraphs and bullets. */
@@ -55,12 +57,12 @@ function CopyAction({ action, text }: { action: (typeof actions)[number]; text: 
   );
 }
 
-/** Who updated each version and when, newest first (example data from Figma 459:41993). */
+/** Who updated each version and when, newest first (example data from Figma 459:41727). */
 const VERSION_UPDATES = [
-  'Updated by Amogh · 9 Nov ‘26, 1:40 PM',
-  'Updated by Seeta · 8 Nov ‘26, 12:40 PM',
-  'Updated by Vishnu · 7 Nov ‘26, 2:44 PM',
-  'Updated by Seeta · 7 Nov ‘26, 11:40 AM',
+  'Updated by Amogh P · 9 Nov ‘26, 1:40 PM',
+  'Updated by Seeta R · 8 Nov ‘26, 12:40 PM',
+  'Updated by Seeta R · 7 Nov ‘26, 2:44 PM',
+  'Updated by Seeta R · 7 Nov ‘26, 11:40 AM',
 ];
 
 /** Version chip with its history dropdown (Figma 459:41993): newest first, the current one highlighted. */
@@ -72,13 +74,15 @@ function VersionHistory({ section }: { section: NoteSection }) {
   const items = Array.from({ length: Math.min(latest, 4) }, (_, i) => ({
     label: `v${latest - i}`,
     subtitle: VERSION_UPDATES[i] ?? VERSION_UPDATES[VERSION_UPDATES.length - 1],
+    // The newest version is the published one.
+    badge: i === 0 ? 'Published' : undefined,
   }));
   return (
     <KebabMenu
       items={items}
       selected={`v${current}`}
       onSelect={(label) => setPicked(parseInt(label.replace(/\D/g, ''), 10))}
-      minWidth={209}
+      minWidth={220}
     >
       {({ open, toggle }) => <VersionChip version={`v${current}`} open={open} onPress={toggle} />}
     </KebabMenu>
@@ -94,8 +98,10 @@ type Props = {
   index?: number;
 };
 
-export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
+export function SectionCard({ section, onLayout, zoom, index = 0 }: Props) {
+  const { scale } = useTextSize();
   const { switching } = useActiveTab();
+  const { open: openSources } = useSourcesDrawer();
   return (
     <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }, appear(index), leaving(switching)]}>
       <View style={styles.header}>
@@ -114,7 +120,7 @@ export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
         <Icon name={section.status === 'vetted' ? 'line3' : 'line4'} size={0} height={1} style={styles.dividerImg} />
       </View>
 
-      <RichText blocks={section.body} regular={type.body} bold={type.bodyBold} color={colors.slate700} scale={zoom} />
+      <RichText blocks={section.body} regular={type.body} bold={type.bodyBold} color={colors.slate700} scale={zoom ?? scale} />
 
       <Stroke color={colors.cardBorder} radius={8} />
 
@@ -126,6 +132,8 @@ export function SectionCard({ section, onLayout, zoom = 1, index = 0 }: Props) {
               <KebabMenu key={a.icon} items={SECTION_MENU_ITEMS}>
                 {({ open, toggle }) => <ActionButton {...a} active={open} onPress={toggle} />}
               </KebabMenu>
+            ) : a.icon === 'actionLink' ? (
+              <ActionButton key={a.icon} {...a} onPress={() => openSources(section.id)} />
             ) : a.icon === 'actionCopy' ? (
               <CopyAction key={a.icon} action={a} text={sectionText(section)} />
             ) : (
