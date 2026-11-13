@@ -19,6 +19,7 @@ import { Icon } from "../Icon";
 import { FadeIn } from "./FadeIn";
 import { Stroke } from "../Stroke";
 import { pointer } from "../../theme/cursor";
+import { useTextSize } from "../../state/textSize";
 
 /** Line height of typed text; the placeholder is set on 18. */
 const LINE_HEIGHT = 16;
@@ -65,8 +66,15 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
     : tab === 2
       ? benchmarkAssistant.placeholder
       : assistant.composerPlaceholder;
+  // The input is not part of the app-wide text scaling, so it follows the chosen size here, with its line heights
+  // growing by the same pixels as the text.
+  const { scale } = useTextSize();
+  const baseSize = selection.text ? 11 : 12;
+  const fontSize = Math.round(baseSize * scale);
+  const lineHeight = LINE_HEIGHT + (fontSize - baseSize);
+  const placeholderLineHeight = PLACEHOLDER_LINE_HEIGHT + (fontSize - baseSize);
   const [text, setText] = useState("");
-  const [height, setHeight] = useState(LINE_HEIGHT);
+  const [height, setHeight] = useState(lineHeight);
   const [focused, setFocused] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -80,7 +88,7 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
     if (!value) return;
     onSend?.(value);
     setText("");
-    setHeight(LINE_HEIGHT);
+    setHeight(lineHeight);
     setWrapped(false);
     setFiles([]);
   }
@@ -89,7 +97,7 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
     setText(value);
     if (!value) {
       setWrapped(false);
-      setHeight(LINE_HEIGHT);
+      setHeight(lineHeight);
     }
   }
 
@@ -105,7 +113,9 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
   const addFiles = (names: string[]) =>
     setFiles((prev) => [...prev, ...names.filter((n) => !prev.includes(n))]);
 
-  const inputHeight = text ? height : PLACEHOLDER_LINE_HEIGHT;
+  const inputHeight = text
+    ? Math.max(height, lineHeight)
+    : placeholderLineHeight;
 
   return (
     <View style={styles.wrap}>
@@ -148,9 +158,9 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
               onChangeText={onChangeText}
               onContentSizeChange={(e) => {
                 const h = e.nativeEvent.contentSize.height;
-                if (text && h > LINE_HEIGHT * 1.5) setWrapped(true);
+                if (text && h > lineHeight * 1.5) setWrapped(true);
                 setHeight(
-                  Math.min(Math.max(h, LINE_HEIGHT), LINE_HEIGHT * MAX_LINES),
+                  Math.min(Math.max(h, lineHeight), lineHeight * MAX_LINES),
                 );
               }}
               onKeyPress={onKeyPress}
@@ -167,11 +177,10 @@ export function Composer({ onSend, generating = false, onStop }: Props) {
                 styles.input,
                 {
                   height: inputHeight,
-                  lineHeight: text ? LINE_HEIGHT : PLACEHOLDER_LINE_HEIGHT,
+                  fontSize,
+                  lineHeight: text ? lineHeight : placeholderLineHeight,
                   color: colors.slate800,
                 },
-                // With a selection as context the prompt is set a size down (Figma 452:34848).
-                selection.text ? { fontSize: 11 } : null,
               ]}
             />
           </View>

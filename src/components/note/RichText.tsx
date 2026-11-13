@@ -2,6 +2,7 @@ import { StyleSheet, Text, TextStyle, View } from "react-native";
 import { Block } from "../../data/researchNote";
 import { CITATION_GROUP, citationNumbers } from "../../data/citations";
 import { Citation } from "./Citation";
+import { CONTEXT_SOURCE } from "../../state/selectionContext";
 
 type Props = {
   blocks: Block[];
@@ -10,6 +11,8 @@ type Props = {
   color: string;
   /** Zoom factor applied to type and spacing (1 = design size). */
   scale?: number;
+  /** Note text (not the assistant's own replies) can be picked as assistant context; see selectionContext. */
+  contextSource?: boolean;
 };
 
 /** Web: balance line breaks so a paragraph doesn't end on a lone word. Ignored on native. */
@@ -52,11 +55,12 @@ export function RichText({
   bold: baseBold,
   color,
   scale = 1,
+  contextSource = false,
 }: Props) {
   const regular = scaleText(baseRegular, scale);
   const bold = scaleText(baseBold, scale);
   return (
-    <View style={styles.root}>
+    <View style={styles.root} {...(contextSource ? CONTEXT_SOURCE : null)}>
       {blocks.map((block, i) => {
         if (block.kind === "spacer") {
           return <View key={i} style={{ height: regular.lineHeight }} />;

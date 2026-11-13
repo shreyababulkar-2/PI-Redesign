@@ -21,6 +21,7 @@ import { pointer } from "../../theme/cursor";
 import { press, transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { WithTooltip } from "../Tooltip";
+import { useTextSize } from "../../state/textSize";
 
 const NAME_W = 219;
 const HEADER_H = 69;
@@ -98,16 +99,22 @@ type Props = {
   unit?: Unit;
 };
 
-const heightOf = (item: TableItem) =>
+/** A design height grown in proportion to the text size, like the column widths, so rows keep their padding. */
+const grow = (px: number, scale: number) => Math.round(px * scale);
+/** One header row (a group title or the sub-columns) at this text size; the header is two of them and a 1px gutter. */
+const headerRow = (scale: number) => grow(34, scale);
+const headerHeight = (scale: number) => headerRow(scale) * 2 + 1;
+
+const heightOf = (item: TableItem, scale: number) =>
   item.type === "header"
-    ? HEADER_H
+    ? headerHeight(scale)
     : item.type === "gap"
-      ? item.height
+      ? grow(item.height, scale)
       : item.type === "title"
-        ? TITLE_H
+        ? grow(TITLE_H, scale)
         : item.type === "company"
-          ? COMPANY_H
-          : STAT_H;
+          ? grow(COMPANY_H, scale)
+          : grow(STAT_H, scale);
 
 /**
  * Comparison table (Figma 373:23715). Three lanes share one list of fixed-height items so rows line up: the
@@ -120,6 +127,8 @@ export function BenchmarkTable({
   unit = "Mn",
   scrollGroup,
 }: Props) {
+  // Columns grow with the text size (in proportion, for now) so figures and headers keep their room.
+  const { scale } = useTextSize();
   // Once the metrics have moved, the name column gets an edge shadow to show it is pinned over them.
   const [scrolled, setScrolled] = useState(false);
   const scroller = useRef<ScrollViewInstance | null>(null);
@@ -138,8 +147,9 @@ export function BenchmarkTable({
     );
   };
   // Each row sits ROW_GAP below the row above it; the hairline lives in that gap.
+  const rowGap = grow(ROW_GAP, scale);
   const heights = items.map(
-    (item, i) => heightOf(item) + (ruled(i) ? ROW_GAP : 0),
+    (item, i) => heightOf(item, scale) + (ruled(i) ? rowGap : 0),
   );
   // Top edge of each item: the sum of the heights above it.
   const titleTops = items.map((_, i) =>
@@ -153,9 +163,14 @@ export function BenchmarkTable({
       return (
         <View
           key={i}
-          style={[{ height: heights[i] }, ruled(i) && { paddingTop: ROW_GAP }]}
+          style={[{ height: heights[i] }, ruled(i) && { paddingTop: rowGap }]}
         >
-          {ruled(i) && <View pointerEvents="none" style={styles.rule} />}
+          {ruled(i) && (
+            <View
+              pointerEvents="none"
+              style={[styles.rule, { top: (rowGap - 1) / 2 }]}
+            />
+          )}
           {body}
         </View>
       );
@@ -163,7 +178,13 @@ export function BenchmarkTable({
 
   return (
     <View style={styles.root}>
-      <View style={[styles.nameLane, scrolled && styles.nameLaneScrolled]}>
+      <View
+        style={[
+          styles.nameLane,
+          { width: Math.round(NAME_W * scale) },
+          scrolled && styles.nameLaneScrolled,
+        ]}
+      >
         {lane((item) =>
           item.type === "header" ? (
             <View style={styles.nameHead}>
@@ -212,14 +233,15 @@ export function BenchmarkTable({
         }}
       >
         {/* At the design width the columns are exactly as drawn; wider, they share the extra space. */}
-        <View style={styles.mid}>
+        <View style={[styles.mid, { minWidth: Math.round(MID_W * scale) }]}>
           {lane((item) =>
             item.type === "header" ? (
-              <MetricHeader />
+              <MetricHeader scale={scale} />
             ) : item.type === "company" ? (
-              <MetricRow cells={item.company.cells} unit={unit} />
+              <MetricRow cells={item.company.cells} unit={unit} scale={scale} />
             ) : item.type === "stat" ? (
               <MetricRow
+                scale={scale}
                 cells={item.values.map((text) => ({ text }))}
                 unit={unit}
                 stat
@@ -246,7 +268,10 @@ export function BenchmarkTable({
         item.type === "title" ? (
           <View
             key={`t${i}`}
-            style={[styles.title, { top: titleTops[i] }]}
+            style={[
+              styles.title,
+              { top: titleTops[i], height: grow(TITLE_H, scale) },
+            ]}
             pointerEvents="none"
           >
             <Text style={styles.titleText}>{item.text}</Text>
@@ -257,26 +282,34 @@ export function BenchmarkTable({
   );
 }
 
-function MetricHeader() {
+function MetricHeader({ scale }: { scale: number }) {
+  const row = headerRow(scale);
   return (
-    <View style={styles.metricHeader}>
+    <View style={[styles.metricHeader, { height: headerHeight(scale) }]}>
       {benchmarkColumns.map((group) => {
         const width = group.subs.reduce((s, c) => s + c.width, 0);
         return (
           <View
             key={group.title}
-            style={[styles.group, { flexGrow: width, flexBasis: width }]}
+            style={[
+              styles.group,
+              { flexGrow: width, flexBasis: width * scale },
+            ]}
           >
-            <View style={styles.groupTitle}>
+            <View style={[styles.groupTitle, { height: row }]}>
               <Text style={styles.headText}>{group.title}</Text>
             </View>
-            <View style={styles.subRow}>
+            <View style={[styles.subRow, { height: row }]}>
               {group.subs.map((sub, si) => (
                 <View
                   key={sub.label}
                   style={[
                     styles.subCell,
-                    { flexGrow: sub.width, flexBasis: sub.width },
+                    {
+                      height: row,
+                      flexGrow: sub.width,
+                      flexBasis: sub.width * scale,
+                    },
                     si < group.subs.length - 1 && styles.subDivider,
                   ]}
                 >
@@ -302,7 +335,9 @@ function MetricRow({
   cells,
   stat,
   unit,
+  scale,
 }: {
+  scale: number;
   cells: Cell[];
   stat?: boolean;
   unit: Unit;
@@ -322,7 +357,7 @@ function MetricRow({
           key={i}
           style={[
             styles.metricCell,
-            { flexGrow: widths[i], flexBasis: widths[i] },
+            { flexGrow: widths[i], flexBasis: widths[i] * scale },
             gutter.has(i) && { marginLeft: 1 },
           ]}
         >

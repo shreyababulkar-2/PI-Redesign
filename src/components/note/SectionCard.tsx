@@ -1,4 +1,4 @@
-import { useTextSize } from '../../state/textSize';
+import { CONTEXT_SOURCE } from '../../state/selectionContext';
 import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { CARD_ACTIONS_STICKY_TOP } from '../../theme/layout';
@@ -99,7 +99,6 @@ type Props = {
 };
 
 export function SectionCard({ section, onLayout, zoom, index = 0 }: Props) {
-  const { scale } = useTextSize();
   const { switching } = useActiveTab();
   const { open: openSources } = useSourcesDrawer();
   return (
@@ -107,7 +106,7 @@ export function SectionCard({ section, onLayout, zoom, index = 0 }: Props) {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={[type.sectionTitle, styles.index, { color: colors.slate900 }]}>{section.index}</Text>
-          <Text numberOfLines={1} style={[type.sectionTitle, styles.title, { color: colors.slate900 }]}>
+          <Text numberOfLines={1} {...CONTEXT_SOURCE} style={[type.sectionTitle, styles.title, { color: colors.slate900 }]}>
             {section.title}
           </Text>
         </View>
@@ -120,7 +119,7 @@ export function SectionCard({ section, onLayout, zoom, index = 0 }: Props) {
         <Icon name={section.status === 'vetted' ? 'line3' : 'line4'} size={0} height={1} style={styles.dividerImg} />
       </View>
 
-      <RichText blocks={section.body} regular={type.body} bold={type.bodyBold} color={colors.slate700} scale={zoom ?? scale} />
+      <RichText blocks={section.body} regular={type.body} bold={type.bodyBold} color={colors.slate700} scale={zoom} contextSource />
 
       <Stroke color={colors.cardBorder} radius={8} />
 

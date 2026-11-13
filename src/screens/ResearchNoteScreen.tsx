@@ -8,6 +8,7 @@ import { FloatingHeaderLayer } from "../components/note/FloatingHeaderLayer";
 import { appear, leaving } from "../theme/motion";
 import { NOTE_CONTENT_ID } from "../state/selectionContext";
 import { NoteHeader } from "../components/note/NoteHeader";
+import { OptionsSwitcher } from "../components/OptionsSwitcher";
 import { SectionCard } from "../components/note/SectionCard";
 import { Minimap } from "../components/note/Minimap";
 import { ScrollTopButton } from "../components/note/ScrollTopButton";
@@ -136,6 +137,8 @@ export function ResearchNoteScreen() {
           active={scrolled}
           onPress={scrollToTop}
         />
+
+        <OptionsSwitcher />
       </View>
 
       <ResizableAssistant />

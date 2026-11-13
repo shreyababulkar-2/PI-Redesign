@@ -4,7 +4,6 @@ import { assistant } from "../../data/researchNote";
 import { transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { pointer } from "../../theme/cursor";
-import { useResponseScale } from "../../hooks/useResponseScale";
 import { useActiveTab } from "../../state/activeTab";
 import { benchmarkAssistant } from "../../data/benchmarking";
 
@@ -14,8 +13,8 @@ type Props = { onPick: (question: string) => void };
 export function Welcome({ onPick }: Props) {
   // The assistant is the same on every tab; only the opening text and suggestions follow the page.
   const { tab } = useActiveTab();
-  const { intro, heading, suggestions } = tab === 2 ? benchmarkAssistant : assistant.welcome;
-  const scale = useResponseScale();
+  const { intro, heading, suggestions } =
+    tab === 2 ? benchmarkAssistant : assistant.welcome;
   return (
     <View style={styles.root}>
       <Text
@@ -23,8 +22,6 @@ export function Welcome({ onPick }: Props) {
           type.answer,
           {
             color: colors.slate800,
-            fontSize: type.answer.fontSize * scale,
-            lineHeight: type.answer.lineHeight * scale,
           },
         ]}
       >
@@ -57,7 +54,10 @@ function Suggestion({
       {...hover.handlers}
       style={[styles.chip, hover.hovered && styles.chipHover]}
     >
-      <Text style={[styles.chipText]} numberOfLines={1}>
+      <Text
+        style={[styles.chipText, hover.hovered && styles.chipTextHover]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>
@@ -76,8 +76,9 @@ const styles = StyleSheet.create({
   chips: { gap: 10, alignItems: "flex-start" },
   chip: {
     maxWidth: "100%",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    // Figma 542:18730: a 28px pill with 12/6 padding measured to the outer edge, so 11/5 inside its 1px border.
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderRadius: 8,
     backgroundColor: colors.dew75,
     borderWidth: 1,
@@ -90,6 +91,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.geistRegular,
     fontSize: 11,
     lineHeight: 16,
-    color: colors.slate600,
+    letterSpacing: 0.0825,
+    color: "#2b303b",
+    ...transition(["color"]),
   },
+  // Hovered: the pill fills with the border green and its text turns pine (Figma 542:18720).
+  chipTextHover: { color: colors.pine800 },
 });
