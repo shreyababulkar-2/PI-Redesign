@@ -1,8 +1,37 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Platform } from "react-native";
 
-/** The element id of the note's scrolling area: only text selected inside it becomes assistant context. */
+/** The element id of the note's scrolling area (kept for scrolling and navigation code). */
 export const NOTE_CONTENT_ID = "note-content";
+
+/**
+ * Only the note's own content can become assistant context: section titles and section text. Those elements carry
+ * this attribute (`dataSet={{ contextSource: "true" }}`); the company name, tabs, buttons and menus around them do
+ * not, so selecting them is never offered to the assistant.
+ */
+export const CONTEXT_SOURCE_SELECTOR = "[data-context-source]";
+
+/** Spread onto a View or Text to mark it as note content (web `data-context-source`). */
+export const CONTEXT_SOURCE = { dataSet: { contextSource: "true" } } as object;
+
+/** The element a selection endpoint sits in, if that is inside note content. */
+function sourceOf(node: Node | null): Element | null {
+  const el = node instanceof Element ? node : node?.parentElement;
+  return el?.closest(CONTEXT_SOURCE_SELECTOR) ?? null;
+}
+
+/** True when the selection both starts and ends inside note content (so dragging in from the header doesn't count). */
+function inNoteContent(sel: Selection): boolean {
+  return !!sourceOf(sel.anchorNode) && !!sourceOf(sel.focusNode);
+}
 
 type Ctx = {
   /** The text the user has selected in the note, shown in the assistant as context; null when there is none. */
@@ -15,7 +44,10 @@ const SelectionContext = createContext<Ctx | null>(null);
 const HIGHLIGHT_NAME = "pi-context";
 
 type HighlightApi = {
-  highlights?: { set: (name: string, h: unknown) => void; delete: (name: string) => void };
+  highlights?: {
+    set: (name: string, h: unknown) => void;
+    delete: (name: string) => void;
+  };
 };
 
 /**
@@ -23,8 +55,11 @@ type HighlightApi = {
  * API; styled by `::highlight(pi-context)` in App.tsx). Browsers without it simply show no persistent highlight.
  */
 function setContextHighlight(range: Range | null) {
-  const cssApi = (typeof CSS !== "undefined" ? CSS : undefined) as unknown as HighlightApi | undefined;
-  const Highlight = (window as unknown as { Highlight?: new (...r: Range[]) => unknown }).Highlight;
+  const cssApi = (typeof CSS !== "undefined" ? CSS : undefined) as unknown as
+    HighlightApi | undefined;
+  const Highlight = (
+    window as unknown as { Highlight?: new (...r: Range[]) => unknown }
+  ).Highlight;
   if (!cssApi?.highlights || !Highlight) return;
   if (range) cssApi.highlights.set(HIGHLIGHT_NAME, new Highlight(range));
   else cssApi.highlights.delete(HIGHLIGHT_NAME);
@@ -41,7 +76,11 @@ function tidy(raw: string) {
  * a selection made elsewhere, such as inside the assistant, is ignored so the context survives clicking into
  * the composer. It stays until the user removes it.
  */
-export function SelectionContextProvider({ children }: { children: ReactNode }) {
+export function SelectionContextProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [text, setText] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,8 +88,7 @@ export function SelectionContextProvider({ children }: { children: ReactNode }) 
     const read = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-      const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
-      if (!anchor?.closest(`#${NOTE_CONTENT_ID}`)) return;
+      if (!inNoteContent(sel)) return;
       const value = tidy(sel.toString());
       if (value) {
         setText(value);
@@ -64,8 +102,7 @@ export function SelectionContextProvider({ children }: { children: ReactNode }) 
     const onChange = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-      const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
-      if (anchor?.closest(`#${NOTE_CONTENT_ID}`)) setContextHighlight(null);
+      if (inNoteContent(sel)) setContextHighlight(null);
     };
     document.addEventListener("selectionchange", onChange);
     document.addEventListener("mouseup", onUp);
@@ -86,11 +123,18 @@ export function SelectionContextProvider({ children }: { children: ReactNode }) 
   }, []);
 
   const value = useMemo(() => ({ text, clear }), [text, clear]);
-  return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;
+  return (
+    <SelectionContext.Provider value={value}>
+      {children}
+    </SelectionContext.Provider>
+  );
 }
 
 export function useSelectionContext(): Ctx {
   const ctx = useContext(SelectionContext);
-  if (!ctx) throw new Error("useSelectionContext must be used inside <SelectionContextProvider>");
+  if (!ctx)
+    throw new Error(
+      "useSelectionContext must be used inside <SelectionContextProvider>",
+    );
   return ctx;
 }

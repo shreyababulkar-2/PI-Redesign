@@ -8,15 +8,17 @@ import {
 } from "react";
 import { Platform } from "react-native";
 
-/** Reading sizes for the content (Figma 519:2733): the 12px default, Medium 14px and Large 16px. */
+/**
+ * Text size is an accessibility setting (Figma 519:2733): the base as designed, Medium 1.1x and Large 1.25x. `px` is
+ * what 12px text becomes (sizes are rounded to whole pixels). Only text grows; containers, spacing and icons keep their size (see `theme/scaledText`).
+ */
 export const TEXT_SIZES = [
-  { key: "default", label: "Default", px: 12 },
-  { key: "medium", label: "Medium", px: 14 },
-  { key: "large", label: "Large", px: 16 },
+  { key: "default", label: "Default", factor: 1, px: 12 },
+  { key: "medium", label: "Medium", factor: 1.1, px: 13 },
+  { key: "large", label: "Large", factor: 1.25, px: 15 },
 ] as const;
 export type TextSizeKey = (typeof TEXT_SIZES)[number]["key"];
 
-const BASE_PX = 12;
 const STORAGE_KEY = "pi-text-size";
 
 function readSaved(): TextSizeKey {
@@ -33,16 +35,13 @@ function readSaved(): TextSizeKey {
 type Ctx = {
   size: TextSizeKey;
   setSize: (size: TextSizeKey) => void;
-  /** Multiplier for content text: 1 at 12px, 14/12 at Medium, 16/12 at Large. */
+  /** Multiplier for every piece of text: 1, 1.1 at Medium, 1.25 at Large. */
   scale: number;
 };
 
-const TextSizeContext = createContext<Ctx | null>(null);
+export const TextSizeContext = createContext<Ctx | null>(null);
 
-/**
- * The reader's chosen text size. It scales only the reading content (the research note body and the assistant's
- * messages), never the interface around it.
- */
+/** The reader's chosen text size, remembered in the browser. */
 export function TextSizeProvider({ children }: { children: ReactNode }) {
   const [size, setSizeState] = useState<TextSizeKey>(readSaved);
   const setSize = useCallback((next: TextSizeKey) => {
@@ -55,8 +54,8 @@ export function TextSizeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   const value = useMemo(() => {
-    const px = TEXT_SIZES.find((s) => s.key === size)?.px ?? BASE_PX;
-    return { size, setSize, scale: px / BASE_PX };
+    const scale = TEXT_SIZES.find((s) => s.key === size)?.factor ?? 1;
+    return { size, setSize, scale };
   }, [size, setSize]);
   return (
     <TextSizeContext.Provider value={value}>

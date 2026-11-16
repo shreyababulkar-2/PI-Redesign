@@ -59,7 +59,7 @@ export const benchmarkColumns = [
   },
   {
     title: "Net debt / EBITDA",
-    subs: [{ label: "As of FY24", width: 111 }],
+    subs: [{ label: "As of FY24", width: 130 }],
   },
 ] as const;
 

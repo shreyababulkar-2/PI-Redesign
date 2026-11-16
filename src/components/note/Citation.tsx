@@ -1,12 +1,26 @@
-import { ComponentRef, useEffect, useRef, useState } from "react";
+import {
+  ComponentRef,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Platform, Text, TextStyle } from "react-native";
 import { createPortal } from "react-dom";
 import { colors, fonts } from "../../theme";
 import { formatCitations, sourceFor } from "../../data/citations";
+import { useDesignOptions } from "../../state/designOptions";
 
 const GREEN = "#22733e";
 const PINE_800 = "#205b34";
 const CLOSE_DELAY_MS = 120;
+
+/** Web-only CSS (em units and `vertical-align`) that React Native's types don't know about. */
+const SUPERSCRIPT = {
+  fontSize: "0.72em",
+  lineHeight: 0,
+  verticalAlign: "super",
+} as unknown as TextStyle;
 
 /** Closes whichever sources card is open, so opening another one never leaves two showing. */
 let closeOpenCitation: (() => void) | null = null;
@@ -18,12 +32,13 @@ type Props = {
 };
 
 /**
- * Inline citation, e.g. `[1-3,8]` (Figma 501:7918): the numbers sit in the text at its size and colour them green,
+ * Inline citation, e.g. `[1-3,8]` (Figma 501:7918): the numbers sit as a green superscript after the text,
  * with several in a row merged into one. Hovering lights it and opens a sources card under it that stays
  * open while the pointer moves into it; clicking pins the card open. It closes on a click anywhere else, on Escape,
  * on scroll, or when another citation opens. Web only; on native it is just the green text.
  */
 export function Citation({ numbers, style }: Props) {
+  const { citations } = useDesignOptions();
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [overCard, setOverCard] = useState(false);
   const [overText, setOverText] = useState(false);
@@ -118,13 +133,19 @@ export function Citation({ numbers, style }: Props) {
           style,
           {
             color: GREEN,
+            // Superscript: smaller than the sentence and raised, without making the line taller. Relative units
+            // so it follows the reader's text size.
+            ...SUPERSCRIPT,
             borderRadius: 2,
             cursor: "pointer",
             backgroundColor: open ? "#e0f8e7" : "transparent",
           } as TextStyle,
         ]}
       >
-        {formatCitations(numbers)}
+        <CitationMark
+          numbers={numbers}
+          withDataRoom={citations === "dataroom"}
+        />
       </Text>
       {Platform.OS === "web" &&
         open &&
@@ -163,6 +184,29 @@ function SourcesCard({
     return () => cancelAnimationFrame(id);
   }, []);
   const width = 240;
+  // Open below the citation, or above it when the card wouldn't fit under it in the window (measured before paint).
+  const [place, setPlace] = useState<{
+    above: boolean;
+    maxHeight?: number;
+    height: number;
+  }>({ above: false, height: 0 });
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const gap = 6;
+    const margin = 8;
+    const full = el.scrollHeight + 2; // content plus the 1px borders
+    const below = window.innerHeight - anchor.bottom - gap - margin;
+    const above = anchor.top - gap - margin;
+    if (full <= below) setPlace({ above: false, height: full });
+    else if (full <= above) setPlace({ above: true, height: full });
+    else {
+      // Neither side has room for the whole card: use the roomier one and let the card scroll.
+      const room = Math.max(below, above);
+      setPlace({ above: above > below, maxHeight: room, height: room });
+    }
+  }, [anchor, numbers, cardRef]);
+  const top = place.above ? anchor.top - 6 - place.height : anchor.bottom + 6;
   const left = Math.max(
     8,
     Math.min(anchor.left, window.innerWidth - width - 8),
@@ -177,7 +221,9 @@ function SourcesCard({
       style={{
         position: "fixed",
         left,
-        top: anchor.bottom + 6,
+        top,
+        maxHeight: place.maxHeight,
+        overflowY: place.maxHeight ? "auto" : undefined,
         width,
         boxSizing: "border-box",
         // 4px all round: the row highlights below sit 4px in from the card edge, and carry their own text inset.
@@ -189,7 +235,7 @@ function SourcesCard({
           "0 8px 24px rgba(24,27,37,0.1), 0 1px 3px rgba(24,27,37,0.05)",
         zIndex: 100000,
         opacity: shown ? 1 : 0,
-        transform: `translateY(${shown ? 0 : -4}px)`,
+        transform: `translateY(${shown ? 0 : place.above ? 4 : -4}px)`,
         transition:
           "opacity 140ms cubic-bezier(0.2,0,0,1), transform 140ms cubic-bezier(0.2,0,0,1)",
         fontFamily: fonts.geistRegular,
@@ -293,6 +339,57 @@ function HostLink({ host, kind }: { host: string; kind: "web" | "dataroom" }) {
         <FolderIcon color={color} />
       )}
     </div>
+  );
+}
+
+/**
+ * What is shown in the text for a citation. Simple: all the numbers. With data room: only the web sources keep their
+ * numbers, and a folder icon stands for the data room sources (Figma 542:18175), after a comma when both are present.
+ */
+function CitationMark({
+  numbers,
+  withDataRoom,
+}: {
+  numbers: number[];
+  withDataRoom: boolean;
+}) {
+  if (!withDataRoom) return <>{formatCitations(numbers)}</>;
+  const web = numbers.filter((n) => sourceFor(n).kind === "web");
+  const hasDataRoom = web.length < numbers.length;
+  return (
+    <>
+      {web.length > 0 && formatCitations(web)}
+      {web.length > 0 && hasDataRoom && ","}
+      {hasDataRoom && <MarkFolder />}
+    </>
+  );
+}
+
+/** The small data room folder set in the line like a superscript glyph (it follows the text colour and size). */
+function MarkFolder() {
+  return (
+    <svg
+      width="8"
+      height="8"
+      viewBox="0 0 8 8"
+      fill="none"
+      role="img"
+      aria-label="Data room"
+      style={{
+        width: "0.95em",
+        height: "0.95em",
+        marginLeft: "0.1em",
+        verticalAlign: "baseline",
+      }}
+    >
+      <path
+        d="M1.04547 4.22727V4C1.04547 3.81917 1.11731 3.64575 1.24517 3.51788C1.37304 3.39002 1.54646 3.31818 1.72729 3.31818H6.27274C6.45357 3.31818 6.627 3.39002 6.75486 3.51788C6.88273 3.64575 6.95456 3.81917 6.95456 4V4.22727M4.32123 2.27576L3.6788 1.63333C3.6366 1.59108 3.58648 1.55755 3.53132 1.53467C3.47615 1.51179 3.41701 1.50001 3.35729 1.5H1.72729C1.54646 1.5 1.37304 1.57183 1.24517 1.6997C1.11731 1.82757 1.04547 2.00099 1.04547 2.18182V5.81818C1.04547 5.99901 1.11731 6.17243 1.24517 6.3003C1.37304 6.42817 1.54646 6.5 1.72729 6.5H6.27274C6.45357 6.5 6.627 6.42817 6.75486 6.3003C6.88273 6.17243 6.95456 5.99901 6.95456 5.81818V3.09091C6.95456 2.91008 6.88273 2.73666 6.75486 2.60879C6.627 2.48093 6.45357 2.40909 6.27274 2.40909H4.64274C4.52223 2.40898 4.40639 2.36103 4.32123 2.27576Z"
+        stroke="currentColor"
+        strokeWidth="0.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

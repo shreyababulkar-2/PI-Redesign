@@ -285,7 +285,7 @@ function AccessibilityButton({
   );
 }
 
-/** Three rows (Default 12px, Medium 14px, Large 16px), each set in its own size so the choice previews itself. */
+/** Three rows (Default 1x, Medium 1.1x, Large 1.25x), each set in its own size so the choice previews itself. */
 function TextSizeMenu({ onDone }: { onDone: () => void }) {
   const { size, setSize } = useTextSize();
   return (
@@ -323,12 +323,13 @@ function SizeRow({
   onPress: () => void;
 }) {
   const hover = useHover();
+  const { scale } = useTextSize();
   const color = selected ? colors.pine800 : "#525866";
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${label} text size, ${px} pixels`}
+      accessibilityLabel={`${label} text size`}
       onPress={onPress}
       {...hover.handlers}
       style={({ pressed }) => [
@@ -345,7 +346,8 @@ function SizeRow({
       <Text
         style={{
           fontFamily: selected ? fonts.geistMedium : fonts.geistRegular,
-          fontSize: px,
+          // Text is scaled app-wide, so divide the chosen scale back out to show each row at its own size.
+          fontSize: px / scale,
           lineHeight: 16,
           color: selected ? colors.pine800 : "#525866",
         }}

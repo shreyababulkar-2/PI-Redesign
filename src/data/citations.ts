@@ -44,7 +44,7 @@ export function citationNumbers(raw: string): number[] {
   return [...new Set(nums)].sort((a, b) => a - b);
 }
 
-/** `[1,2,3,8]` is shown as `[1-3,8]`: runs of three or more collapse into a range, shorter runs stay listed. */
+/** `1,2,3,8` is shown as `1-3,8` (no brackets: it is set as a superscript): runs of three or more collapse into a range, shorter runs stay listed. */
 export function formatCitations(numbers: number[]): string {
   const parts: string[] = [];
   let i = 0;
@@ -55,5 +55,5 @@ export function formatCitations(numbers: number[]): string {
     else for (let k = i; k <= j; k++) parts.push(String(numbers[k]));
     i = j + 1;
   }
-  return `[${parts.join(',')}]`;
+  return parts.join(',');
 }
