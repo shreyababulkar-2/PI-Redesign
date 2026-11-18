@@ -39,4 +39,13 @@ export const vdr = {
   sendTyping: require("./composer-send-typing.svg"),
   composerFade: require("./composer-fade-default.png"),
   composerFadeTyping: require("./composer-fade-typing.png"),
+  assistantTopbarA: require("./assistant-topbar-a.svg"),
+  assistantTopbarB: require("./assistant-topbar-b.svg"),
+  assistantTopbarMore: require("./assistant-topbar-more.svg"),
+  dot2: require("./dot-2.svg"),
+  chevronDown16: require("./chevron-down-16.svg"),
+  copy: require("./copy.svg"),
+  addChat: require("./add-chat.svg"),
+  collapseHistory: require("./collapse-history.svg"),
+  search: require("./search.svg"),
 } as const;

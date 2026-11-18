@@ -13,6 +13,7 @@ import { pointer } from "../theme/cursor";
 import { press, transition } from "../theme/motion";
 import { useHover } from "../hooks/useHover";
 import { SideNav } from "../components/SideNav";
+import { useScreen } from "../state/screen";
 import { vdr } from "../assets/vdr";
 
 /**
@@ -863,12 +864,21 @@ function ChecklistCard() {
  * the text sets in slate-700 at 11px, the field grows with its lines and the send button turns green.
  */
 function Composer() {
+  const { openAssistant } = useScreen();
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
   // One line tall until the text wraps; then it grows with the content (design: 18px per line, up to 5 lines).
   const [height, setHeight] = useState(18);
   const typing = value.length > 0;
   const lit = typing || focused;
+  /** Sending opens the full assistant view with the question (Enter sends, Shift+Enter breaks the line). */
+  const send = () => {
+    const q = value.trim();
+    if (!q) return;
+    setValue("");
+    setHeight(18);
+    openAssistant(q);
+  };
   return (
     <View pointerEvents="box-none" style={styles.composerDock}>
       <Image
@@ -888,6 +898,13 @@ function Composer() {
             onChangeText={setValue}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
+            onKeyPress={(e) => {
+              const ev = e.nativeEvent as unknown as { key: string; shiftKey?: boolean };
+              if (ev.key === "Enter" && !ev.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
             placeholder="Ask anything about this deal..."
             placeholderTextColor={colors.slate600}
             multiline
@@ -907,7 +924,7 @@ function Composer() {
             accessibilityRole="button"
             accessibilityLabel="Send"
             disabled={!typing}
-            onPress={() => setValue("")}
+            onPress={send}
             style={({ pressed }) => [{ ...pointer }, press(pressed && typing)]}
           >
             <Img src={typing ? vdr.sendTyping : vdr.send} w={28} />

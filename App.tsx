@@ -6,6 +6,7 @@ import { useAppFonts } from "./src/theme/useAppFonts";
 import { StartScreen } from "./src/screens/StartScreen";
 import { ScreenProvider, useScreen } from "./src/state/screen";
 import { VdrScreen } from "./src/screens/VdrScreen";
+import { AssistantScreen } from "./src/screens/AssistantScreen";
 import { ResearchNoteScreen } from "./src/screens/ResearchNoteScreen";
 import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
@@ -17,6 +18,7 @@ import { SourcesDrawerProvider } from "./src/state/sourcesDrawer";
 function CurrentScreen() {
   const { screen } = useScreen();
   if (screen === "vdr") return <VdrScreen />;
+  if (screen === "assistant") return <AssistantScreen />;
   if (screen === "note") return <ResearchNoteScreen />;
   return <StartScreen />;
 }

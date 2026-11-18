@@ -7,8 +7,12 @@ import { Stroke } from "../Stroke";
  * The answer table (Figma "Investment analysis"): a pale-green header row, a bold first column and
  * hairline row dividers. Column widths and which columns read as muted remarks come from the spec.
  */
-export function AnswerTable({ spec }: { spec: AnswerTableSpec }) {
-  const { columns, rows, widths, muted = [] } = spec;
+export function AnswerTable({ spec, wide = false }: { spec: AnswerTableSpec; wide?: boolean }) {
+  const { columns, rows, muted = [] } = spec;
+  // In the wide chat the first two columns are 200px and the rest share what is left, and the line breaks that suit the
+  // narrow panel ("~9.0% CAGR;\n#1 organised player") run on as one line.
+  const widths = wide ? columns.map((_, i) => (i < 2 ? 200 : null)) : spec.widths;
+  const flat = (value: string) => (wide ? value.replace(/\n/g, " ") : value);
   const cellStyle = (c: number) => [
     styles.cell,
     widths[c] == null ? styles.flex : { width: widths[c] as number },
@@ -26,7 +30,7 @@ export function AnswerTable({ spec }: { spec: AnswerTableSpec }) {
         {columns.map((label, c) => (
           <View key={label} style={cellStyle(c)}>
             <Text style={[type.tableHead, { color: colors.slate700 }]}>
-              {label}
+              {flat(label)}
             </Text>
           </View>
         ))}
@@ -38,7 +42,7 @@ export function AnswerTable({ spec }: { spec: AnswerTableSpec }) {
         >
           {row.map((value, c) => (
             <View key={c} style={cellStyle(c)}>
-              <Text style={textFor(c)}>{value}</Text>
+              <Text style={textFor(c)}>{flat(value)}</Text>
             </View>
           ))}
         </View>
