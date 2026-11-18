@@ -15,6 +15,7 @@ import { IconName } from "../assets/icons";
 import { pointer } from "../theme/cursor";
 import { press, transition } from "../theme/motion";
 import { useHover } from "../hooks/useHover";
+import { useScreen } from "../state/screen";
 import { TEXT_SIZES, TextSizeKey, useTextSize } from "../state/textSize";
 
 /** Side nav levels (Figma 499:3860): L1 shows the product mark at the top, L2 a back chevron. */
@@ -380,11 +381,13 @@ function SideTooltip({
 /** The back chevron at the top of the L2 pod. */
 function BackButton() {
   const hover = useHover();
+  const { back } = useScreen();
   return (
     <View style={styles.collapseSlot}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Back"
+        onPress={back}
         {...hover.handlers}
         style={({ pressed }) => [
           styles.collapse,

@@ -3,6 +3,9 @@ import "./src/theme/scaledText";
 import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAppFonts } from "./src/theme/useAppFonts";
+import { StartScreen } from "./src/screens/StartScreen";
+import { ScreenProvider, useScreen } from "./src/state/screen";
+import { VdrScreen } from "./src/screens/VdrScreen";
 import { ResearchNoteScreen } from "./src/screens/ResearchNoteScreen";
 import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
@@ -10,6 +13,13 @@ import { ActiveTabProvider } from "./src/state/activeTab";
 import { TextSizeProvider } from "./src/state/textSize";
 import { DocumentViewerProvider } from "./src/state/documentViewer";
 import { SourcesDrawerProvider } from "./src/state/sourcesDrawer";
+
+function CurrentScreen() {
+  const { screen } = useScreen();
+  if (screen === "vdr") return <VdrScreen />;
+  if (screen === "note") return <ResearchNoteScreen />;
+  return <StartScreen />;
+}
 
 export default function App() {
   const fontsReady = useAppFonts();
@@ -33,7 +43,9 @@ export default function App() {
             <SelectionContextProvider>
               <SourcesDrawerProvider>
                 <DocumentViewerProvider>
-                  <ResearchNoteScreen />
+                  <ScreenProvider>
+                    <CurrentScreen />
+                  </ScreenProvider>
                 </DocumentViewerProvider>
               </SourcesDrawerProvider>
             </SelectionContextProvider>
