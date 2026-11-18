@@ -102,7 +102,7 @@ export function SectionCard({ section, onLayout, zoom, index = 0 }: Props) {
   const { switching } = useActiveTab();
   const { open: openSources } = useSourcesDrawer();
   return (
-    <View onLayout={onLayout} style={[styles.card, { maxWidth: section.maxWidth }, appear(index), leaving(switching)]}>
+    <View onLayout={onLayout} {...({ dataSet: { sectionId: section.id } } as object)} style={[styles.card, { maxWidth: section.maxWidth }, appear(index), leaving(switching)]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Text style={[type.sectionTitle, styles.index, { color: colors.slate900 }]}>{section.index}</Text>

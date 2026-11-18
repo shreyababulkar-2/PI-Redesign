@@ -8,7 +8,6 @@ import { FloatingHeaderLayer } from "../components/note/FloatingHeaderLayer";
 import { appear, leaving } from "../theme/motion";
 import { NOTE_CONTENT_ID } from "../state/selectionContext";
 import { NoteHeader } from "../components/note/NoteHeader";
-import { OptionsSwitcher } from "../components/OptionsSwitcher";
 import { SectionCard } from "../components/note/SectionCard";
 import { Minimap } from "../components/note/Minimap";
 import { ScrollTopButton } from "../components/note/ScrollTopButton";
@@ -135,10 +134,9 @@ export function ResearchNoteScreen() {
         <ScrollTopButton
           progress={headerProgress}
           active={scrolled}
-          onPress={scrollToTop}
+          // Not `onPress={scrollToTop}`: that would hand it the press event as its duration and the scroll would jump.
+          onPress={() => scrollToTop()}
         />
-
-        <OptionsSwitcher />
       </View>
 
       <ResizableAssistant />

@@ -8,7 +8,7 @@ import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
 import { ActiveTabProvider } from "./src/state/activeTab";
 import { TextSizeProvider } from "./src/state/textSize";
-import { DesignOptionsProvider } from "./src/state/designOptions";
+import { DocumentViewerProvider } from "./src/state/documentViewer";
 import { SourcesDrawerProvider } from "./src/state/sourcesDrawer";
 
 export default function App() {
@@ -18,7 +18,7 @@ export default function App() {
     if (Platform.OS !== "web") return;
     const style = document.createElement("style");
     style.textContent =
-      "body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-kerning:normal}::selection{background:#e0f8e7;color:inherit}::highlight(pi-context){background-color:#eef6ec}@keyframes pi-dot-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}@keyframes pi-appear{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}";
+      "body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-kerning:normal}::selection{background:#e0f8e7;color:inherit}::highlight(pi-context){background-color:#eef6ec}::highlight(pi-claim){background-color:#ffecc0}@keyframes pi-skeleton{0%{background-position:100% 0}100%{background-position:-100% 0}}@keyframes pi-dot-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}@keyframes pi-appear{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}";
     document.head.appendChild(style);
     return () => style.remove();
   }, []);
@@ -26,19 +26,20 @@ export default function App() {
   return (
     <>
       <StatusBar style="dark" />
-      <DesignOptionsProvider>
-        <TextSizeProvider>
-          <AssistantOverlayProvider>
-            <ActiveTabProvider>
-              <SelectionContextProvider>
-                <SourcesDrawerProvider>
+
+      <TextSizeProvider>
+        <AssistantOverlayProvider>
+          <ActiveTabProvider>
+            <SelectionContextProvider>
+              <SourcesDrawerProvider>
+                <DocumentViewerProvider>
                   <ResearchNoteScreen />
-                </SourcesDrawerProvider>
-              </SelectionContextProvider>
-            </ActiveTabProvider>
-          </AssistantOverlayProvider>
-        </TextSizeProvider>
-      </DesignOptionsProvider>
+                </DocumentViewerProvider>
+              </SourcesDrawerProvider>
+            </SelectionContextProvider>
+          </ActiveTabProvider>
+        </AssistantOverlayProvider>
+      </TextSizeProvider>
     </>
   );
 }
