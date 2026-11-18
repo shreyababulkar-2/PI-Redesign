@@ -14,6 +14,7 @@ import { pointer } from "../../theme/cursor";
 import { press, transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { useActiveTab } from "../../state/activeTab";
+import { useDocumentViewer } from "../../state/documentViewer";
 
 type Props = { activeTab: number };
 
@@ -29,6 +30,8 @@ export function NoteHeader({ activeTab }: Props) {
 /** The header's inner layout without the card chrome, so it can live inside a morphing container. */
 export function NoteHeaderContent({ activeTab }: Props) {
   const hoverDownload = useHover();
+  // With the citation drawer open the note is half width and the header keeps only its menu (Figma 601:2417).
+  const compact = useDocumentViewer().visible;
   const { setTab } = useActiveTab();
   return (
     <View style={styles.content}>
@@ -62,42 +65,48 @@ export function NoteHeaderContent({ activeTab }: Props) {
 
       <View style={styles.right}>
         {/* Collaborators (Figma 439:25170): three overlapping avatars, then a hairline divider. */}
-        <WithTooltip text="Manage members" side="bottom">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Manage members"
-            style={({ pressed }) => press(pressed)}
-          >
-            <Image
-              source={avatarGroup}
-              contentFit="contain"
-              style={styles.avatars}
-            />
-          </Pressable>
-        </WithTooltip>
-        <View style={styles.rightDivider} />
-        <View style={styles.rightButtons}>
-          <WithTooltip text="Download" side="bottom">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Download"
-              {...hoverDownload.handlers}
-              style={({ pressed }) => press(pressed)}
-            >
-              {/* Hover (Figma 501:8232): the button darkens a step and the arrow turns green; the two fade into each other. */}
-              <Icon name="topbarDownload" size={28} style={pointer} />
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.downloadHover,
-                  { opacity: hoverDownload.hovered ? 1 : 0 },
-                  transition(["opacity"], 150),
-                ]}
+        {!compact && (
+          <>
+            <WithTooltip text="Manage members" side="bottom">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Manage members"
+                style={({ pressed }) => press(pressed)}
               >
-                <Icon name="topbarDownloadHover" size={28} />
-              </View>
-            </Pressable>
-          </WithTooltip>
+                <Image
+                  source={avatarGroup}
+                  contentFit="contain"
+                  style={styles.avatars}
+                />
+              </Pressable>
+            </WithTooltip>
+            <View style={styles.rightDivider} />
+          </>
+        )}
+        <View style={styles.rightButtons}>
+          {!compact && (
+            <WithTooltip text="Download" side="bottom">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Download"
+                {...hoverDownload.handlers}
+                style={({ pressed }) => press(pressed)}
+              >
+                {/* Hover (Figma 501:8232): the button darkens a step and the arrow turns green; the two fade into each other. */}
+                <Icon name="topbarDownload" size={28} style={pointer} />
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.downloadHover,
+                    { opacity: hoverDownload.hovered ? 1 : 0 },
+                    transition(["opacity"], 150),
+                  ]}
+                >
+                  <Icon name="topbarDownloadHover" size={28} />
+                </View>
+              </Pressable>
+            </WithTooltip>
+          )}
           <KebabMenu
             {...(activeTab === 2
               ? { items: BENCHMARK_MENU_ITEMS, width: 191 }

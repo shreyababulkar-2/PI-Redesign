@@ -10,6 +10,9 @@ import {
 import { colors } from "../../theme";
 import { useHover } from "../../hooks/useHover";
 import { AssistantPanel } from "./AssistantPanel";
+import { DocumentViewer } from "../viewer/DocumentViewer";
+import { ENTER_MS, useDocumentViewer } from "../../state/documentViewer";
+import { transition } from "../../theme/motion";
 import { useAssistantOverlay } from "../../state/assistantOverlay";
 
 /** Narrowest the assistant is allowed to get (the Figma design width). */
@@ -66,6 +69,7 @@ function setSelectable(selectable: boolean) {
  */
 export function ResizableAssistant() {
   const { width: windowWidth } = useWindowDimensions();
+  const viewerOpen = useDocumentViewer().visible;
   const {
     collapsed,
     open: overlayOpen,
@@ -133,6 +137,7 @@ export function ResizableAssistant() {
         />
         <View style={styles.overlay}>
           <AssistantPanel onCollapse={() => setOverlayOpen(false)} />
+          <DocumentViewer />
         </View>
       </>
     );
@@ -141,17 +146,28 @@ export function ResizableAssistant() {
   const active = dragging || hover.hovered;
 
   return (
-    <View style={[styles.wrap, { width }]}>
+    <View
+      style={[
+        styles.wrap,
+        // With the citation drawer open, the pane takes half the screen beside the note (Figma 602:4423).
+        { width: viewerOpen ? Math.round((windowWidth - 60) / 2) - 8 : width },
+        transition(["width"], viewerOpen ? ENTER_MS : 0),
+      ]}
+    >
+      {/* The assistant stays mounted under the viewer, so its conversation is intact when the viewer closes. */}
       <AssistantPanel />
-      <View
-        {...responder.panHandlers}
-        {...(hover.handlers as object)}
-        accessibilityRole="adjustable"
-        accessibilityLabel="Resize assistant"
-        style={styles.handle}
-      >
-        <View style={[styles.bar, active && styles.barActive]} />
-      </View>
+      <DocumentViewer />
+      {!viewerOpen && (
+        <View
+          {...responder.panHandlers}
+          {...(hover.handlers as object)}
+          accessibilityRole="adjustable"
+          accessibilityLabel="Resize assistant"
+          style={styles.handle}
+        >
+          <View style={[styles.bar, active && styles.barActive]} />
+        </View>
+      )}
     </View>
   );
 }
