@@ -39,3 +39,13 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Design rules (apply to every new build, without being asked)
+
+Check each of these before calling any UI task done:
+
+1. **Icons are 1:1 from Figma.** Pull the actual vector/SVG from the design node. Never substitute a lookalike or hand-drawn icon.
+2. **Every icon button has a tooltip.**
+3. **Interactions are polished.** Use the `make-interfaces-feel-better` skill (in `.claude/skills`, if your agent supports skills), or any other relevant skill, for hover, press, enter and exit states.
+
+These are a rule of thumb for new and touched work. Don't backfill older screens unless asked. New rules get appended here as they come up.
