@@ -4,7 +4,7 @@ import { AnswerTableSpec } from "../../data/assistantAnswers";
 import { Stroke } from "../Stroke";
 
 /**
- * The answer table (Figma "Investment analysis"): a pale-green header row (neutral grey in the wide chat), a bold first column and
+ * The answer table (Figma "Investment analysis"): a pale-green header row (neutral grey in the wide chat, Figma 35:16297), a bold first column and
  * hairline row dividers. Column widths and which columns read as muted remarks come from the spec.
  */
 export function AnswerTable({
@@ -30,7 +30,7 @@ export function AnswerTable({
     c === 0
       ? [type.tableLabel, { color: colors.slate800 }]
       : muted.includes(c)
-        ? [type.tableRemark, { color: colors.tableRemark }]
+        ? [type.tableRemark, { color: wide ? colors.slate700 : colors.tableRemark }]
         : [type.tableValue, { color: colors.slate800 }];
 
   return (
@@ -47,7 +47,11 @@ export function AnswerTable({
       {rows.map((row, i) => (
         <View
           key={row[0]}
-          style={[styles.row, i < rows.length - 1 && styles.rowDivider]}
+          style={[
+            styles.row,
+            wide && styles.rowWide,
+            i < rows.length - 1 && (wide ? styles.rowDividerWide : styles.rowDivider),
+          ]}
         >
           {row.map((value, c) => (
             <View key={c} style={cellStyle(c)}>
@@ -57,7 +61,7 @@ export function AnswerTable({
         </View>
       ))}
       <Stroke
-        color={wide ? colors.slate200 : colors.tableBorder}
+        color={wide ? "rgba(225,228,234,0.6)" : colors.tableBorder}
         radius={wide ? 12 : 8}
       />
     </View>
@@ -76,6 +80,9 @@ const styles = StyleSheet.create({
   headRowWide: { backgroundColor: colors.shark100 },
   row: { flexDirection: "row", alignItems: "stretch" },
   rowDivider: { borderBottomWidth: 0.5, borderBottomColor: colors.slate200 },
+  // Figma 35:16297: rows sit on white at 80%, divided by the palest slate hairline.
+  rowWide: { backgroundColor: "rgba(255,255,255,0.8)" },
+  rowDividerWide: { borderBottomWidth: 0.5, borderBottomColor: colors.slate100 },
   cell: { paddingHorizontal: 10, paddingVertical: 8 },
   flex: { flex: 1 },
 });
