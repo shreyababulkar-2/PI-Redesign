@@ -11,13 +11,17 @@ import { RichText } from "../note/RichText";
 import { useHover } from "../../hooks/useHover";
 import { MemoSlides } from "./MemoSlides";
 import { ArtifactFrame } from "./ArtifactFrame";
+import { InvestmentTable } from "./InvestmentTable";
 import { isArtefact } from "../../data/artefacts";
 
 /** Narrowest the drawer can be dragged to; the widest is half the window. */
 export const DRAWER_MIN_WIDTH = 360;
 
-/** Width of the drawer when it opens, whatever the document (the user can drag it wider or narrower). */
-export const drawerWidthFor = (_doc: string) => 500;
+/**
+ * Width of the drawer when it opens: 500 for documents, 602 for artefacts (Figma 88:25334, the artefact frame is 570 wide
+ * inside it). The user can drag it wider or narrower.
+ */
+export const drawerWidthFor = (doc: string) => (isArtefact(doc) ? 602 : 500);
 
 /**
  * The deal-document drawer (Figma 35:16596 "Research note - Active", 41:20368 with several tabs): a panel at the right
@@ -100,7 +104,8 @@ export function DocDrawer({
                   {doc}
                 </Text>
                 <View style={styles.tabNotch} />
-                <ActiveTabClose label={doc} onClose={() => onCloseTab(doc)} />
+                {/* An artefact's pill carries no close button of its own (Figma 88:25336); the drawer's close is at the right. */}
+                {!isArtefact(doc) && <ActiveTabClose label={doc} onClose={() => onCloseTab(doc)} />}
               </View>
             ) : (
               <IdleTab key={doc} label={doc} onPress={() => onSelectTab(doc)} onClose={() => onCloseTab(doc)} />
@@ -125,9 +130,7 @@ export function DocDrawer({
       {isArtefact(active) ? (
         <View style={styles.artifactBody}>
           {active === "Investment analysis" ? (
-            <ArtifactFrame width={873} height={1301}>
-              <Image source={vdr.artifactInvestment} contentFit="cover" style={{ width: 873, height: 1301 }} />
-            </ArtifactFrame>
+            <ArtifactFrame>{(scroll) => <InvestmentTable scroll={scroll} />}</ArtifactFrame>
           ) : (
             <View style={styles.card}>
               <Text style={[type.body, { color: colors.slate600 }]}>{`${active} isn't part of this prototype yet.`}</Text>
