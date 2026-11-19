@@ -106,8 +106,8 @@ export function DocDrawer({
                   {doc}
                 </Text>
                 <View style={styles.tabNotch} />
-                {/* An artefact's pill carries no close button of its own (Figma 88:25336); the drawer's close is at the right. */}
-                {!isArtefact(doc) && <ActiveTabClose label={doc} onClose={() => onCloseTab(doc)} />}
+                {/* A lone artefact's pill carries no close button of its own (Figma 88:25336; the drawer's close is at the right); with several tabs open, every tab has one. */}
+                {(!isArtefact(doc) || tabs.length > 1) && <ActiveTabClose label={doc} onClose={() => onCloseTab(doc)} />}
               </View>
             ) : (
               <IdleTab key={doc} label={doc} onPress={() => onSelectTab(doc)} onClose={() => onCloseTab(doc)} />
