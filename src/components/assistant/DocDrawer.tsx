@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { colors, fonts, type } from "../../theme";
 import { pointer } from "../../theme/cursor";
@@ -14,8 +14,8 @@ import { MemoSlides } from "./MemoSlides";
 /** Narrowest the drawer can be dragged to; the widest is half the window. */
 export const DRAWER_MIN_WIDTH = 360;
 
-/** Width of the drawer for a document: the IC memo's slides get the wider panel (Figma 41:20368), the rest 500px. */
-export const drawerWidthFor = (doc: string) => (doc === "IC memo" ? 632 : 500);
+/** Width of the drawer when it opens, whatever the document (the user can drag it wider or narrower). */
+export const drawerWidthFor = (_doc: string) => 500;
 
 /**
  * The deal-document drawer (Figma 35:16596 "Research note - Active", 41:20368 with several tabs): a panel at the right
@@ -27,6 +27,7 @@ export const drawerWidthFor = (doc: string) => (doc === "IC memo" ? 632 : 500);
  */
 export function DocDrawer({
   width,
+  widthValue,
   maxWidth,
   onResize,
   tabs,
@@ -37,6 +38,8 @@ export function DocDrawer({
   onGoTo,
 }: {
   width: number;
+  /** The same width as an animated value, so the drawer eases between documents of different widths. */
+  widthValue: Animated.Value;
   maxWidth: number;
   onResize: (width: number) => void;
   tabs: string[];
@@ -84,7 +87,7 @@ export function DocDrawer({
   );
   /* eslint-enable react-hooks/refs */
   return (
-    <View style={[styles.drawer, { width }]}>
+    <Animated.View style={[styles.drawer, { width: widthValue }]}>
       <View style={styles.header}>
         <View style={styles.tabs}>
           {tabs.map((doc) =>
@@ -95,6 +98,7 @@ export function DocDrawer({
                   {doc}
                 </Text>
                 <View style={styles.tabNotch} />
+                <ActiveTabClose label={doc} onClose={() => onCloseTab(doc)} />
               </View>
             ) : (
               <IdleTab key={doc} label={doc} onPress={() => onSelectTab(doc)} onClose={() => onCloseTab(doc)} />
@@ -164,7 +168,7 @@ export function DocDrawer({
           </Pressable>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -187,6 +191,22 @@ function IdleTab({ label, onPress, onClose }: { label: string; onPress: () => vo
         {label}
       </Text>
       <TabClose label={label} onClose={onClose} />
+    </Pressable>
+  );
+}
+
+/** The active tab's close button: a white cross inside the green pill, lightening on hover. */
+function ActiveTabClose({ label, onClose }: { label: string; onClose: () => void }) {
+  const hover = useHover();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Close ${label}`}
+      onPress={onClose}
+      {...hover.handlers}
+      style={[styles.idleClose, hover.hovered && { backgroundColor: "rgba(255,255,255,0.2)" }]}
+    >
+      <Image source={vdr.tabCloseWhite} contentFit="fill" style={{ width: 14, height: 14 }} />
     </Pressable>
   );
 }
