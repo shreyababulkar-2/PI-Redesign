@@ -24,6 +24,7 @@ import { thinking } from "../data/assistantAnswers";
 import { useConversation } from "../hooks/useConversation";
 import { AnswerView } from "../components/assistant/AnswerView";
 import { FadeIn } from "../components/assistant/FadeIn";
+import { ARTEFACTS } from "../data/artefacts";
 import { DocDrawer, drawerWidthFor, DRAWER_MIN_WIDTH } from "../components/assistant/DocDrawer";
 import { JumpToLatest } from "../components/assistant/JumpToLatest";
 import { ThoughtBlock } from "../components/assistant/ThoughtBlock";
@@ -270,6 +271,10 @@ export function AssistantScreen() {
           }}
           openDocs={tabs}
           activeDoc={activeDoc}
+          onPickArtefact={(t) => {
+            pickDoc(t);
+            setArtefactsOpen(false);
+          }}
           onPickDoc={(d) => {
             pickDoc(d);
             setDocsOpen(false);
@@ -570,6 +575,7 @@ function TopBar({
   openDocs,
   activeDoc,
   onPickDoc,
+  onPickArtefact,
 }: {
   title: string;
   open: Animated.Value;
@@ -584,6 +590,7 @@ function TopBar({
   openDocs: string[];
   activeDoc: string | null;
   onPickDoc: (doc: string) => void;
+  onPickArtefact: (title: string) => void;
 }) {
   const closed = Animated.subtract(1, open);
   const grow = (from: number, to: number) =>
@@ -631,7 +638,7 @@ function TopBar({
             active={artefactsOpen}
             onPress={onArtefacts}
           />
-          <ArtefactsMenu open={artefactsOpen} />
+          <ArtefactsMenu open={artefactsOpen} onSelect={onPickArtefact} />
         </View>
         {/* The menu hangs from this button (Figma 35:16243: 6px below it, right edges aligned), so it follows the
             button as the top bar narrows beside the drawer. */}
@@ -755,28 +762,18 @@ function MoreRow({ label, icon, danger, onPress }: { label: string; icon: Src; d
 
 /* ------------------------------------------------------------------ artefacts */
 
-const ARTEFACTS: { title: string; meta: string; kind: "sheet" | "doc" }[] = [
-  { title: "Investment analysis", meta: "XLS · v2", kind: "sheet" },
-  { title: "Revenue & EBITDA trend", meta: "DOC · v1", kind: "doc" },
-  { title: "Deal summary", meta: "PDF · v1", kind: "sheet" },
-  { title: "IC deck", meta: "XLS · v2", kind: "sheet" },
-  { title: "Deal summary", meta: "DOC · v1", kind: "doc" },
-  { title: "Investment analysis", meta: "XLS · v2", kind: "sheet" },
-  { title: "Investment analysis", meta: "PDF · v1", kind: "doc" },
-];
-
 /**
  * The artefacts menu (Figma 62:23858): what the assistant has produced for this deal, as a 288 x 376 card that hangs
  * from the first top-bar button the way the documents menu hangs from the second (8px under the header, 8px from the
  * window edge). Each row has a thumbnail, a name with its file type and version, and a "more" button; the list scrolls.
  */
-function ArtefactsMenu({ open }: { open: boolean }) {
+function ArtefactsMenu({ open, onSelect }: { open: boolean; onSelect: (title: string) => void }) {
   const reveal = useReveal(open);
   return (
     <Animated.View pointerEvents={open ? "auto" : "none"} style={[styles.docsMenu, styles.artefactsMenu, reveal]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {ARTEFACTS.map((a, i) => (
-          <ArtefactRow key={i} {...a} />
+          <ArtefactRow key={i} {...a} onPress={() => onSelect(a.title)} />
         ))}
       </ScrollView>
     </Animated.View>
@@ -802,11 +799,22 @@ function MoreButton() {
   );
 }
 
-function ArtefactRow({ title, meta, kind }: { title: string; meta: string; kind: "sheet" | "doc" }) {
+function ArtefactRow({
+  title,
+  meta,
+  kind,
+  onPress,
+}: {
+  title: string;
+  meta: string;
+  kind: "sheet" | "doc";
+  onPress: () => void;
+}) {
   const hover = useHover();
   return (
     <Pressable
       accessibilityRole="menuitem"
+      onPress={onPress}
       {...hover.handlers}
       style={({ pressed }) => [styles.artefactRow, hover.hovered && { backgroundColor: colors.slate50 }, press(pressed)]}
     >

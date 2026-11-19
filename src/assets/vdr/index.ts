@@ -70,4 +70,8 @@ export const vdr = {
   addChat: require("./add-chat.svg"),
   collapseHistory: require("./collapse-history.svg"),
   search: require("./search.svg"),
+  artifactInvestment: require("./artifact-investment.png"),
+  edgeFadeBottom: require("./edge-fade-bottom.png"),
+  edgeFadeRight: require("./edge-fade-right.png"),
+  drawerTabArtifact: require("./drawer-tab-artifact.svg"),
 } as const;
