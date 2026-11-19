@@ -10,6 +10,8 @@ import { VersionChip } from "../note/Chip";
 import { RichText } from "../note/RichText";
 import { useHover } from "../../hooks/useHover";
 import { MemoSlides } from "./MemoSlides";
+import { ArtifactFrame } from "./ArtifactFrame";
+import { isArtefact } from "../../data/artefacts";
 
 /** Narrowest the drawer can be dragged to; the widest is half the window. */
 export const DRAWER_MIN_WIDTH = 360;
@@ -93,7 +95,7 @@ export function DocDrawer({
           {tabs.map((doc) =>
             doc === active ? (
               <View key={doc} style={styles.tab}>
-                <Image source={vdr.drawerTabDoc} contentFit="fill" style={{ width: 16, height: 16 }} />
+                <Image source={isArtefact(doc) ? vdr.drawerTabArtifact : vdr.drawerTabDoc} contentFit="fill" style={{ width: 16, height: 16 }} />
                 <Text numberOfLines={1} style={styles.tabText}>
                   {doc}
                 </Text>
@@ -120,6 +122,19 @@ export function DocDrawer({
         </Pressable>
       </View>
 
+      {isArtefact(active) ? (
+        <View style={styles.artifactBody}>
+          {active === "Investment analysis" ? (
+            <ArtifactFrame width={873} height={1301}>
+              <Image source={vdr.artifactInvestment} contentFit="cover" style={{ width: 873, height: 1301 }} />
+            </ArtifactFrame>
+          ) : (
+            <View style={styles.card}>
+              <Text style={[type.body, { color: colors.slate600 }]}>{`${active} isn't part of this prototype yet.`}</Text>
+            </View>
+          )}
+        </View>
+      ) : (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body}>
         {active === "Research note" ? (
           sections.slice(0, 2).map((s) => (
@@ -145,6 +160,7 @@ export function DocDrawer({
           </View>
         )}
       </ScrollView>
+      )}
 
       <View
         {...responder.panHandlers}
@@ -304,6 +320,8 @@ const styles = StyleSheet.create({
   idleClose: { width: 16, height: 16, borderRadius: 4, alignItems: "center", justifyContent: "center", ...pointer },
   close: { width: 24, height: 24, borderRadius: 4, alignItems: "center", justifyContent: "center", ...pointer },
   body: { paddingHorizontal: 15, paddingTop: 16, gap: 16, paddingBottom: 72 },
+  // The artefact frame fills the drawer under the tabs, 15px in from the sides and 16 from the bottom (Figma 88:25334).
+  artifactBody: { flex: 1, minHeight: 0, paddingHorizontal: 15, paddingTop: 16, paddingBottom: 16 },
   card: {
     gap: 10,
     paddingTop: 12,
