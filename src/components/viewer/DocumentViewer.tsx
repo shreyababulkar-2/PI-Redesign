@@ -67,7 +67,6 @@ import {
   ZoomOut,
 } from "./icons";
 
-const GREEN = "#22733e";
 
 type Source = ReturnType<typeof sourceFor>;
 type DocKind = "pdf" | "sheet" | "web";
@@ -497,9 +496,9 @@ function AssociatedChip({
       ]}
     >
       {s.kind === "web" ? (
-        <Globe color={on ? GREEN : "#717784"} />
+        <Globe color={on ? "#ffffff" : "#717784"} />
       ) : (
-        <Folder color={on ? GREEN : "#717784"} />
+        <Folder color={on ? "#ffffff" : "#717784"} />
       )}
       <Text
         numberOfLines={1}
@@ -1716,14 +1715,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.12,
     color: "#222530",
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 12, rowGap: 8 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     width: 120,
     height: 28,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#f2f5f8",
@@ -1732,7 +1731,7 @@ const styles = StyleSheet.create({
     ...transition(["background-color", "border-color"]),
   },
   chipHover: { backgroundColor: "#eef1f5" },
-  chipOn: { backgroundColor: "#ddedda", borderColor: "#bcd9b6" },
+  chipOn: { backgroundColor: "#205b34", borderColor: "#bcd9b6" },
   chipText: {
     flex: 1,
     minWidth: 0,
@@ -1742,7 +1741,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.08,
     color: "#717784",
   },
-  chipTextOn: { color: "#525866" },
+  chipTextOn: { color: "#ffffff" },
   dashed: {
     height: 0,
     borderTopWidth: 1,
