@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -75,6 +77,8 @@ const t = {
 } as const;
 
 export function VdrScreen() {
+  // The two omni box designs in the Figma file; the switch at the bottom right is a prototype control to compare them.
+  const [omni, setOmni] = useState<OmniLayout>("narrow");
   return (
     <View style={styles.root}>
       <ScrollView
@@ -102,7 +106,8 @@ export function VdrScreen() {
           </View>
         </View>
       </ScrollView>
-      <Composer />
+      <Composer layout={omni} />
+      <OmniSwitch value={omni} onChange={setOmni} />
       <SideNav />
     </View>
   );
@@ -863,7 +868,12 @@ function ChecklistCard() {
  * The assistant composer (default 28:13447, typing 28:14565). Typing state: the border turns pine with a soft ring,
  * the text sets in slate-700 at 11px, the field grows with its lines and the send button turns green.
  */
-function Composer() {
+type OmniLayout = "narrow" | "large";
+
+/** How much the omni box grows when focused. */
+const FOCUS_SCALE = 1.1;
+
+function Composer({ layout }: { layout: OmniLayout }) {
   const { openAssistant } = useScreen();
   const [value, setValue] = useState("");
   const [focused, setFocused] = useState(false);
@@ -871,6 +881,29 @@ function Composer() {
   const [height, setHeight] = useState(18);
   const typing = value.length > 0;
   const lit = typing || focused;
+
+  // Clicking into the box grows it a touch (about 1.5%, a few pixels each side) from its bottom edge, eased so it settles
+  // rather than snaps; it holds while there is focus or text, and lets go a beat after the last of those (so a click on
+  // + or send, which blurs the field first, lands before the box starts shrinking under the pointer).
+  const grownScale = FOCUS_SCALE;
+  const [grown, setGrown] = useState(false);
+  useEffect(() => {
+    if (focused || typing) {
+      setGrown(true);
+      return;
+    }
+    const id = setTimeout(() => setGrown(false), 180);
+    return () => clearTimeout(id);
+  }, [focused, typing]);
+  const [scale] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    Animated.timing(scale, {
+      toValue: grown ? grownScale : 1,
+      duration: 280,
+      easing: Easing.bezier(0.2, 0, 0, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [grown, grownScale, scale]);
   /** Sending opens the full assistant view with the question (Enter sends, Shift+Enter breaks the line). */
   const send = () => {
     const q = value.trim();
@@ -879,6 +912,23 @@ function Composer() {
     setHeight(18);
     openAssistant(q);
   };
+  const tools = (
+    <View style={styles.row8}>
+      <SquareButton src={vdr.plus} label="Add" w={16} />
+      <SquareButton src={vdr.attach} label="Attach" w={16} />
+    </View>
+  );
+  const sendButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Send"
+      disabled={!typing}
+      onPress={send}
+      style={({ pressed }) => [{ ...pointer }, press(pressed && typing)]}
+    >
+      <Img src={typing ? vdr.sendTyping : vdr.send} w={28} />
+    </Pressable>
+  );
   return (
     <View pointerEvents="box-none" style={styles.composerDock}>
       <Image
@@ -887,12 +937,16 @@ function Composer() {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <View style={[styles.composer, lit ? styles.composerLit : styles.composerIdle]}>
-        <View style={styles.composerRow}>
-          <View style={styles.row8}>
-            <SquareButton src={vdr.plus} label="Add" w={16} />
-            <SquareButton src={vdr.attach} label="Attach" w={16} />
-          </View>
+      <Animated.View
+        style={[
+          styles.composer,
+          layout === "large" && styles.composerLarge,
+          lit ? styles.composerLit : styles.composerIdle,
+          { transform: [{ scale }], transformOrigin: "50% 100%" },
+        ]}
+      >
+        <View style={layout === "large" ? styles.composerCol : styles.composerRow}>
+          {layout === "narrow" && tools}
           <TextInput
             value={value}
             onChangeText={setValue}
@@ -920,16 +974,46 @@ function Composer() {
               { height: typing ? height : 18 },
             ]}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Send"
-            disabled={!typing}
-            onPress={send}
-            style={({ pressed }) => [{ ...pointer }, press(pressed && typing)]}
-          >
-            <Img src={typing ? vdr.sendTyping : vdr.send} w={28} />
-          </Pressable>
+          {layout === "narrow" ? (
+            sendButton
+          ) : (
+            <View style={styles.composerFoot}>
+              {tools}
+              {sendButton}
+            </View>
+          )}
         </View>
+      </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * Prototype control: a small two-option switch that flips the omni box between its two Figma designs, the narrow one
+ * (one row, 52px) and the large one (input above, tools below, 86px).
+ */
+function OmniSwitch({ value, onChange }: { value: OmniLayout; onChange: (v: OmniLayout) => void }) {
+  const options: { id: OmniLayout; label: string }[] = [
+    { id: "narrow", label: "Narrow" },
+    { id: "large", label: "Large" },
+  ];
+  return (
+    <View style={styles.omniSwitch}>
+      <View style={styles.omniSwitchTrack}>
+        {options.map((o) => {
+          const on = o.id === value;
+          return (
+            <Pressable
+              key={o.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              onPress={() => onChange(o.id)}
+              style={[styles.omniSwitchOption, on && styles.omniSwitchOn, transition(["background-color"])]}
+            >
+              <Text style={[styles.omniSwitchText, { color: on ? colors.white : colors.slate700 }]}>{o.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -968,7 +1052,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingLeft: 56,
     paddingRight: 8,
-    paddingBottom: 124,
+    paddingBottom: 144,
     gap: 12,
   },
   columns: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
@@ -1297,6 +1381,28 @@ const styles = StyleSheet.create({
     backdropFilter: "blur(2px)",
   } as object,
   composerRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  // The large design (Figma 101:2517): the field on top, then the tools and send button on a row underneath, 86px in all.
+  composerLarge: { paddingHorizontal: 15, paddingVertical: 11 },
+  composerCol: { gap: 16 },
+  composerFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  omniSwitch: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    zIndex: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 4,
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.white,
+    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+  } as object,
+  omniSwitchTrack: { flexDirection: "row", gap: 2 },
+  omniSwitchOption: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, ...pointer },
+  omniSwitchOn: { backgroundColor: colors.pine700 },
+  omniSwitchText: { fontFamily: fonts.geistMedium, fontSize: 10, lineHeight: 16 },
   square: {
     width: 28,
     height: 28,
