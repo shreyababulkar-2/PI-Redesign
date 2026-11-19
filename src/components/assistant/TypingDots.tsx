@@ -2,6 +2,20 @@ import { useEffect, useState } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 import { colors } from "../../theme";
 
+/**
+ * The three dots after "Assistant is thinking" (Figma 62:24796): 2px dots, 2px apart, in the label's green, pulsing
+ * one after another. Sits level with the bottom of the text.
+ */
+export function ThinkingDots() {
+  return (
+    <View accessibilityLabel="Generating" style={styles.thinkingRow}>
+      <Dot delay={0} size={2} color={colors.pine700} />
+      <Dot delay={160} size={2} color={colors.pine700} />
+      <Dot delay={320} size={2} color={colors.pine700} />
+    </View>
+  );
+}
+
 /** Three small dots that rise and fall in turn: the usual "still working" indicator. */
 export function TypingDots() {
   return (
@@ -13,7 +27,7 @@ export function TypingDots() {
   );
 }
 
-function Dot({ delay }: { delay: number }) {
+function Dot({ delay, size = 3, color }: { delay: number; size?: number; color?: string }) {
   const [value] = useState(() => new Animated.Value(0));
   useEffect(() => {
     const loop = Animated.loop(
@@ -41,6 +55,8 @@ function Dot({ delay }: { delay: number }) {
     <Animated.View
       style={[
         styles.dot,
+        { width: size, height: size, borderRadius: size / 2 },
+        color ? { backgroundColor: color } : null,
         {
           opacity: value.interpolate({
             inputRange: [0, 1],
@@ -68,6 +84,7 @@ const styles = StyleSheet.create({
     height: 8,
     paddingTop: 2,
   },
+  thinkingRow: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 4, alignSelf: "flex-end" },
   dot: {
     width: 3,
     height: 3,

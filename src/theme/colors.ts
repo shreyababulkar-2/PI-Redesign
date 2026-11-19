@@ -13,6 +13,7 @@ export const colors = {
   dew75: '#eef6ec',
 
   shark50: '#f8f7f8',
+  shark100: '#f0eeee',
 
   grey50: '#f7f7f7',
   slate50: '#f5f7fa',

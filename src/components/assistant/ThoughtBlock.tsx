@@ -16,6 +16,8 @@ import { FadeIn } from "./FadeIn";
 import { Pulse } from "./Pulse";
 import { ShimmerText } from "./ShimmerText";
 import { pointer } from "../../theme/cursor";
+import { transition } from "../../theme/motion";
+import { ThinkingDots } from "./TypingDots";
 
 type Props = {
   /** The steps, file count and source count for this answer. */
@@ -31,6 +33,8 @@ type Props = {
   thoughtSecs: number;
   /** How long each finished step took. */
   stepTimes: string[];
+  /** White steps panel instead of the pale grey one (the full assistant view). */
+  white?: boolean;
 };
 
 type StepState = "done" | "active" | "pending";
@@ -52,6 +56,7 @@ export function ThoughtBlock({
   startedAt,
   thoughtSecs,
   stepTimes,
+  white = false,
 }: Props) {
   const list = thinking.steps;
   const working = phase === "waiting" || phase === "thinking";
@@ -82,7 +87,11 @@ export function ThoughtBlock({
   const secs = working
     ? Math.max(1, Math.floor((now - startedAt) / 1000))
     : thoughtSecs;
-  const label = `${working ? "Thinking" : "Thought"} for ${secs} ${secs === 1 ? "sec" : "secs"}`;
+  // The full assistant view keeps it plain while thinking; the time, files and sources appear once the answer starts.
+  const plain = white && working;
+  const label = plain
+    ? "Assistant is thinking"
+    : `${working ? "Thinking" : "Thought"} for ${secs} ${secs === 1 ? "sec" : "secs"}`;
 
   return (
     <View style={styles.root}>
@@ -95,10 +104,11 @@ export function ThoughtBlock({
         {generating ? (
           <ShimmerText
             style={styles.summary}
-            base={expanded ? colors.pine700 : colors.slate500}
-            shine={expanded ? colors.pine950 : colors.slate900}
+            // Plain "Assistant is thinking" is green (Figma 62:24796) and still shimmers like the other thinking lines.
+            base={plain || expanded ? colors.pine700 : colors.slate500}
+            shine={plain || expanded ? colors.pine950 : colors.slate900}
           >
-            {`${label} · ${files} · ${sources}`}
+            {plain ? label : `${label} · ${files} · ${sources}`}
           </ShimmerText>
         ) : (
           <>
@@ -109,16 +119,28 @@ export function ThoughtBlock({
             <Text style={text}>{sources}</Text>
           </>
         )}
-        <Icon
-          name="thoughtChevron"
-          size={16}
-          style={expanded ? styles.flipped : undefined}
-        />
+        {/* One slot, two icons: the pulsing dots while it only says "Assistant is thinking", which fade into the
+            downward arrow when the thinking is over and the answer begins. */}
+        <View style={styles.slot}>
+          <View
+            pointerEvents="none"
+            style={[styles.slotIcon, { opacity: plain ? 1 : 0 }, transition(["opacity"], 200) as object]}
+          >
+            <ThinkingDots />
+          </View>
+          <View style={[{ opacity: plain ? 0 : 1 }, transition(["opacity"], 200) as object]}>
+            <Icon
+              name="thoughtChevron"
+              size={16}
+              style={expanded ? styles.flipped : undefined}
+            />
+          </View>
+        </View>
       </Pressable>
 
       {expanded && (
         <FadeIn rise={4} duration={200}>
-          <View style={styles.panel}>
+          <View style={[styles.panel, white && styles.panelWhite]}>
             {list.map((step, i) => {
               const state: StepState = working
                 ? i < steps
@@ -241,6 +263,8 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     backgroundColor: colors.slate300,
   },
+  slot: { width: 16, height: 16, alignItems: "center", justifyContent: "center" },
+  slotIcon: { position: "absolute", left: 0, right: 0, top: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
   flipped: { transform: [{ rotate: "180deg" }] },
   panel: {
     gap: 10,
@@ -250,6 +274,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: colors.slate200,
   },
+  panelWhite: { backgroundColor: colors.white },
   row: {
     flexDirection: "row",
     alignItems: "center",
