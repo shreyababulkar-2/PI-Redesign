@@ -21,13 +21,15 @@ type Open = {
 };
 
 type Ctx = {
-  /** The document viewer's current content, or null while the assistant is showing. It stays set while the drawer fades out. */
+  /** The document viewer's current content, or null while the assistant is showing. It stays set while the drawer slides out. */
   open: Open | null;
   /**
    * Whether the drawer is meant to be on screen. It turns on a frame after `open` is set (so the drawer can animate in)
-   * and off as soon as it is closed, while `open` is kept for the fade-out that follows.
+   * and off as soon as it is closed, while `open` is kept for the slide-out that follows.
    */
   visible: boolean;
+  /** True from the moment closing starts until the drawer has gone: the assistant can begin to come back. */
+  closing: boolean;
   /** Opens one citation, optionally with the passage it was clicked at. */
   openViewer: (n: number, claim?: NoteClaim) => void;
   /** Moves to another citation; `keep` holds on to the same passage (a sibling source of one sentence). */
@@ -37,6 +39,12 @@ type Ctx = {
 
 /** How long the drawer takes to slide in, and the pane to widen for it. */
 export const ENTER_MS = 320;
+/** How long it takes to slide back out, as the pane narrows again. Leaving is a touch slower than arriving, which reads as more natural than a snap. */
+export const EXIT_MS = 420;
+
+/** The width of the pane (and so the drawer) while the viewer is open: half the screen beside the 60px side nav (Figma 602:4423). */
+export const viewerWidth = (windowWidth: number) =>
+  Math.round((windowWidth - 60) / 2) - 8;
 
 const DocumentViewerContext = createContext<Ctx | null>(null);
 
@@ -44,6 +52,7 @@ const DocumentViewerContext = createContext<Ctx | null>(null);
 export function DocumentViewerProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState<Open | null>(null);
   const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -53,6 +62,7 @@ export function DocumentViewerProvider({ children }: { children: ReactNode }) {
   );
   const openViewer = useCallback((n: number, claim?: NoteClaim) => {
     if (exitTimer.current) clearTimeout(exitTimer.current);
+    setClosing(false);
     setOpen({ active: n, claim: claim ?? null });
     // A frame later, so the drawer is first drawn hidden and then animates in.
     setTimeout(() => setVisible(true), 16);
@@ -62,15 +72,20 @@ export function DocumentViewerProvider({ children }: { children: ReactNode }) {
       setOpen({ active: n, claim: keep ?? null }),
     [],
   );
-  // Closing is immediate: the assistant is simply there again, with nothing cross-fading or morphing into it.
+  // Closing runs the opening backwards: the drawer slides back out to the right over the assistant, which has
+  // stayed put underneath, while the pane narrows. `open` is kept until it has gone so the drawer keeps its content.
   const close = useCallback(() => {
     if (exitTimer.current) clearTimeout(exitTimer.current);
     setVisible(false);
-    setOpen(null);
+    setClosing(true);
+    exitTimer.current = setTimeout(() => {
+      setOpen(null);
+      setClosing(false);
+    }, EXIT_MS + 40);
   }, []);
   const value = useMemo(
-    () => ({ open, visible, openViewer, setActive, close }),
-    [open, visible, openViewer, setActive, close],
+    () => ({ open, visible, closing, openViewer, setActive, close }),
+    [open, visible, closing, openViewer, setActive, close],
   );
   return (
     <DocumentViewerContext.Provider value={value}>

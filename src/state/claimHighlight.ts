@@ -72,6 +72,15 @@ export function showClaims(claims: NoteClaim[], activeIndex: number) {
   });
 }
 
+/** Scrolls the note back to a passage (the one the drawer is showing), wherever the reader has scrolled to. */
+export function revealClaim(claim: NoteClaim) {
+  if (Platform.OS !== "web") return;
+  rangeFor(claim)?.startContainer.parentElement?.scrollIntoView({
+    block: "center",
+    behavior: "smooth",
+  });
+}
+
 export function clearClaims() {
   if (Platform.OS !== "web") return;
   const h = api();

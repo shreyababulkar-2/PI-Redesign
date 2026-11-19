@@ -14,12 +14,16 @@ export const motion = {
  * Web-only CSS transition for the given style properties, so hover/active changes ease in and out
  * instead of snapping. Native ignores it (those states are driven by Animated where needed).
  */
-export function transition(properties: string[], ms: number = motion.fast): ViewStyle | null {
+export function transition(
+  properties: string[],
+  ms: number = motion.fast,
+  easing: string = 'cubic-bezier(0.2, 0, 0, 1)',
+): ViewStyle | null {
   if (Platform.OS !== 'web') return null;
   return {
     transitionProperty: properties.join(', '),
     transitionDuration: `${ms}ms`,
-    transitionTimingFunction: 'cubic-bezier(0.2, 0, 0, 1)',
+    transitionTimingFunction: easing,
   } as ViewStyle;
 }
 
@@ -64,3 +68,6 @@ export function appear(index = 0): ViewStyle | null {
 export function leaving(switching: boolean): ViewStyle {
   return { opacity: switching ? 0 : 1, ...transition(['opacity'], 140) } as ViewStyle;
 }
+
+/** A gentler curve for things leaving: it eases out of the start as well as into the end, instead of lurching away. */
+export const LEAVE_EASING = 'cubic-bezier(0.45, 0, 0.25, 1)';

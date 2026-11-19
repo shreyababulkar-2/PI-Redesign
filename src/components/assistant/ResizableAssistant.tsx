@@ -11,8 +11,13 @@ import { colors } from "../../theme";
 import { useHover } from "../../hooks/useHover";
 import { AssistantPanel } from "./AssistantPanel";
 import { DocumentViewer } from "../viewer/DocumentViewer";
-import { ENTER_MS, useDocumentViewer } from "../../state/documentViewer";
-import { transition } from "../../theme/motion";
+import {
+  ENTER_MS,
+  EXIT_MS,
+  useDocumentViewer,
+  viewerWidth,
+} from "../../state/documentViewer";
+import { LEAVE_EASING, transition } from "../../theme/motion";
 import { useAssistantOverlay } from "../../state/assistantOverlay";
 
 /** Narrowest the assistant is allowed to get (the Figma design width). */
@@ -69,7 +74,11 @@ function setSelectable(selectable: boolean) {
  */
 export function ResizableAssistant() {
   const { width: windowWidth } = useWindowDimensions();
-  const viewerOpen = useDocumentViewer().visible;
+  const {
+    visible: viewerOpen,
+    open: viewerMounted,
+    closing,
+  } = useDocumentViewer();
   const {
     collapsed,
     open: overlayOpen,
@@ -150,12 +159,36 @@ export function ResizableAssistant() {
       style={[
         styles.wrap,
         // With the citation drawer open, the pane takes half the screen beside the note (Figma 602:4423).
-        { width: viewerOpen ? Math.round((windowWidth - 60) / 2) - 8 : width },
-        transition(["width"], viewerOpen ? ENTER_MS : 0),
+        { width: viewerOpen ? viewerWidth(windowWidth) : width },
+        // Eased while the drawer is arriving or leaving; a drag to resize follows the pointer directly.
+        transition(
+          ["width"],
+          viewerMounted ? (viewerOpen ? ENTER_MS : EXIT_MS) : 0,
+          viewerOpen ? undefined : LEAVE_EASING,
+        ),
       ]}
     >
-      {/* The assistant stays mounted under the viewer, so its conversation is intact when the viewer closes. */}
-      <AssistantPanel />
+      {/* The assistant stays mounted (so its conversation is intact), at its own width and pinned right. It is hidden
+          while the drawer arrives and sits open, and fades back in as the drawer is on its way out (once most of the
+          slide is done), so it is never seen half-uncovered at the edge of a moving drawer. */}
+      <View
+        style={[
+          styles.assistantSlot,
+          { width, opacity: viewerMounted && !closing ? 0 : 1 },
+          Platform.OS === "web"
+            ? ({
+                transitionProperty: "opacity",
+                transitionDuration: closing ? "200ms" : "0ms",
+                transitionDelay: closing
+                  ? `${Math.round(EXIT_MS * 0.55)}ms`
+                  : "0ms",
+                transitionTimingFunction: "ease-out",
+              } as object)
+            : null,
+        ]}
+      >
+        <AssistantPanel />
+      </View>
       <DocumentViewer />
       {!viewerOpen && (
         <View
@@ -174,6 +207,7 @@ export function ResizableAssistant() {
 
 const styles = StyleSheet.create({
   wrap: { position: "relative" },
+  assistantSlot: { position: "absolute", top: 0, bottom: 0, right: 0 },
   // Sits in the 8px gap beside the panel (overlapping its edge by 4px), full height.
   handle: {
     position: "absolute",

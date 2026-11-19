@@ -18,10 +18,11 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { colors, fonts } from "../../theme";
 import { pointer } from "../../theme/cursor";
-import { transition } from "../../theme/motion";
+import { LEAVE_EASING, press, transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { KebabMenu } from "../note/KebabMenu";
 import { sections } from "../../data/sections";
@@ -32,8 +33,18 @@ import {
 } from "../../data/citations";
 import { FILE_TARGETS, WEB_EXCERPTS } from "../../data/sourceExcerpts";
 import { SheetData, WORKBOOKS } from "../../data/workbooks";
-import { ENTER_MS, useDocumentViewer } from "../../state/documentViewer";
-import { clearClaims, NoteClaim, showClaims } from "../../state/claimHighlight";
+import {
+  ENTER_MS,
+  EXIT_MS,
+  useDocumentViewer,
+  viewerWidth,
+} from "../../state/documentViewer";
+import {
+  clearClaims,
+  NoteClaim,
+  revealClaim,
+  showClaims,
+} from "../../state/claimHighlight";
 import {
   ArrowUpRight,
   Caret,
@@ -46,6 +57,7 @@ import {
   OpenExternal,
   PageNext,
   PagePrev,
+  Refresh,
   ZoomIn,
   ZoomOut,
 } from "./icons";
@@ -55,7 +67,7 @@ const GREEN = "#22733e";
 type Source = ReturnType<typeof sourceFor>;
 type DocKind = "pdf" | "sheet" | "web";
 
-/** What the source opens as: web pages show an excerpt, files open in their own viewer (not reformatted). */
+/** What the source opens as: every kind opens in the same box, as the page, the document or the sheet it is. */
 function docKind(source: Source): DocKind {
   if (source.kind === "web") return "web";
   return /\.xlsx?$/i.test(source.title) ? "sheet" : "pdf";
@@ -192,6 +204,9 @@ export function DocumentViewer() {
  * every frame of the resize.
  */
 function Drawer({ active, visible }: { active: number; visible: boolean }) {
+  // A fixed width, pinned to the right edge: while the pane widens or narrows around it the drawer slides without
+  // squeezing its content.
+  const width = viewerWidth(useWindowDimensions().width);
   const [settled, setSettled] = useState(false);
   useEffect(() => {
     if (!visible) return;
@@ -199,38 +214,28 @@ function Drawer({ active, visible }: { active: number; visible: boolean }) {
     return () => clearTimeout(id);
   }, [visible]);
   return (
-    <View pointerEvents="box-none" style={styles.fill}>
+    <View pointerEvents="box-none" style={[styles.fill, { width }]}>
       <View
         style={[
           { flex: 1, transform: [{ translateX: visible ? "0%" : "100%" }] },
-          transition(["transform"], ENTER_MS),
+          transition(
+            ["transform"],
+            visible ? ENTER_MS : EXIT_MS,
+            visible ? undefined : LEAVE_EASING,
+          ),
         ]}
       >
         <View style={styles.root}>
           <Header />
           <View style={{ flex: 1 }}>
-            {/* A file fills the rest of the drawer and scrolls inside its own viewer; a web excerpt scrolls with the drawer. */}
-            {docKind(sourceFor(active)) === "web" ? (
-              <ScrollView
-                style={styles.scroll}
-                contentContainerStyle={styles.body}
-                showsVerticalScrollIndicator={false}
-              >
-                <Content
-                  key={active}
-                  n={active}
-                  loadMs={settled ? 320 : ENTER_MS + 80}
-                />
-              </ScrollView>
-            ) : (
-              <View style={[styles.scroll, styles.body]}>
-                <Content
-                  key={active}
-                  n={active}
-                  loadMs={settled ? 320 : ENTER_MS + 80}
-                />
-              </View>
-            )}
+            {/* Every source fills the rest of the drawer and scrolls inside its own viewer. */}
+            <View style={[styles.scroll, styles.body]}>
+              <Content
+                key={active}
+                n={active}
+                loadMs={settled ? 320 : ENTER_MS + 80}
+              />
+            </View>
           </View>
         </View>
       </View>
@@ -323,10 +328,7 @@ function Content({ n, loadMs }: { n: number; loadMs: number }) {
       {claim && (
         <View style={styles.section}>
           <Text style={styles.label}>Claim from Research note</Text>
-          <View style={styles.claimBox}>
-            <View style={styles.claimBar} />
-            <Text style={styles.claimText}>“{claim.text}”</Text>
-          </View>
+          <ClaimBox claim={claim} />
         </View>
       )}
       {claim && numbers.length > 1 && (
@@ -336,6 +338,30 @@ function Content({ n, loadMs }: { n: number; loadMs: number }) {
       <SourceHead source={source} n={n} />
       <SourceBody source={source} n={n} claim={claim?.text ?? ""} />
     </>
+  );
+}
+
+/** The passage from the note. Pressing it scrolls the note back to that passage, so the reader can always return to it. */
+function ClaimBox({ claim }: { claim: Claim }) {
+  const hover = useHover();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Go to this passage in the note"
+      onPress={() => revealClaim(claim)}
+      {...hover.handlers}
+      style={({ pressed }) => [
+        styles.claimBox,
+        hover.hovered && styles.claimBoxHover,
+        press(pressed),
+      ]}
+    >
+      <View style={styles.claimBar} />
+      {/* A very long sentence is cut after two lines; pressing the box still goes to the whole passage in the note. */}
+      <Text numberOfLines={2} style={styles.claimText}>
+        “{claim.text}”
+      </Text>
+    </Pressable>
   );
 }
 
@@ -440,28 +466,14 @@ function ContentSkeleton({
           </View>
         </View>
       </View>
-      {kind === "web" ? (
-        <View style={styles.section}>
-          <Bone style={{ width: 150, height: 10 }} />
-          <View style={styles.excerpt}>
-            <Bone style={{ width: "62%", height: 12 }} />
-            <View style={{ gap: 8 }}>
-              <Bone style={{ width: "100%", height: 10 }} />
-              <Bone style={{ width: "97%", height: 10 }} />
-              <Bone style={{ width: "92%", height: 10 }} />
-              <Bone style={{ width: "99%", height: 10 }} />
-              <Bone style={{ width: "58%", height: 10 }} />
-            </View>
-          </View>
-        </View>
-      ) : (
+      {
         <View style={[styles.section, styles.fileSection]}>
           <View style={styles.rowBetween}>
             <Bone style={{ width: 44, height: 10 }} />
             <Bone style={{ width: 96, height: 10 }} />
           </View>
           <View style={[styles.viewer, { padding: 16 }]}>
-            {kind === "pdf" ? (
+            {kind !== "sheet" ? (
               <View style={styles.skeletonPage}>
                 <Bone style={{ width: "100%", height: 20, borderRadius: 2 }} />
                 <Bone style={{ width: "46%", height: 14, marginTop: 14 }} />
@@ -483,7 +495,7 @@ function ContentSkeleton({
             )}
           </View>
         </View>
-      )}
+      }
     </View>
   );
 }
@@ -604,27 +616,7 @@ function SourceBody({
   claim: string;
 }) {
   const kind = docKind(source);
-  if (kind === "web") return <WebExcerpt n={n} />;
   return <FileViewer kind={kind} n={n} claim={claim} />;
-}
-
-/** Web sources are not embedded: the passage the note relies on, quoted from the page, highlighted. */
-function WebExcerpt({ n }: { n: number }) {
-  const ex = WEB_EXCERPTS[n];
-  if (!ex) return null;
-  return (
-    <View style={styles.section}>
-      <Text style={styles.label}>Excerpt from the source</Text>
-      <View style={styles.excerpt}>
-        <Text style={styles.excerptHeading}>{ex.heading}</Text>
-        <Text style={styles.excerptText}>
-          {ex.before}
-          <Text style={styles.excerptMatch}>{ex.match}</Text>
-          {ex.after.trim()}…
-        </Text>
-      </View>
-    </View>
-  );
 }
 
 /** Saves a dummy file from `public/docs` (web). */
@@ -653,7 +645,7 @@ function FileViewer({
   n,
   claim,
 }: {
-  kind: "pdf" | "sheet";
+  kind: DocKind;
   n: number;
   claim: string;
 }) {
@@ -664,6 +656,8 @@ function FileViewer({
     Math.max(book?.sheets.findIndex((sh) => sh.name === target?.sheet) ?? 0, 0),
   );
   const [zoom, setZoom] = useState(1);
+  // Bumped by Refresh to load a web page again.
+  const [reload, setReload] = useState(0);
   const pages = target?.pages ?? 1;
   const step = (delta: number) => setZoom((z) => clampZoom(z + delta));
   // Trackpad pinch and Ctrl/Cmd + mouse wheel zoom the document too, like any viewer.
@@ -726,7 +720,17 @@ function FileViewer({
               <PageNext />
             </Pressable>
           </View>
-        ) : (
+        ) : kind === "web" ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Refresh page"
+            onPress={() => setReload((v) => v + 1)}
+            style={({ pressed }) => [styles.pager, pressed && styles.pressed]}
+          >
+            <Refresh />
+            <Text style={styles.refreshText}>Refresh</Text>
+          </Pressable>
+        ) : kind === "sheet" ? (
           // The standard dropdown (as the version menu in the note), so it opens above the viewer and closes on an
           // outside click or Escape like the others.
           <KebabMenu
@@ -754,7 +758,7 @@ function FileViewer({
               </Pressable>
             )}
           </KebabMenu>
-        )}
+        ) : null}
       </View>
       <View ref={viewerRef} style={styles.viewer}>
         {kind === "pdf" ? (
@@ -766,6 +770,8 @@ function FileViewer({
             cited={target?.page}
             onPage={setPage}
           />
+        ) : kind === "web" ? (
+          <WebPage key={reload} n={n} zoom={zoom} />
         ) : sheet ? (
           <SheetGrid sheet={sheet} zoom={zoom} claim={claim} />
         ) : null}
@@ -1044,6 +1050,327 @@ function PdfPages({
   );
 }
 
+/**
+ * Show web sources as snapshots (saved captures of each site's page, in public/docs/web) rather than loading the live
+ * site. Turn on to go back to the live frame, which needs the dev proxy (scripts/devProxy.js).
+ */
+const LIVE_PAGES = false;
+
+/** The captures' sizes (1280px wide, as the sites lay out on a desktop), by host. */
+const SNAPSHOTS: Record<string, { w: number; h: number }> = {
+  "ibef.org": { w: 1280, h: 4200 },
+  "economictimes.com": { w: 1280, h: 4200 },
+  "pib.gov.in": { w: 1280, h: 3600 },
+};
+
+/** A web source opened in the box: a snapshot of its page, or the live site while LIVE_PAGES is on. */
+function WebPage({ n, zoom }: { n: number; zoom: number }) {
+  return LIVE_PAGES ? (
+    <LivePage n={n} zoom={zoom} />
+  ) : (
+    <WebSnapshot n={n} zoom={zoom} />
+  );
+}
+
+/**
+ * A saved capture of the site's page at desktop width (not fitted to the narrow box): pan it by dragging or scrolling,
+ * zoom with the control. It never changes and needs no network, so it works anywhere the prototype is hosted.
+ */
+function WebSnapshot({ n, zoom }: { n: number; zoom: number }) {
+  const host = sourceFor(n).host;
+  const snap = SNAPSHOTS[host];
+  const scroller = useRef<ScrollViewInstance>(null);
+  const hScroller = useRef<ScrollViewInstance>(null);
+  const pan = useDragPan(scroller, hScroller);
+  const [width, setWidth] = useState(0);
+  if (!snap) return null;
+  const w = snap.w * zoom;
+  const h = snap.h * zoom;
+  return (
+    <View style={{ flex: 1, padding: 4 }}>
+      <View
+        style={[webStyles.page, pan.style]}
+        {...pan.pan}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      >
+        <ScrollView
+          ref={scroller}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={50}
+          onScroll={(e) => pan.trackY(e.nativeEvent.contentOffset.y)}
+        >
+          <ScrollView
+            ref={hScroller}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            scrollEventThrottle={50}
+            onScroll={(e) => pan.trackX(e.nativeEvent.contentOffset.x)}
+            // Zoomed out below the box width, the page stays centred.
+            contentContainerStyle={{
+              minWidth: width,
+              justifyContent: "center",
+            }}
+          >
+            <Image
+              source={{ uri: `/docs/web/${host}.webp` }}
+              resizeMode="stretch"
+              style={{ width: w, height: h }}
+            />
+          </ScrollView>
+        </ScrollView>
+        <View pointerEvents="none" style={webStyles.edgeRight} />
+        <View pointerEvents="none" style={webStyles.edgeBottom} />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Hosts that can't be shown in a frame even through the dev proxy. They get a card with a link instead. None of the
+ * three the prototype uses need it.
+ */
+const NEVER_FRAMED = new Set<string>();
+
+/**
+ * A web source opened in the box like any other: the live website in a frame under an address bar, zoomed with the
+ * same control as a document. These sites forbid being framed, so while developing the page comes through the dev
+ * proxy (scripts/devProxy.js); a deployed build has no proxy and shows a card with a link instead. The passage the
+ * note cites can't be marked on someone else's page, so the claim box above carries it.
+ */
+function LivePage({ n, zoom }: { n: number; zoom: number }) {
+  const source = sourceFor(n);
+  const url = `https://${source.host}`;
+  const viaProxy = __DEV__ && Platform.OS === "web";
+  const blocked = NEVER_FRAMED.has(source.host) || !viaProxy;
+  const [loaded, setLoaded] = useState(false);
+  return (
+    // The page sits 4px inside the box (Figma 757:449), with soft edges where it runs on out of view.
+    <View style={{ flex: 1, padding: 4 }}>
+      <View style={webStyles.page}>
+        {Platform.OS === "web" && !blocked && (
+          <DesktopFrame
+            title={source.title}
+            src={`/__proxy?url=${encodeURIComponent(url)}`}
+            zoom={zoom}
+            onLoad={() => setLoaded(true)}
+          />
+        )}
+        {!blocked && !loaded && (
+          <View pointerEvents="none" style={webStyles.loading}>
+            <Text style={webStyles.note}>Loading {source.host}…</Text>
+          </View>
+        )}
+        {blocked && (
+          <View style={webStyles.blocked}>
+            <Text style={webStyles.blockedTitle}>
+              {source.host} can’t be shown here
+            </Text>
+            <Text style={webStyles.note}>
+              The site doesn’t allow being opened inside another page. You can
+              read the source in a new tab.
+            </Text>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => Linking.openURL(url)}
+              style={({ pressed }) => [
+                webStyles.openButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={webStyles.openText}>Open {source.host}</Text>
+            </Pressable>
+          </View>
+        )}
+        {!blocked && (
+          <>
+            <View pointerEvents="none" style={webStyles.edgeRight} />
+            <View pointerEvents="none" style={webStyles.edgeBottom} />
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/** The width a website is laid out at in the box: a desktop window, not the narrow drawer. */
+const DESKTOP_W = 1280;
+
+/**
+ * A website in a frame, laid out at desktop width (so it looks like the real site rather than its mobile layout) and
+ * panned like a document: drag with the mouse, or scroll. The visible window is the box; horizontally the frame is moved
+ * under it, vertically the page scrolls inside the frame. A press without a drag is passed on to the link or button under
+ * the pointer. Zoom scales the whole frame. Works because the dev proxy serves the page from our own origin.
+ */
+function DesktopFrame({
+  title,
+  src,
+  zoom,
+  onLoad,
+}: {
+  title: string;
+  src: string;
+  zoom: number;
+  onLoad: () => void;
+}) {
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const [panX, setPanX] = useState(0);
+  const frame = useRef<HTMLIFrameElement | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const [grabbing, setGrabbing] = useState(false);
+  const pageW = DESKTOP_W * zoom;
+  const maxPan = Math.max(pageW - box.w, 0);
+  const x = Math.min(Math.max(panX, 0), maxPan);
+  // Narrower than the box (zoomed out): centred.
+  const left = pageW < box.w ? (box.w - pageW) / 2 : -x;
+  const scrollPage = (dx: number, dy: number) => {
+    setPanX((v) => Math.min(Math.max(v + dx, 0), maxPan));
+    frame.current?.contentWindow?.scrollBy(0, dy / zoom);
+  };
+  return (
+    <View
+      style={{ flex: 1 }}
+      onLayout={(e) =>
+        setBox({
+          w: e.nativeEvent.layout.width,
+          h: e.nativeEvent.layout.height,
+        })
+      }
+    >
+      <iframe
+        ref={frame}
+        title={title}
+        src={src}
+        // Scripts run (the pages are blank without them) but cannot navigate the app away, which frame-busting code
+        // tries.
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        onLoad={onLoad}
+        referrerPolicy="no-referrer"
+        style={{
+          position: "absolute",
+          top: 0,
+          left,
+          border: 0,
+          width: DESKTOP_W,
+          height: box.h / zoom,
+          transform: `scale(${zoom})`,
+          transformOrigin: "0 0",
+          background: "#fff",
+        }}
+      />
+      {/* Sits over the frame so a drag moves the page instead of selecting text inside it. */}
+      <div
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          drag.current = { x: e.clientX, y: e.clientY, moved: false };
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current;
+          if (!d) return;
+          const dx = e.clientX - d.x;
+          const dy = e.clientY - d.y;
+          if (!d.moved && Math.hypot(dx, dy) < 4) return;
+          d.moved = true;
+          setGrabbing(true);
+          d.x = e.clientX;
+          d.y = e.clientY;
+          scrollPage(-dx, -dy);
+        }}
+        onPointerUp={(e) => {
+          const d = drag.current;
+          drag.current = null;
+          setGrabbing(false);
+          if (!d || d.moved) return;
+          // A click: hand it to whatever the page has under the pointer.
+          const doc = frame.current?.contentDocument;
+          const r = e.currentTarget.getBoundingClientRect();
+          const px = (e.clientX - r.left - left) / zoom;
+          const py = (e.clientY - r.top) / zoom;
+          (doc?.elementFromPoint(px, py) as HTMLElement | null)?.click();
+        }}
+        onWheel={(e) => {
+          if (e.ctrlKey || e.metaKey) return; // zoom, handled by the viewer
+          scrollPage(e.deltaX, e.deltaY);
+        }}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          cursor: grabbing ? "grabbing" : "grab",
+          touchAction: "none",
+        }}
+      />
+    </View>
+  );
+}
+
+const webStyles = StyleSheet.create({
+  page: {
+    flex: 1,
+    overflow: "hidden",
+    borderRadius: 4,
+    backgroundColor: "#fff",
+  },
+  edgeRight: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 16,
+    backgroundImage: "linear-gradient(to left, rgba(0,0,0,0.1), rgba(0,0,0,0))",
+  } as object,
+  edgeBottom: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 16,
+    backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.1), rgba(0,0,0,0))",
+  } as object,
+  blocked: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 24,
+  },
+  blockedTitle: {
+    fontFamily: fonts.geistSemiBold,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#222530",
+    textAlign: "center",
+  },
+  openButton: {
+    marginTop: 6,
+    height: 28,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#205b34",
+    justifyContent: "center",
+    ...pointer,
+  },
+  openText: { fontFamily: fonts.geistMedium, fontSize: 11, color: "#ffffff" },
+  loading: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  note: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#717784",
+    textAlign: "center",
+  },
+});
+
 const COLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const ROW_NUM_W = 36;
 
@@ -1194,7 +1521,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     bottom: 8,
-    left: 0,
     right: 0,
     zIndex: 8,
     // Clips the drawer while it slides in from the right.
@@ -1252,6 +1578,7 @@ const styles = StyleSheet.create({
   section: { gap: 8 },
   fileSection: { flex: 1, minHeight: 280 },
   label: LABEL,
+  claimBoxHover: { backgroundColor: "#eef1f5" },
   claimBox: {
     flexDirection: "row",
     gap: 12,
@@ -1262,6 +1589,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#f5f7fa",
     backgroundColor: "rgba(245,247,250,0.6)",
+    ...pointer,
+    ...transition(["background-color", "transform"]),
   },
   claimBar: { width: 2, borderRadius: 10, backgroundColor: "#66a160" },
   claimText: {
@@ -1384,6 +1713,13 @@ const styles = StyleSheet.create({
   // Above the viewer below it, so the sheet menu is not painted underneath.
   sourceRow: { position: "relative", zIndex: 10 },
   pager: { flexDirection: "row", alignItems: "center", gap: 8 },
+  refreshText: {
+    fontFamily: fonts.geistMedium,
+    fontSize: 11,
+    lineHeight: 18,
+    letterSpacing: 0.132,
+    color: "#22733e",
+  },
   pagerText: {
     fontFamily: fonts.geistMedium,
     fontSize: 11,
