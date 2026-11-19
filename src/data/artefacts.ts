@@ -5,7 +5,7 @@ export const ARTEFACTS: Artefact[] = [
   { title: "Investment analysis", meta: "XLS · v2", kind: "sheet" },
   { title: "Revenue & EBITDA trend", meta: "DOC · v1", kind: "doc" },
   { title: "Deal summary", meta: "PDF · v1", kind: "sheet" },
-  { title: "IC deck", meta: "XLS · v2", kind: "sheet" },
+  { title: "Financial model", meta: "XLS · v2", kind: "sheet" },
   { title: "Deal summary", meta: "DOC · v1", kind: "doc" },
   { title: "Investment analysis", meta: "XLS · v2", kind: "sheet" },
   { title: "Investment analysis", meta: "PDF · v1", kind: "doc" },
