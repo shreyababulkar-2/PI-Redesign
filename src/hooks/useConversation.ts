@@ -45,7 +45,11 @@ const isGenerating = (t: Turn) =>
  * Conversation state for the assistant. Each question becomes a turn that goes through the phases
  * above, the way chat assistants do: a beat of waiting, visible thinking steps, then a streamed answer.
  */
-export function useConversation() {
+/**
+ * `forcedAnswers` pins the answers of a prototype conversation: the first question gets the first, the second the
+ * second, and any later one keeps the last. Without it the answer is picked from the question's keywords.
+ */
+export function useConversation(forcedAnswers?: readonly AnswerId[]) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const nextId = useRef(1);
@@ -75,7 +79,9 @@ export function useConversation() {
     (question: string) => {
       if (turns.some(isGenerating)) return; // one answer at a time
       const id = nextId.current++;
-      const answerId = answerIdFor(question);
+      const answerId = forcedAnswers
+        ? forcedAnswers[Math.min(turns.length, forcedAnswers.length - 1)]
+        : answerIdFor(question);
       const total = thinking[answerId].steps.length;
       streamedWords.current = 0;
       const startedAt = Date.now();
@@ -123,7 +129,7 @@ export function useConversation() {
         at,
       );
     },
-    [turns, later, patch],
+    [turns, later, patch, forcedAnswers],
   );
 
   /** Called by the answer view when it has written the last word. */

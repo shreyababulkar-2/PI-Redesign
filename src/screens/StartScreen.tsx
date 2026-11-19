@@ -52,7 +52,6 @@ function Row({
       </View>
       <View style={styles.text}>
         <Text style={type.sectionTitle}>{item.title}</Text>
-        <Text style={styles.note}>{item.note}</Text>
       </View>
       {item.tag && (
         <View style={styles.tag}>
@@ -113,14 +112,7 @@ const styles = StyleSheet.create({
     ...transition(["background-color"]),
   },
   iconTileHover: { backgroundColor: colors.pine100 },
-  text: { flex: 1, minWidth: 0, gap: 2 },
-  note: {
-    fontFamily: fonts.geistRegular,
-    fontSize: 12,
-    lineHeight: 18,
-    letterSpacing: 0.09,
-    color: colors.slate500,
-  },
+  text: { flex: 1, minWidth: 0, justifyContent: "center" },
   tag: {
     paddingHorizontal: 8,
     height: 20,

@@ -34,10 +34,13 @@ export type AnswerContent = {
   blocks: Block[];
   table?: AnswerTableSpec;
   chart?: boolean;
+  /** The EBITDA margin comparison chart (VDR assistant, second question), then this closing paragraph. */
+  ebitda?: { closing: string };
 };
 
 export type AnswerId =
   | "icprep"
+  | "ebitda"
   | "thesis"
   | "growth"
   | "risks"
@@ -70,6 +73,25 @@ export const answers: Record<AnswerId, AnswerContent> = {
       rows: assistant.table.rows.map((r) => [r.metric, r.value, r.remark]),
       widths: [200, 200, null],
       muted: [2],
+    },
+  },
+
+  // VDR full assistant view, second question (Figma 46:20907): the margin gap against peers, charted.
+  ebitda: {
+    blocks: [
+      p(8, t("Financial Performance & Peer Benchmark Analysis", true)),
+      p(
+        0,
+        t("Juspay Technologies reports an FY24 EBITDA margin of "),
+        t("16.1%", true),
+        t(
+          ", below the indicated peer benchmark of 20–23%. This suggests a profitability gap of approximately 3.9–6.9 percentage points compared with peers.",
+        ),
+      ),
+    ],
+    ebitda: {
+      closing:
+        "The deal presents potential valuation upside and capacity-led growth. However, profitability gaps, capex assumptions and return projections require further diligence.",
     },
   },
 
@@ -424,6 +446,17 @@ const step = (label: string, expandable = false): ThoughtStepSpec => ({
 });
 
 export const thinking: Record<AnswerId, Thinking> = {
+  ebitda: {
+    files: 3,
+    sources: 6,
+    steps: [
+      read(),
+      step("Pulling the FY24 EBITDA margin"),
+      step("Comparing it with the peer benchmark", true),
+      step("Working out the profitability gap"),
+      step("Drafting the comparison and a chart"),
+    ],
+  },
   icprep: {
     files: 3,
     sources: 6,

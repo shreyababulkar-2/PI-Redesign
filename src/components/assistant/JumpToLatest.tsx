@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Image } from 'expo-image';
+import { vdr } from '../../assets/vdr';
 import { colors } from '../../theme';
 import { transition } from '../../theme/motion';
 import { useHover } from '../../hooks/useHover';
@@ -7,10 +8,11 @@ import { TypingDots } from './TypingDots';
 import { pointer } from '../../theme/cursor';
 
 /**
- * Floating button shown while an answer is still being written below the visible area. It shows the
- * animated dots ("still writing") and turns into a down arrow on hover, which scrolls to the latest text.
+ * Floating button shown while the latest answer is below the visible area. While the answer is still being written it
+ * shows the animated dots ("still writing") and turns into a down arrow on hover; once the answer is finished it is a
+ * down arrow. Either way it scrolls to the latest text.
  */
-export function JumpToLatest({ onPress }: { onPress: () => void }) {
+export function JumpToLatest({ onPress, generating = true }: { onPress: () => void; generating?: boolean }) {
   const hover = useHover();
   return (
     <Pressable
@@ -20,16 +22,8 @@ export function JumpToLatest({ onPress }: { onPress: () => void }) {
       {...hover.handlers}
       style={[styles.button, hover.hovered && styles.hovered]}
     >
-      {hover.hovered ? (
-        <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-          <Path
-            d="M8 3.5v9m0 0L4.5 9M8 12.5L11.5 9"
-            stroke={colors.slate600}
-            strokeWidth={1.4}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </Svg>
+      {hover.hovered || !generating ? (
+        <Image source={vdr.jumpDown} contentFit="fill" style={{ width: 16, height: 16 }} />
       ) : (
         <TypingDots />
       )}

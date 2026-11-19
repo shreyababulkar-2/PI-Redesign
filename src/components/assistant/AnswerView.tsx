@@ -11,6 +11,7 @@ import { Icon } from "../Icon";
 import { RichText } from "../note/RichText";
 import { AnswerTable } from "./AnswerTable";
 import { FadeIn } from "./FadeIn";
+import { EbitdaChart } from "./EbitdaChart";
 import { RevenueChart } from "./RevenueChart";
 import { plainText, truncateBlocks, wordsOf } from "./streamText";
 import { pointer } from "../../theme/cursor";
@@ -26,6 +27,8 @@ type Props = {
   onRegenerate: () => void;
   /** Full-width chat (the VDR assistant): table columns use the wide layout of that design. */
   wide?: boolean;
+  /** Wide chat beside the document drawer (Figma 35:16596): a narrower table. */
+  compact?: boolean;
 };
 
 /**
@@ -41,6 +44,7 @@ export function AnswerView({
   onStreamed,
   onRegenerate,
   wide = false,
+  compact = false,
 }: Props) {
   const content = answers[answerId];
   const words = useMemo(() => wordsOf(content.blocks), [content]);
@@ -96,7 +100,7 @@ export function AnswerView({
       {complete && content.table && (
         <FadeIn rise={8} duration={300}>
           <Section title={content.table.title}>
-            <AnswerTable spec={content.table} wide={wide} />
+            <AnswerTable spec={content.table} wide={wide} compact={compact} />
           </Section>
         </FadeIn>
       )}
@@ -108,11 +112,20 @@ export function AnswerView({
         </FadeIn>
       )}
 
+      {complete && content.ebitda && (
+        <FadeIn rise={8} duration={300}>
+          <View style={{ gap: 16 }}>
+            <EbitdaChart />
+            <Text style={[type.answer, { color: colors.slate800 }]}>{content.ebitda.closing}</Text>
+          </View>
+        </FadeIn>
+      )}
+
       {(complete || stopped) && (
         <FadeIn
           rise={0}
           duration={260}
-          delay={complete && (content.table || content.chart) ? 180 : 0}
+          delay={complete && (content.table || content.chart || content.ebitda) ? 180 : 0}
         >
           <View style={styles.actions}>
             <CopyButton text={plainText(blocks)} />
@@ -141,12 +154,25 @@ function Section({
         <Text style={[type.answerBold, { color: colors.slate800 }]}>
           {title}
         </Text>
-        <View style={styles.expand}>
-          <Icon name="expand" size={20} />
-        </View>
+        <ExpandButton />
       </View>
       {children}
     </View>
+  );
+}
+
+/** The expand icon beside a section title: bare at rest, a light grey fill on hover like the other icon buttons. */
+function ExpandButton() {
+  const hover = useHover();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Expand"
+      {...hover.handlers}
+      style={[styles.expand, hover.hovered && styles.actionHover, transition(["background-color"])]}
+    >
+      <Icon name="expand" size={20} />
+    </Pressable>
   );
 }
 
@@ -230,7 +256,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  expand: { width: 20, height: 20, ...pointer },
+  expand: { width: 20, height: 20, borderRadius: 6, ...pointer },
   actions: { flexDirection: "row", gap: 4 },
   action: {
     width: 24,

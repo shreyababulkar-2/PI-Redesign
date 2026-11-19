@@ -4,14 +4,23 @@ import { AnswerTableSpec } from "../../data/assistantAnswers";
 import { Stroke } from "../Stroke";
 
 /**
- * The answer table (Figma "Investment analysis"): a pale-green header row, a bold first column and
+ * The answer table (Figma "Investment analysis"): a pale-green header row (neutral grey in the wide chat), a bold first column and
  * hairline row dividers. Column widths and which columns read as muted remarks come from the spec.
  */
-export function AnswerTable({ spec, wide = false }: { spec: AnswerTableSpec; wide?: boolean }) {
+export function AnswerTable({
+  spec,
+  wide = false,
+  compact = false,
+}: {
+  spec: AnswerTableSpec;
+  wide?: boolean;
+  /** The wide chat squeezed beside the document drawer: narrower first two columns. */
+  compact?: boolean;
+}) {
   const { columns, rows, muted = [] } = spec;
   // In the wide chat the first two columns are 200px and the rest share what is left, and the line breaks that suit the
   // narrow panel ("~9.0% CAGR;\n#1 organised player") run on as one line.
-  const widths = wide ? columns.map((_, i) => (i < 2 ? 200 : null)) : spec.widths;
+  const widths = wide ? columns.map((_, i) => (i < 2 ? (compact ? 150 : 200) : null)) : spec.widths;
   const flat = (value: string) => (wide ? value.replace(/\n/g, " ") : value);
   const cellStyle = (c: number) => [
     styles.cell,
@@ -25,8 +34,8 @@ export function AnswerTable({ spec, wide = false }: { spec: AnswerTableSpec; wid
         : [type.tableValue, { color: colors.slate800 }];
 
   return (
-    <View style={styles.table}>
-      <View style={styles.headRow}>
+    <View style={[styles.table, wide && styles.tableWide]}>
+      <View style={[styles.headRow, wide && styles.headRowWide]}>
         {columns.map((label, c) => (
           <View key={label} style={cellStyle(c)}>
             <Text style={[type.tableHead, { color: colors.slate700 }]}>
@@ -47,7 +56,10 @@ export function AnswerTable({ spec, wide = false }: { spec: AnswerTableSpec; wid
           ))}
         </View>
       ))}
-      <Stroke color={colors.tableBorder} radius={8} />
+      <Stroke
+        color={wide ? colors.slate200 : colors.tableBorder}
+        radius={wide ? 12 : 8}
+      />
     </View>
   );
 }
@@ -59,6 +71,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.dew75,
     alignItems: "stretch",
   },
+  // The full assistant view (Figma 28:15263): a neutral shark header and a 12px corner.
+  tableWide: { borderRadius: 12 },
+  headRowWide: { backgroundColor: colors.shark100 },
   row: { flexDirection: "row", alignItems: "stretch" },
   rowDivider: { borderBottomWidth: 0.5, borderBottomColor: colors.slate200 },
   cell: { paddingHorizontal: 10, paddingVertical: 8 },
