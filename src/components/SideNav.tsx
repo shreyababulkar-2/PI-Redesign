@@ -60,6 +60,9 @@ const NAV_ITEMS: {
   },
 ];
 
+/** How far outside the pod the pointer may stray before an expanded pod folds back up. */
+const SAFE_MARGIN = 28;
+
 /** The prototype stays inside one deal: the other destinations light up on hover but do not navigate. */
 const ACTIVE_KEY = "deals";
 
@@ -92,20 +95,39 @@ function readLevel(): NavLevel {
 export function SideNav({ level = readLevel() }: { level?: NavLevel }) {
   const [expanded, setExpanded] = useState(false);
   const pod = useRef<ComponentRef<typeof View>>(null);
-  // While expanded, a click anywhere outside the pod (or Escape) folds it back up.
+  const hoverOpenedAt = useRef(0);
+  // While expanded it folds back up on Escape, a click outside, or the pointer leaving the pod: but only once it is more
+  // than SAFE_MARGIN px away from it, so drifting off the edge on the way to a tooltip or the text-size menu does not
+  // collapse it by accident.
   useEffect(() => {
     if (!expanded || Platform.OS !== "web") return;
-    const onDown = (e: PointerEvent) => {
+    const inside = (e: PointerEvent) => {
       const node = pod.current as unknown as HTMLElement | null;
-      if (node && !node.contains(e.target as Node)) setExpanded(false);
+      if (!node) return false;
+      if (e.target instanceof Node && node.contains(e.target)) return true;
+      const r = node.getBoundingClientRect();
+      return (
+        e.clientX >= r.left - SAFE_MARGIN &&
+        e.clientX <= r.right + SAFE_MARGIN &&
+        e.clientY >= r.top - SAFE_MARGIN &&
+        e.clientY <= r.bottom + SAFE_MARGIN
+      );
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!inside(e)) setExpanded(false);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && !inside(e)) setExpanded(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setExpanded(false);
     };
     document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("pointermove", onMove);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("pointermove", onMove);
       document.removeEventListener("keydown", onKey);
     };
   }, [expanded]);
@@ -132,7 +154,16 @@ export function SideNav({ level = readLevel() }: { level?: NavLevel }) {
       <View style={styles.more}>
         <CaretButton
           expanded={expanded}
-          onPress={() => setExpanded((v) => !v)}
+          // A click right after the hover opened it would shut it again, so it is ignored for a moment.
+          onPress={() => {
+            if (Date.now() - hoverOpenedAt.current < 600) return;
+            setExpanded((v) => !v);
+          }}
+          // Hovering the caret opens the pod; moving well away from it closes it again.
+          onHoverOpen={() => {
+            hoverOpenedAt.current = Date.now();
+            setExpanded(true);
+          }}
         />
         {/* Always mounted: it opens by growing its height and fading, so the pod eases downward. */}
         <View
@@ -405,9 +436,11 @@ function BackButton() {
 function CaretButton({
   expanded,
   onPress,
+  onHoverOpen,
 }: {
   expanded: boolean;
   onPress: () => void;
+  onHoverOpen: () => void;
 }) {
   const hover = useHover();
   const color = "rgba(255,255,255,0.6)";
@@ -419,6 +452,10 @@ function CaretButton({
         accessibilityState={{ expanded }}
         onPress={onPress}
         {...hover.handlers}
+        onHoverIn={() => {
+          hover.handlers.onHoverIn();
+          onHoverOpen();
+        }}
         style={({ pressed }) => [
           styles.caret,
           hover.hovered && styles.tileHover,
