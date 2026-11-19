@@ -24,6 +24,8 @@ type Props = {
   onProgress: (words: number) => void;
   onStreamed: () => void;
   onRegenerate: () => void;
+  /** Full-width chat (the VDR assistant): table columns use the wide layout of that design. */
+  wide?: boolean;
 };
 
 /**
@@ -38,6 +40,7 @@ export function AnswerView({
   onProgress,
   onStreamed,
   onRegenerate,
+  wide = false,
 }: Props) {
   const content = answers[answerId];
   const words = useMemo(() => wordsOf(content.blocks), [content]);
@@ -93,7 +96,7 @@ export function AnswerView({
       {complete && content.table && (
         <FadeIn rise={8} duration={300}>
           <Section title={content.table.title}>
-            <AnswerTable spec={content.table} />
+            <AnswerTable spec={content.table} wide={wide} />
           </Section>
         </FadeIn>
       )}

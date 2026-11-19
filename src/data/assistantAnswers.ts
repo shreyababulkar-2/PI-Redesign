@@ -37,6 +37,7 @@ export type AnswerContent = {
 };
 
 export type AnswerId =
+  | "icprep"
   | "thesis"
   | "growth"
   | "risks"
@@ -51,6 +52,27 @@ export type AnswerId =
   | "regulatory";
 
 export const answers: Record<AnswerId, AnswerContent> = {
+  // VDR full assistant view: the same investment-thesis summary, written about Juspay Technologies.
+  icprep: {
+    blocks: assistant.answer.map((b, i) =>
+      i === 0 && b.kind === "paragraph"
+        ? {
+            ...b,
+            segments: b.segments.map((seg, j) =>
+              j === 0 ? { ...seg, text: "Juspay Technologies is pitched as " } : seg,
+            ),
+          }
+        : b,
+    ),
+    table: {
+      title: assistant.tableTitle,
+      columns: assistant.table.columns,
+      rows: assistant.table.rows.map((r) => [r.metric, r.value, r.remark]),
+      widths: [200, 200, null],
+      muted: [2],
+    },
+  },
+
   thesis: {
     blocks: assistant.answer,
     table: {
@@ -359,6 +381,8 @@ export const answers: Record<AnswerId, AnswerContent> = {
 /** Which answer a question gets: a suggested question, or the nearest topic by keyword. */
 export function answerIdFor(question: string): AnswerId {
   const q = question.toLowerCase();
+  // The IC-preparation question from the VDR composer.
+  if (/prepared|investment decision|key considerations/.test(q)) return "icprep";
   if (/capex|utilis|utiliz/.test(q)) return "capex";
   if (/risk|red flag|concern|worr/.test(q)) return "risks";
   if (/growth|driver|trend|revenue/.test(q)) return "growth";
@@ -400,6 +424,17 @@ const step = (label: string, expandable = false): ThoughtStepSpec => ({
 });
 
 export const thinking: Record<AnswerId, Thinking> = {
+  icprep: {
+    files: 3,
+    sources: 6,
+    steps: [
+      read(),
+      step("Opening Investment thesis.pdf"),
+      step("Pulling market size, revenue and margin figures"),
+      step("Checking the figures against the research note", true),
+      step("Drafting a summary around the numbers that matter"),
+    ],
+  },
   thesis: {
     files: 3,
     sources: 6,
