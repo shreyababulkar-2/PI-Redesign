@@ -1108,6 +1108,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 2,
     backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.dew100,
   },
 
   jumpWrap: { position: "absolute", left: 0, right: 0, bottom: 8, alignItems: "center" },

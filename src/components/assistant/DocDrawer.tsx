@@ -11,7 +11,9 @@ import { RichText } from "../note/RichText";
 import { useHover } from "../../hooks/useHover";
 import { MemoSlides } from "./MemoSlides";
 import { ArtifactFrame } from "./ArtifactFrame";
-import { InvestmentTable } from "./InvestmentTable";
+import { WorkbookSheet } from "./WorkbookSheet";
+import { FINANCIAL_MODEL } from "../../data/financialModel";
+import { INVESTMENT_ANALYSIS } from "../../data/investmentAnalysis";
 import { isArtefact } from "../../data/artefacts";
 
 /** Narrowest the drawer can be dragged to; the widest is half the window. */
@@ -130,7 +132,9 @@ export function DocDrawer({
       {isArtefact(active) ? (
         <View style={styles.artifactBody}>
           {active === "Investment analysis" ? (
-            <ArtifactFrame>{(scroll) => <InvestmentTable scroll={scroll} />}</ArtifactFrame>
+            <ArtifactFrame>{() => <WorkbookSheet workbook={INVESTMENT_ANALYSIS} />}</ArtifactFrame>
+          ) : active === "Financial model" ? (
+            <ArtifactFrame>{() => <WorkbookSheet workbook={FINANCIAL_MODEL} />}</ArtifactFrame>
           ) : (
             <View style={styles.card}>
               <Text style={[type.body, { color: colors.slate600 }]}>{`${active} isn't part of this prototype yet.`}</Text>

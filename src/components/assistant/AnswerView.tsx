@@ -99,14 +99,14 @@ export function AnswerView({
 
       {complete && content.table && (
         <FadeIn rise={8} duration={300}>
-          <Section title={content.table.title}>
+          <Section title={content.table.title} expandable={!wide}>
             <AnswerTable spec={content.table} wide={wide} compact={compact} />
           </Section>
         </FadeIn>
       )}
       {complete && content.chart && (
         <FadeIn rise={8} duration={300}>
-          <Section title={assistant.chart.title}>
+          <Section title={assistant.chart.title} expandable={!wide}>
             <RevenueChart />
           </Section>
         </FadeIn>
@@ -143,9 +143,12 @@ export function AnswerView({
 
 function Section({
   title,
+  expandable = true,
   children,
 }: {
   title: string;
+  /** The VDR chat (wide) has no expand control. */
+  expandable?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -154,7 +157,7 @@ function Section({
         <Text style={[type.answerBold, { color: colors.slate800 }]}>
           {title}
         </Text>
-        <ExpandButton />
+        {expandable && <ExpandButton />}
       </View>
       {children}
     </View>
