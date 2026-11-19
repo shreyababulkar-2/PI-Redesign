@@ -61,6 +61,7 @@ export const vdr = {
   menuDelete: require("./menu-delete.svg"),
   jumpDown: require("./jump-down.svg"),
   tabDocIdle: require("./tab-doc-idle.svg"),
+  tabCloseWhite: require("./tab-close-white.svg"),
   tabClose: require("./tab-close.svg"),
   goArrow: require("./go-arrow.svg"),
   dot2: require("./dot-2.svg"),

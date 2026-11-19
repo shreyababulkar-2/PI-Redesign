@@ -127,10 +127,13 @@ export function AssistantScreen() {
   const [customW, setCustomW] = useState<number | null>(null);
   const widthFor = (doc: string) => Math.min(customW ?? drawerWidthFor(doc), maxDrawer);
   const currentW = widthFor(activeDoc ?? tabs[tabs.length - 1] ?? "");
-  // A narrower window can take the drawer past half: pull it back in.
+  // A narrower window can take the drawer past half: pull it back in. (Not tied to the active document, so switching
+  // tabs can animate the width.)
   useEffect(() => {
-    drawerW.setValue(currentW);
-  }, [currentW, drawerW]);
+    drawerW.stopAnimation((v) => {
+      if (v > maxDrawer) drawerW.setValue(maxDrawer);
+    });
+  }, [maxDrawer, drawerW]);
   function resizeDrawer(w: number) {
     setCustomW(w);
     drawerW.setValue(w);
@@ -372,6 +375,7 @@ export function AssistantScreen() {
         >
           <DocDrawer
             width={currentW}
+            widthValue={drawerW}
             maxWidth={maxDrawer}
             onResize={resizeDrawer}
             tabs={tabs}
