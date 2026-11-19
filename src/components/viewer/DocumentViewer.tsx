@@ -1,7 +1,9 @@
 import {
   ComponentRef,
+  createContext,
   ReactNode,
   RefObject,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -20,7 +22,9 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { createPortal } from "react-dom";
 import { colors, fonts } from "../../theme";
+import { FadeIn } from "../assistant/FadeIn";
 import { pointer } from "../../theme/cursor";
 import { LEAVE_EASING, press, transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
@@ -54,7 +58,8 @@ import {
   Download,
   Folder,
   Globe,
-  OpenExternal,
+  Expand,
+  CollapseButton,
   PageNext,
   PagePrev,
   Refresh,
@@ -62,7 +67,6 @@ import {
   ZoomOut,
 } from "./icons";
 
-const GREEN = "#22733e";
 
 type Source = ReturnType<typeof sourceFor>;
 type DocKind = "pdf" | "sheet" | "web";
@@ -312,6 +316,7 @@ function Content({ n, loadMs }: { n: number; loadMs: number }) {
   // The drawer shows a skeleton of its own layout while the source loads (and, the first time, while the pane is
   // still widening), instead of fading content in over an empty panel.
   const [loaded, setLoaded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => setLoaded(true), loadMs);
     return () => clearTimeout(id);
@@ -335,8 +340,16 @@ function Content({ n, loadMs }: { n: number; loadMs: number }) {
         <Associated n={n} claim={claim} numbers={numbers} />
       )}
       <View style={styles.dashed} />
-      <SourceHead source={source} n={n} />
+      <SourceHead source={source} n={n} onExpand={() => setExpanded(true)} />
       <SourceBody source={source} n={n} claim={claim?.text ?? ""} />
+      {expanded && (
+        <ExpandedSource
+          source={source}
+          n={n}
+          claim={claim?.text ?? ""}
+          onClose={() => setExpanded(false)}
+        />
+      )}
     </>
   );
 }
@@ -365,6 +378,99 @@ function ClaimBox({ claim }: { claim: Claim }) {
   );
 }
 
+/** True inside the full-size view, where the collapse button takes the corner the zoom control normally has. */
+const InExpanded = createContext(false);
+
+/**
+ * The source at full size (Figma 774:830): the page, document or sheet fills a panel over a dimmed, blurred app. It is
+ * the same viewer as in the drawer, so zoom, panning, the page and sheet controls and Refresh all work. The corner
+ * button, Escape or a click outside the panel put it away. Web only (it is drawn on the page body, outside the drawer).
+ */
+function ExpandedSource({
+  source,
+  n,
+  claim,
+  onClose,
+}: {
+  source: Source;
+  n: number;
+  claim: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    // Capture, so Escape closes this view and not the drawer behind it.
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+  if (Platform.OS !== "web") return null;
+  return createPortal(
+    <FadeIn rise={0} duration={180} style={expandedStyles.layer as object}>
+      <Pressable
+        accessibilityLabel="Close full-size view"
+        onPress={onClose}
+        style={expandedStyles.backdrop}
+      />
+      <FadeIn rise={10} duration={220} style={expandedStyles.panel as object}>
+        <InExpanded.Provider value>
+          <View style={{ flex: 1 }}>
+            <SourceBody source={source} n={n} claim={claim} />
+          </View>
+        </InExpanded.Provider>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Collapse"
+          onPress={onClose}
+          style={({ pressed }) => [expandedStyles.collapse, press(pressed)]}
+        >
+          <CollapseButton />
+        </Pressable>
+      </FadeIn>
+    </FadeIn>,
+    document.body,
+  );
+}
+
+const expandedStyles = StyleSheet.create({
+  layer: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+  } as object,
+  backdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    backdropFilter: "blur(5px)",
+  } as object,
+  panel: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    right: 16,
+    bottom: 16,
+    padding: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#f2f5f8",
+    backgroundColor: colors.white,
+    overflow: "hidden",
+  } as object,
+  collapse: { position: "absolute", right: 24, bottom: 24 },
+});
+
 function AssociatedChip({
   k,
   on,
@@ -390,9 +496,9 @@ function AssociatedChip({
       ]}
     >
       {s.kind === "web" ? (
-        <Globe color={on ? GREEN : "#717784"} />
+        <Globe color={on ? "#ffffff" : "#717784"} />
       ) : (
-        <Folder color={on ? GREEN : "#717784"} />
+        <Folder color={on ? "#ffffff" : "#717784"} />
       )}
       <Text
         numberOfLines={1}
@@ -531,7 +637,15 @@ function Associated({
   );
 }
 
-function SourceHead({ source, n }: { source: Source; n: number }) {
+function SourceHead({
+  source,
+  n,
+  onExpand,
+}: {
+  source: Source;
+  n: number;
+  onExpand: () => void;
+}) {
   const kind = docKind(source);
   const url = `https://${source.host}`;
   return (
@@ -563,15 +677,8 @@ function SourceHead({ source, n }: { source: Source; n: number }) {
               <Download />
             </IconButton>
           )}
-          <IconButton
-            label={kind === "web" ? `Open ${source.host}` : "Open file"}
-            onPress={() =>
-              kind === "web"
-                ? Linking.openURL(url)
-                : openFile(FILE_TARGETS[n]?.src, FILE_TARGETS[n]?.page)
-            }
-          >
-            <OpenExternal />
+          <IconButton label="Expand source" onPress={onExpand}>
+            <Expand />
           </IconButton>
         </View>
       </View>
@@ -630,12 +737,6 @@ function downloadFile(src?: string) {
   a.remove();
 }
 
-/** Opens a dummy file in its own browser tab (web), at the cited page for documents. */
-function openFile(src?: string, page?: number) {
-  if (!src || Platform.OS !== "web") return;
-  window.open(page ? `${src}#page=${page}` : src, "_blank", "noopener");
-}
-
 /**
  * A file shown as it is: a PDF in an embedded viewer at the cited page, or a spreadsheet as a grid with the cited
  * rows marked, each with its own page / sheet control and zoom. The files are dummy ones in `public/docs`.
@@ -658,6 +759,7 @@ function FileViewer({
   const [zoom, setZoom] = useState(1);
   // Bumped by Refresh to load a web page again.
   const [reload, setReload] = useState(0);
+  const inExpanded = useContext(InExpanded);
   const pages = target?.pages ?? 1;
   const step = (delta: number) => setZoom((z) => clampZoom(z + delta));
   // Trackpad pinch and Ctrl/Cmd + mouse wheel zoom the document too, like any viewer.
@@ -699,7 +801,19 @@ function FileViewer({
   return (
     <View style={[styles.section, styles.fileSection]}>
       <View style={[styles.rowBetween, styles.sourceRow]}>
-        <Text style={styles.label}>Source</Text>
+        <View style={styles.sourceLabel}>
+          <Text style={styles.label}>Source</Text>
+          {/* In the full-size view the site's link sits beside the label (the drawer shows it under the title). */}
+          {kind === "web" && inExpanded && (
+            <Text
+              accessibilityRole="link"
+              onPress={() => Linking.openURL(`https://${sourceFor(n).host}`)}
+              style={styles.host}
+            >
+              {sourceFor(n).host}
+            </Text>
+          )}
+        </View>
         {kind === "pdf" ? (
           <View style={styles.pager}>
             <Pressable
@@ -775,7 +889,7 @@ function FileViewer({
         ) : sheet ? (
           <SheetGrid sheet={sheet} zoom={zoom} claim={claim} />
         ) : null}
-        <View style={styles.zoom}>
+        <View style={[styles.zoom, inExpanded && { right: 48 }]}>
           <Pressable
             accessibilityLabel="Zoom out"
             onPress={() => step(-0.25)}
@@ -1601,14 +1715,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.12,
     color: "#222530",
   },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 12, rowGap: 8 },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     width: 120,
     height: 28,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#f2f5f8",
@@ -1617,7 +1731,7 @@ const styles = StyleSheet.create({
     ...transition(["background-color", "border-color"]),
   },
   chipHover: { backgroundColor: "#eef1f5" },
-  chipOn: { backgroundColor: "#ddedda", borderColor: "#bcd9b6" },
+  chipOn: { backgroundColor: "#205b34", borderColor: "#bcd9b6" },
   chipText: {
     flex: 1,
     minWidth: 0,
@@ -1627,7 +1741,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.08,
     color: "#717784",
   },
-  chipTextOn: { color: "#525866" },
+  chipTextOn: { color: "#ffffff" },
   dashed: {
     height: 0,
     borderTopWidth: 1,
@@ -1660,6 +1774,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.12,
     color: "#000",
   },
+  sourceLabel: { flexDirection: "row", alignItems: "center", gap: 12 },
   host: {
     alignSelf: "flex-start",
     fontFamily: fonts.geistRegular,

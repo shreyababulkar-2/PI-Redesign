@@ -1,4 +1,4 @@
-import Svg, { Path } from "react-native-svg";
+import Svg, { Path, Rect } from "react-native-svg";
 
 /** Icons for the citation drawer, drawn from Figma 602:4423. Each takes a colour; sizes are the design's. */
 type P = { color?: string; size?: number };
@@ -198,6 +198,35 @@ export function Refresh({ color = "#22733E", size = 14 }: P) {
       <Path
         d="M9.23144 5.5292H12L10.2358 3.76391C9.66784 3.19593 8.96035 2.78747 8.18447 2.57962C7.40858 2.37176 6.59165 2.37182 5.8158 2.57979C5.03995 2.78777 4.33252 3.19632 3.76463 3.76439C3.19674 4.33245 2.7884 5.04001 2.58067 5.81593M4.76912 8.4708H2.00055V11.2394M2.00055 8.4708L3.76418 10.2361C4.33216 10.8041 5.03965 11.2125 5.81553 11.4204C6.59142 11.6282 7.40835 11.6282 8.1842 11.4202C8.96005 11.2122 9.66748 10.8037 10.2354 10.2356C10.8033 9.66755 11.2116 8.95999 11.4193 8.18407M12 2.76064V5.52809"
         stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Expand (Figma 774:891), 16px: four corner arrows pointing outwards. Replaces the "open in a new tab" icon. */
+export function Expand({ color = "#525866", size = 16 }: P) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <Path
+        d="M5.5 2.5H2.5V5.5M2.5 2.5L6 6M5.5 13.5H2.5V10.5M2.5 13.5L6 10M13.5 5.5V2.5H10.5M13.5 2.5L10 6M13.5 10.5V13.5H10.5M13.5 13.5L10 10"
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Collapse (Figma 774:4371): the 32px dark button with four corner arrows pointing inwards, drawn whole. */
+export function CollapseButton({ size = 32 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <Rect width={32} height={32} rx={8} fill="black" fillOpacity={0.8} />
+      <Path
+        d="M9.41964 12.9821H12.9821V9.41964M12.9821 12.9821L8.82589 8.82589M9.41964 17.7321H12.9821V21.2946M12.9821 17.7321L8.82589 21.8884M17.7321 9.41964V12.9821H21.2946M17.7321 12.9821L21.8884 8.82589M17.7321 21.2946V17.7321H21.2946M17.7321 17.7321L21.8884 21.8884"
+        stroke="white"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
