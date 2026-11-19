@@ -312,7 +312,7 @@ export function AssistantScreen() {
                         { maxWidth: drawer.interpolate({ inputRange: [0, 1], outputRange: [480, 400] }) },
                       ]}
                     >
-                      <Text style={[body, { textAlign: "right" }]}>{turn.question}</Text>
+                      <Text style={[body, { textAlign: "right", color: colors.white }]}>{turn.question}</Text>
                     </Animated.View>
                   </FadeIn>
                   <View
@@ -461,22 +461,57 @@ function History({ title, onNewChat, onCollapse }: { title: string; onNewChat: (
         <Img src={vdr.search} w={16} />
         <Text style={[body, { color: colors.slate500, letterSpacing: 0 }]}>Search chats</Text>
       </View>
-      <View style={{ gap: 12 }}>
-        {HISTORY.map((g, i) => (
-          <View key={g.label} style={{ gap: 2 }}>
-            <Text style={styles.date}>{g.label}</Text>
-            {/* The open chat leads today's list, whatever it is called. */}
-            {(i === 0 ? [title, ...g.items.filter((x) => x !== title && x !== OPEN_CHAT)] : g.items).map((item) => (
-              <HistoryItem
-                key={i === 0 && item === title ? "open-chat" : item}
-                label={item}
-                active={i === 0 && item === title}
-              />
-            ))}
-          </View>
-        ))}
-      </View>
+      <HistoryList title={title} />
     </View>
+  );
+}
+
+/** The chats grouped by day; the open chat leads today's list, whatever it is called. Shared by the panel and the hover popup. */
+function HistoryList({ title }: { title: string }) {
+  return (
+    <View style={{ gap: 12 }}>
+      {HISTORY.map((g, i) => (
+        <View key={g.label} style={{ gap: 2 }}>
+          <Text style={styles.date}>{g.label}</Text>
+          {(i === 0 ? [title, ...g.items.filter((x) => x !== title && x !== OPEN_CHAT)] : g.items).map((item) => (
+            <HistoryItem
+              key={i === 0 && item === title ? "open-chat" : item}
+              label={item}
+              active={i === 0 && item === title}
+            />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * While the history is collapsed (Figma 101:3742): hovering the top bar's expand button shows the chat list in a small
+ * popup under the top bar; only a click on the button opens the panel. The popup stays up while the pointer is on the
+ * button or on it, and lets go a beat after the pointer leaves both.
+ */
+function HistoryPeek({
+  visible,
+  title,
+  onEnter,
+  onLeave,
+}: {
+  visible: boolean;
+  title: string;
+  onEnter: () => void;
+  onLeave: () => void;
+}) {
+  const reveal = useReveal(visible);
+  return (
+    <Animated.View pointerEvents={visible ? "auto" : "none"} style={[styles.peekWrap, reveal]}>
+      {/* The top 14px is a transparent bridge from the button to the card so the pointer can cross the gap. */}
+      <Pressable accessible={false} onHoverIn={onEnter} onHoverOut={onLeave} style={styles.peekBridge}>
+        <View style={styles.peek}>
+          <HistoryList title={title} />
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -518,6 +553,7 @@ function SoftButton({
   active,
   hoverSrc,
   onPress,
+  onHoverChange,
 }: {
   label: string;
   src: Src;
@@ -528,6 +564,8 @@ function SoftButton({
   turn?: boolean;
   active?: boolean;
   onPress?: () => void;
+  /** Called as the pointer enters (true) and leaves (false) the button. */
+  onHoverChange?: (hovered: boolean) => void;
 }) {
   const hover = useHover();
   return (
@@ -535,7 +573,14 @@ function SoftButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      {...hover.handlers}
+      onHoverIn={() => {
+        hover.handlers.onHoverIn();
+        onHoverChange?.(true);
+      }}
+      onHoverOut={() => {
+        hover.handlers.onHoverOut();
+        onHoverChange?.(false);
+      }}
       style={({ pressed }) => [
         styles.soft,
         // One step darker on hover, the same as the composer's buttons.
@@ -593,6 +638,20 @@ function TopBar({
   onPickArtefact: (title: string) => void;
 }) {
   const closed = Animated.subtract(1, open);
+  // The history peek: shown while the pointer is on the expand button or the popup, dropped shortly after it leaves both.
+  const [peek, setPeek] = useState(false);
+  const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdPeek = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    setPeek(true);
+  };
+  const releasePeek = () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setPeek(false), 140);
+  };
+  useEffect(() => () => {
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+  }, []);
   const grow = (from: number, to: number) =>
     closed.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
   return (
@@ -614,7 +673,12 @@ function TopBar({
             src={vdr.collapseHistory}
             hoverSrc={vdr.collapseHistoryHover}
             w={12}
-            onPress={onExpand}
+            onHoverChange={(h) => (h ? holdPeek() : releasePeek())}
+            onPress={() => {
+              if (peekTimer.current) clearTimeout(peekTimer.current);
+              setPeek(false);
+              onExpand();
+            }}
           />
           <View style={styles.companyDivider} />
         </Animated.View>
@@ -666,6 +730,7 @@ function TopBar({
           <MoreMenu open={moreOpen} onAction={onMoreAction} />
         </View>
       </Animated.View>
+      <HistoryPeek visible={peek} title={title} onEnter={holdPeek} onLeave={releasePeek} />
     </View>
   );
 }
@@ -1069,6 +1134,18 @@ const styles = StyleSheet.create({
   },
   // Right edge in line with the "more" button; 8px below the header like the others.
   moreMenu: { right: 0, width: 172 },
+  // The history popup (Figma 101:3742): 220px wide, its card 6px below the top bar and in line with its left edge. The wrapper starts
+  // at the bottom of the expand button so the bridge above the card joins the two.
+  peekWrap: { position: "absolute", left: 0, top: 36, width: 220, zIndex: 40 },
+  peekBridge: { paddingTop: 14 },
+  peek: {
+    padding: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.slate100,
+    backgroundColor: colors.white,
+    boxShadow: "0px 1px 3px rgba(24,27,37,0.05), 0px 8px 24px rgba(24,27,37,0.1)",
+  } as object,
   artefactsMenu: { right: -80, width: 288, height: 376, gap: 0, overflow: "hidden" },
   artefactRow: { flexDirection: "row", alignItems: "center", gap: 8, padding: 8, borderRadius: 8, ...pointer },
   artefactThumb: {
@@ -1107,9 +1184,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 2,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.dew100,
+    // Figma 101:4272: solid pine with white text, no stroke.
+    backgroundColor: colors.pine800,
   },
 
   jumpWrap: { position: "absolute", left: 0, right: 0, bottom: 8, alignItems: "center" },
