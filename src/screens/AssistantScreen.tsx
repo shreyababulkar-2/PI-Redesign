@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -55,6 +55,10 @@ const body = {
   letterSpacing: 0.09,
   color: colors.slate800,
 } as const;
+
+/** Width the document drawer narrows to when the chat history is opened beside it. */
+const HISTORY_OPEN_DRAWER_W = 398;
+
 
 const HISTORY: { label: string; items: string[] }[] = [
   { label: "Today", items: ["IC discussion preparations", "Summarise Q3 financials"] },
@@ -118,7 +122,18 @@ export function AssistantScreen() {
   // follow the open tabs. (Tabs are cleared only once the drawer has finished closing.)
   const [tabs, setTabs] = useState<string[]>([]);
   const [activeDoc, setActiveDoc] = useState<string | null>(null);
-  const drawerOpen = activeDoc !== null;
+  // The drawer opened by the top bar's panel button before any document: it shows an empty state.
+  const [emptyOpen, setEmptyOpen] = useState(false);
+  const [emptyMounted, setEmptyMounted] = useState(false);
+  const drawerOpen = activeDoc !== null || emptyOpen;
+  // The tab that was showing when the drawer was last closed: the panel button brings the drawer back on it, with the
+  // other tabs still open.
+  const lastDoc = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeDoc) lastDoc.current = activeDoc;
+  }, [activeDoc]);
+  // True while the history is collapsed only because the drawer opened; closing the drawer then restores it.
+  const foldedByDrawer = useRef(false);
   const [drawer] = useState(() => new Animated.Value(0));
   const [drawerW] = useState(() => new Animated.Value(500));
   // Width the user dragged the drawer to (kept for every document); until then each document has its own default.
@@ -150,33 +165,65 @@ export function AssistantScreen() {
     });
   /** Opens a document in the drawer: a new tab (kept beside the others) that becomes the active one. */
   function pickDoc(doc: string) {
+    setEmptyOpen(false);
     setTabs((t) => (t.includes(doc) ? t : [...t, doc]));
     setActiveDoc(doc);
     // The drawer needs the room: an open chat history folds away as it arrives.
-    if (!drawerOpen && historyOpen) toggleHistory(false);
+    if (!drawerOpen && historyOpen) {
+      toggleHistory(false);
+      foldedByDrawer.current = true;
+    }
     slide(drawerW, widthFor(doc));
     if (!drawerOpen) slide(drawer, 1);
+  }
+  /** Opens the drawer with nothing in it yet (the top bar's panel button). */
+  function openEmptyDrawer() {
+    setEmptyOpen(true);
+    setEmptyMounted(true);
+    if (historyOpen) {
+      toggleHistory(false);
+      foldedByDrawer.current = true;
+    }
+    slide(drawerW, widthFor(""));
+    slide(drawer, 1);
   }
   function showTab(doc: string) {
     setActiveDoc(doc);
     slide(drawerW, widthFor(doc));
   }
-  function closeDrawer() {
+  /** Closes the drawer. The open tabs are kept for the next time it opens, unless the last one was closed. */
+  function closeDrawer(clearTabs = false) {
     setActiveDoc(null);
-    slide(drawer, 0, () => setTabs([]));
+    setEmptyOpen(false);
+    // The history that folded away for the drawer comes back with it (unless the user changed it in between).
+    if (foldedByDrawer.current) toggleHistory(true, false);
+    slide(drawer, 0, () => {
+      if (clearTabs) setTabs([]);
+      setEmptyMounted(false);
+    });
   }
   function closeTab(doc: string) {
     const rest = tabs.filter((d) => d !== doc);
-    if (rest.length === 0) return closeDrawer();
+    if (rest.length === 0) return closeDrawer(true);
     setTabs(rest);
     if (doc === activeDoc) showTab(rest[Math.max(0, tabs.indexOf(doc) - 1)]);
   }
   // 1 = history shown, 0 = collapsed; everything that moves with it (panel, top bar, chat column) follows this value.
   const [open] = useState(() => new Animated.Value(1));
   const [historyMounted, setHistoryMounted] = useState(true);
-  function toggleHistory(next: boolean) {
+  function toggleHistory(next: boolean, squeezeDrawer = true) {
+    foldedByDrawer.current = false;
     setHistoryOpen(next);
     if (next) setHistoryMounted(true);
+    // Opening the history beside an open drawer squeezes the chat, so the drawer gives room back: it narrows to 398px
+    // (never wider than half the window) and stays there; a drawer already that narrow is left as it is.
+    if (next && drawerOpen && squeezeDrawer) {
+      const narrow = Math.min(HISTORY_OPEN_DRAWER_W, maxDrawer);
+      if (currentW > narrow) {
+        setCustomW(narrow);
+        slide(drawerW, narrow);
+      }
+    }
     Animated.timing(open, {
       toValue: next ? 1 : 0,
       duration: motion.base,
@@ -245,6 +292,12 @@ export function AssistantScreen() {
       <View style={styles.main}>
         <TopBar
           title={chatTitle}
+          historyOpen={historyOpen}
+          onTogglePanel={() => {
+            if (drawerOpen) closeDrawer();
+            else if (tabs.length > 0) pickDoc(lastDoc.current && tabs.includes(lastDoc.current) ? lastDoc.current : tabs[tabs.length - 1]);
+            else openEmptyDrawer();
+          }}
           open={open}
           onExpand={() => toggleHistory(true)}
           docsOpen={docsOpen}
@@ -269,7 +322,7 @@ export function AssistantScreen() {
             setMoreOpen(false);
             if (action === "Delete conversation") newChat();
           }}
-          openDocs={tabs}
+          openDocs={drawerOpen ? tabs : []}
           activeDoc={activeDoc}
           onPickArtefact={(t) => {
             pickDoc(t);
@@ -312,7 +365,7 @@ export function AssistantScreen() {
                         { maxWidth: drawer.interpolate({ inputRange: [0, 1], outputRange: [480, 400] }) },
                       ]}
                     >
-                      <Text style={[body, { textAlign: "right", color: colors.white }]}>{turn.question}</Text>
+                      <ClampedQuestion text={turn.question} />
                     </Animated.View>
                   </FadeIn>
                   <View
@@ -368,7 +421,7 @@ export function AssistantScreen() {
           <ChatComposer onSend={send} generating={generating} onStop={stop} />
         </Animated.View>
       </View>
-      {tabs.length > 0 && (
+      {(tabs.length > 0 || emptyMounted) && (
         <Animated.View
           pointerEvents={drawerOpen ? "auto" : "none"}
           style={{
@@ -384,11 +437,12 @@ export function AssistantScreen() {
             maxWidth={maxDrawer}
             onResize={resizeDrawer}
             tabs={tabs}
-            active={activeDoc ?? tabs[tabs.length - 1]}
+            active={activeDoc ?? tabs[tabs.length - 1] ?? null}
             onSelectTab={showTab}
             onCloseTab={closeTab}
-            onClose={closeDrawer}
+            onClose={() => closeDrawer()}
             onGoTo={() => go("note")}
+            onPickDoc={pickDoc}
           />
         </Animated.View>
       )}
@@ -503,14 +557,34 @@ function HistoryPeek({
   onLeave: () => void;
 }) {
   const reveal = useReveal(visible);
+  // The popup is "hovered" for as long as the pointer is anywhere over it, its rows included. The Pressable hover events
+  // fire a leave as the pointer crosses onto a row, so the web listens for the plain mouseenter / mouseleave instead
+  // (those do not fire when moving between an element and its own children).
+  const ref = useRef<unknown>(null);
+  const live = useRef({ onEnter, onLeave });
+  useEffect(() => {
+    live.current = { onEnter, onLeave };
+  }, [onEnter, onLeave]);
+  useEffect(() => {
+    const el = ref.current as HTMLElement | null;
+    if (Platform.OS !== "web" || !el?.addEventListener) return;
+    const enter = () => live.current.onEnter();
+    const leave = () => live.current.onLeave();
+    el.addEventListener("mouseenter", enter);
+    el.addEventListener("mouseleave", leave);
+    return () => {
+      el.removeEventListener("mouseenter", enter);
+      el.removeEventListener("mouseleave", leave);
+    };
+  }, []);
   return (
-    <Animated.View pointerEvents={visible ? "auto" : "none"} style={[styles.peekWrap, reveal]}>
+    <Animated.View ref={ref as never} pointerEvents={visible ? "auto" : "none"} style={[styles.peekWrap, reveal]}>
       {/* The top 14px is a transparent bridge from the button to the card so the pointer can cross the gap. */}
-      <Pressable accessible={false} onHoverIn={onEnter} onHoverOut={onLeave} style={styles.peekBridge}>
+      <View style={styles.peekBridge}>
         <View style={styles.peek}>
           <HistoryList title={title} />
         </View>
-      </Pressable>
+      </View>
     </Animated.View>
   );
 }
@@ -551,6 +625,7 @@ function SoftButton({
   h,
   turn,
   active,
+  bare,
   hoverSrc,
   onPress,
   onHoverChange,
@@ -563,6 +638,8 @@ function SoftButton({
   h?: number;
   turn?: boolean;
   active?: boolean;
+  /** No fill at rest (the compact bar's buttons, Figma 121:27309); the hover fill still shows. */
+  bare?: boolean;
   onPress?: () => void;
   /** Called as the pointer enters (true) and leaves (false) the button. */
   onHoverChange?: (hovered: boolean) => void;
@@ -583,6 +660,7 @@ function SoftButton({
       }}
       style={({ pressed }) => [
         styles.soft,
+        bare && { backgroundColor: "transparent" },
         // One step darker on hover, the same as the composer's buttons.
         hover.hovered && { backgroundColor: colors.slate200 },
         active && { backgroundColor: "#f0f5f4" },
@@ -608,6 +686,7 @@ function SoftButton({
 
 function TopBar({
   title,
+  historyOpen,
   open,
   onExpand,
   docsOpen,
@@ -621,8 +700,10 @@ function TopBar({
   activeDoc,
   onPickDoc,
   onPickArtefact,
+  onTogglePanel,
 }: {
   title: string;
+  historyOpen: boolean;
   open: Animated.Value;
   onExpand: () => void;
   docsOpen: boolean;
@@ -636,6 +717,7 @@ function TopBar({
   activeDoc: string | null;
   onPickDoc: (doc: string) => void;
   onPickArtefact: (title: string) => void;
+  onTogglePanel: () => void;
 }) {
   const closed = Animated.subtract(1, open);
   // The history peek: shown while the pointer is on the expand button or the popup, dropped shortly after it leaves both.
@@ -655,24 +737,29 @@ function TopBar({
   const grow = (from: number, to: number) =>
     closed.interpolate({ inputRange: [0, 1], outputRange: [from, to] });
   return (
-    <View style={styles.topBar}>
-      <Animated.View style={[styles.company, { width: grow(136, 200) }]}>
+    <View style={styles.topBarWrap}>
+    {/* Compact - VDR (Figma 114:27274): two floating pills over a soft fade the chat scrolls under. */}
+    {/* 8px from the history panel when it is open (the page gap is already 8), 8px from the side nav when it is not. */}
+    <Animated.View pointerEvents="box-none" style={[styles.compactBar, { left: grow(-8, -4) }]}>
+      <Image source={vdr.compactBg} contentFit="fill" style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <View style={[styles.compactPill, styles.compactLeft]}>
         <Animated.View
-          pointerEvents="box-none"
+          pointerEvents={historyOpen ? "none" : "box-none"}
           style={{
-            width: grow(0, 49),
+            width: grow(0, 37),
+            marginRight: grow(-4, 0),
             opacity: closed,
             overflow: "hidden",
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
           }}
         >
           <SoftButton
+            bare
             label="Expand chat history"
-            src={vdr.collapseHistory}
-            hoverSrc={vdr.collapseHistoryHover}
-            w={12}
+            src={vdr.compactExpand}
+            w={13}
             onHoverChange={(h) => (h ? holdPeek() : releasePeek())}
             onPress={() => {
               if (peekTimer.current) clearTimeout(peekTimer.current);
@@ -680,21 +767,21 @@ function TopBar({
               onExpand();
             }}
           />
-          <View style={styles.companyDivider} />
+          <View style={styles.compactDivider} />
         </Animated.View>
-        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 }}>
+        <View style={styles.compactCompany}>
           <Image source={vdr.companyLogo} style={{ width: 16, height: 16, borderRadius: 76 }} />
-          <Text numberOfLines={1} style={styles.companyText}>
+          <Text numberOfLines={1} style={styles.compactCompanyText}>
             Juspay Technologies Private limited
           </Text>
         </View>
-      </Animated.View>
-      <View style={{ position: "absolute", left: 0, right: 0 }} pointerEvents="none">
-        <TypedName text={title} style={[styles.title, { textAlign: "center" }]} />
       </View>
-      <Animated.View style={[styles.row8, { justifyContent: "flex-end", width: grow(136, 200) }]}>
+      <View style={[styles.compactPill, styles.compactActions]}>
+        {/* The three buttons sit 2px apart (Figma 122:27775); the pill's 8px gap separates them from the divider. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
         <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
+          bare
             label="Artefacts"
             src={artefactsOpen ? vdr.assistantTopbarAActive : vdr.assistantTopbarA}
             hoverSrc={vdr.assistantTopbarAHover}
@@ -704,10 +791,9 @@ function TopBar({
           />
           <ArtefactsMenu open={artefactsOpen} onSelect={onPickArtefact} />
         </View>
-        {/* The menu hangs from this button (Figma 35:16243: 6px below it, right edges aligned), so it follows the
-            button as the top bar narrows beside the drawer. */}
         <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
+          bare
             label="Deal documents"
             src={docsOpen ? vdr.assistantTopbarBActive : vdr.assistantTopbarB}
             hoverSrc={vdr.assistantTopbarBHover}
@@ -718,8 +804,9 @@ function TopBar({
           />
           <DocsMenu open={docsOpen} openDocs={openDocs} active={activeDoc} onSelect={onPickDoc} />
         </View>
-<View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
+        <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
+          bare
             label="More"
             src={moreOpen ? vdr.topbarMoreActive : vdr.topbarMoreIdle}
             hoverSrc={vdr.topbarMoreActive}
@@ -729,9 +816,77 @@ function TopBar({
           />
           <MoreMenu open={moreOpen} onAction={onMoreAction} />
         </View>
-      </Animated.View>
-      <HistoryPeek visible={peek} title={title} onEnter={holdPeek} onLeave={releasePeek} />
+        </View>
+        <View style={styles.compactActionsDivider} />
+        <SoftButton bare label="Toggle document panel" src={vdr.topbarPanel} w={13} onPress={onTogglePanel} />
+      </View>
+    </Animated.View>
+    <HistoryPeek visible={peek} title={title} onEnter={holdPeek} onLeave={releasePeek} />
     </View>
+  );
+}
+
+
+const QUESTION_LINES = 3;
+
+/**
+ * The question in its bubble (Figma 88:25451): a long one stops after three lines with a trailing "…", and a click on
+ * the bubble opens the whole message (a second click folds it again). On the web the cut is found by measuring, so the
+ * "…" always sits at the end of the third line; native uses numberOfLines.
+ */
+function ClampedQuestion({ text }: { text: string }) {
+  const web = Platform.OS === "web";
+  const [expanded, setExpanded] = useState(false);
+  const [shown, setShown] = useState(text);
+  const [truncated, setTruncated] = useState(false);
+  const ref = useRef<unknown>(null);
+  const fit = useCallback(() => {
+    const el = ref.current as HTMLElement | null;
+    if (!web || !el || typeof document === "undefined") return;
+    const cs = getComputedStyle(el);
+    const lineHeight = parseFloat(cs.lineHeight) || 18;
+    const limit = lineHeight * QUESTION_LINES + 1;
+    // An off-screen copy of the text box, the same width and type, to see how many lines a given cut needs.
+    const probe = document.createElement("div");
+    probe.style.cssText = `position:absolute;visibility:hidden;left:-9999px;top:0;width:${el.getBoundingClientRect().width}px;font:${cs.font};letter-spacing:${cs.letterSpacing};line-height:${cs.lineHeight};white-space:pre-wrap;word-break:break-word;text-align:right`;
+    document.body.appendChild(probe);
+    probe.textContent = text;
+    if (probe.scrollHeight <= limit) {
+      setShown(text);
+      setTruncated(false);
+    } else {
+      let lo = 0;
+      let hi = text.length;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        probe.textContent = `${text.slice(0, mid).trimEnd()}…`;
+        if (probe.scrollHeight <= limit) lo = mid;
+        else hi = mid - 1;
+      }
+      setShown(`${text.slice(0, lo).trimEnd()}…`);
+      setTruncated(true);
+    }
+    probe.remove();
+  }, [text, web]);
+  useLayoutEffect(fit, [fit]);
+  const clickable = expanded || truncated || (!web && text.length > 0);
+  return (
+    <Pressable
+      accessibilityRole={clickable ? "button" : undefined}
+      accessibilityLabel={expanded ? "Show less" : "Show the whole message"}
+      disabled={!clickable}
+      onPress={() => setExpanded((v) => !v)}
+      style={{ alignSelf: "stretch" }}
+    >
+      <Text
+        ref={ref as never}
+        onLayout={fit}
+        numberOfLines={web || expanded ? undefined : QUESTION_LINES}
+        style={[body, { textAlign: "right", color: colors.white }]}
+      >
+        {web && !expanded ? shown : text}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -1091,6 +1246,8 @@ const styles = StyleSheet.create({
 
   // zIndex lifts the top bar (and the documents menu hanging from it) above the history and drawer panels.
   main: { flex: 1, minWidth: 0, gap: 8, zIndex: 20 },
+  // Overlays the chat, which scrolls beneath it (the thread's top padding clears it at rest).
+  topBarWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 30 },
   topBar: {
     height: 44,
     flexDirection: "row",
@@ -1103,7 +1260,47 @@ const styles = StyleSheet.create({
     // Above the chat below it, so the documents menu can hang over it.
     zIndex: 30,
   },
-  company: { flexDirection: "row", alignItems: "center", gap: 4 },
+  company: { flexDirection: "row", alignItems: "center", gap: 4, height: 36 },
+  // Compact - VDR (Figma 114:27274): 8px all round of the pills, over a soft fade.
+  compactBar: {
+    position: "absolute",
+    // Flush with the top of the window: cancels the page's own 8px top padding.
+    top: -8,
+    // The page pads 4px beside the side nav and 8px at the right edge; the pills sit 8px from each (Figma 114:27274).
+    left: -4,
+    right: -8,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    padding: 8,
+  },
+  compactBg: { opacity: 1 },
+  compactPill: {
+    height: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    boxShadow: "0px 2px 12px rgba(15,23,41,0.08)",
+  } as object,
+  compactLeft: { width: 260, paddingLeft: 4, paddingRight: 8 },
+  compactActions: {
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    boxShadow: "0px 1px 2px rgba(15,23,41,0.04), 0px 2px 12px rgba(15,23,41,0.08)",
+  } as object,
+  compactCompany: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 4, minWidth: 0 },
+  compactCompanyText: {
+    flex: 1,
+    fontFamily: fonts.geistMedium,
+    fontSize: 11,
+    lineHeight: 18,
+    color: colors.slate600,
+    textTransform: "uppercase",
+  },
+  compactDivider: { width: 1, height: 16, borderRadius: 100, backgroundColor: colors.slate200 },
+  compactActionsDivider: { width: 1, height: 12, borderRadius: 100, backgroundColor: colors.slate200 },
   companyText: {
     flex: 1,
     fontFamily: fonts.geistMedium,
@@ -1174,7 +1371,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.geistMedium, fontSize: 14, lineHeight: 18, color: colors.slate800 },
 
   column: { flex: 1, width: "100%", maxWidth: 602, alignSelf: "center", paddingBottom: 8 },
-  thread: { gap: 24, paddingTop: 4, paddingBottom: 24 },
+  thread: { gap: 24, paddingTop: 52, paddingBottom: 24 },
   userRow: { alignItems: "flex-end" },
   bubble: {
     maxWidth: 480,

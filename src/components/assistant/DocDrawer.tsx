@@ -23,7 +23,9 @@ export const DRAWER_MIN_WIDTH = 360;
  * Width of the drawer when it opens: 500 for documents, 602 for artefacts (Figma 88:25334, the artefact frame is 570 wide
  * inside it). The user can drag it wider or narrower.
  */
-export const drawerWidthFor = (doc: string) => (isArtefact(doc) ? 602 : 500);
+/** One default width for every tab, document or artefact (Figma 35:16596: 500px). */
+export const DRAWER_DEFAULT_WIDTH = 500;
+export const drawerWidthFor = (_doc: string) => DRAWER_DEFAULT_WIDTH;
 
 /**
  * The deal-document drawer (Figma 35:16596 "Research note - Active", 41:20368 with several tabs): a panel at the right
@@ -44,6 +46,7 @@ export function DocDrawer({
   onCloseTab,
   onClose,
   onGoTo,
+  onPickDoc,
 }: {
   width: number;
   /** The same width as an animated value, so the drawer eases between documents of different widths. */
@@ -51,11 +54,14 @@ export function DocDrawer({
   maxWidth: number;
   onResize: (width: number) => void;
   tabs: string[];
-  active: string;
+  /** null = nothing opened yet: the drawer shows its empty state. */
+  active: string | null;
   onSelectTab: (doc: string) => void;
   onCloseTab: (doc: string) => void;
   onClose: () => void;
   onGoTo: () => void;
+  /** Opens a document from the empty state's "Recently viewed" cards. */
+  onPickDoc: (doc: string) => void;
 }) {
   const hover = useHover();
   const handleHover = useHover();
@@ -98,6 +104,7 @@ export function DocDrawer({
     <Animated.View style={[styles.drawer, { width: widthValue }]}>
       <View style={styles.header}>
         <View style={styles.tabs}>
+          {active === null && <Text style={styles.headerTitle}>Documents &amp; artefacts</Text>}
           {tabs.map((doc) =>
             doc === active ? (
               <View key={doc} style={styles.tab}>
@@ -110,7 +117,12 @@ export function DocDrawer({
                 {(!isArtefact(doc) || tabs.length > 1) && <ActiveTabClose label={doc} onClose={() => onCloseTab(doc)} />}
               </View>
             ) : (
-              <IdleTab key={doc} label={doc} onPress={() => onSelectTab(doc)} onClose={() => onCloseTab(doc)} />
+              <IdleTab
+                key={doc}
+                label={doc}
+                onPress={() => onSelectTab(doc)}
+                onClose={() => onCloseTab(doc)}
+              />
             ),
           )}
         </View>
@@ -129,7 +141,9 @@ export function DocDrawer({
         </Pressable>
       </View>
 
-      {isArtefact(active) ? (
+      {active === null ? (
+        <EmptyState onPickDoc={onPickDoc} />
+      ) : isArtefact(active) ? (
         <View style={styles.artifactBody}>
           {active === "Investment analysis" ? (
             <ArtifactFrame>{() => <WorkbookSheet workbook={INVESTMENT_ANALYSIS} />}</ArtifactFrame>
@@ -195,6 +209,52 @@ export function DocDrawer({
   );
 }
 
+const RECENT = ["Research note", "IC memo", "Checklist"];
+
+/** The drawer before anything is open (Figma 189:8138): what it is for, and the documents to start from. */
+function EmptyState({ onPickDoc }: { onPickDoc: (doc: string) => void }) {
+  return (
+    <View style={styles.empty}>
+      <View style={{ alignItems: "center", gap: 10 }}>
+        <View style={styles.emptyIcon}>
+          <Image source={vdr.emptyIcon} contentFit="fill" style={{ width: 13.25, height: 15 }} />
+        </View>
+        <View style={{ alignItems: "center", gap: 4 }}>
+          <Text style={styles.emptyTitle}>Nothing open yet</Text>
+          <Text style={styles.emptyHint}>
+            Artefacts and deal documents for this deal will open here so you can read and edit them side by side.
+          </Text>
+        </View>
+      </View>
+      <View style={styles.emptyRule}>
+        <Image source={vdr.emptyLineLeft} contentFit="fill" style={{ flex: 1, height: 1, transform: [{ scaleX: -1 }] }} />
+        <Text style={styles.emptyHint}>Recently viewed</Text>
+        <Image source={vdr.emptyLineRight} contentFit="fill" style={{ flex: 1, height: 1 }} />
+      </View>
+      <View style={styles.emptyChips}>
+        {RECENT.map((title) => (
+          <EmptyChip key={title} title={title} onPress={() => onPickDoc(title)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function EmptyChip({ title, onPress }: { title: string; onPress: () => void }) {
+  const hover = useHover();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      {...hover.handlers}
+      style={({ pressed }) => [styles.emptyChip, hover.hovered && { backgroundColor: "#e3ece9" }, press(pressed)]}
+    >
+      <View style={styles.emptyChipDot} />
+      <Text style={styles.emptyChipText}>{title}</Text>
+    </Pressable>
+  );
+}
+
 /** A tab that is open but not showing: plain icon and label, with its own close button. */
 function IdleTab({ label, onPress, onClose }: { label: string; onPress: () => void; onClose: () => void }) {
   const hover = useHover();
@@ -253,6 +313,19 @@ function TabClose({ label, onClose }: { label: string; onClose: () => void }) {
   );
 }
 
+/** The longest a tab's label gets before it is cut with an ellipsis. */
+const TAB_LABEL_MAX = 90;
+// The same side padding on every tab, so equal shares come out as equal widths.
+const tabSizing = {
+  flexGrow: 1,
+  flexShrink: 1,
+  flexBasis: 0,
+  minWidth: 0,
+  paddingHorizontal: 6,
+  // The web can cap a tab at its own content width; elsewhere tabs simply share the row.
+  ...(Platform.OS === "web" ? { maxWidth: "max-content" } : { maxWidth: 140 }),
+} as object;
+
 const styles = StyleSheet.create({
   drawer: {
     flex: 1,
@@ -280,13 +353,14 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(255,255,255,0.06)",
   },
   tabs: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, overflow: "hidden" },
+  // Every tab hugs its label (the label is capped, longer names get an ellipsis). When the row is full they all shrink to
+  // the same width: each starts from zero, shares the room equally, and stops growing at its own content width.
   tab: {
-    flexShrink: 0,
+    ...tabSizing,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     height: 28,
-    paddingHorizontal: 8,
     borderRadius: 8,
     backgroundColor: colors.pine800,
     overflow: "hidden",
@@ -302,22 +376,20 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 5,
     backgroundColor: "rgba(255,255,255,0.4)",
   },
-  tabText: { fontFamily: fonts.geistMedium, fontSize: 12, lineHeight: 16, letterSpacing: -0.078, color: colors.white },
+  tabText: { flexShrink: 1, minWidth: 0, maxWidth: TAB_LABEL_MAX, fontFamily: fonts.geistMedium, fontSize: 12, lineHeight: 16, letterSpacing: -0.078, color: colors.white },
   idleTab: {
-    flexShrink: 1,
-    minWidth: 0,
-    maxWidth: 140,
+    ...tabSizing,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     height: 28,
-    paddingHorizontal: 4,
     borderRadius: 8,
     ...pointer,
   },
   idleText: {
     flexShrink: 1,
     minWidth: 0,
+    maxWidth: TAB_LABEL_MAX,
     fontFamily: fonts.geistRegular,
     fontSize: 12,
     lineHeight: 16,
@@ -326,6 +398,40 @@ const styles = StyleSheet.create({
   },
   idleClose: { width: 16, height: 16, borderRadius: 4, alignItems: "center", justifyContent: "center", ...pointer },
   close: { width: 24, height: 24, borderRadius: 4, alignItems: "center", justifyContent: "center", ...pointer },
+  headerTitle: { fontFamily: fonts.geistMedium, fontSize: 12, lineHeight: 16, color: colors.slate700 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 20, paddingHorizontal: 40, paddingBottom: 40 },
+  emptyIcon: {
+    padding: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f0f5f4",
+  },
+  emptyTitle: { fontFamily: fonts.geistMedium, fontSize: 12, lineHeight: 16, color: colors.slate800, textAlign: "center" },
+  emptyHint: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 10,
+    lineHeight: 16,
+    color: colors.slate500,
+    textAlign: "center",
+    maxWidth: 300,
+  },
+  emptyRule: { alignSelf: "stretch", flexDirection: "row", alignItems: "center", gap: 12 },
+  emptyChips: { flexDirection: "row", justifyContent: "center", gap: 8 },
+  emptyChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    backgroundColor: "#f0f5f4",
+    ...pointer,
+  },
+  emptyChipDot: { width: 4, height: 4, borderRadius: 100, backgroundColor: colors.pine800 },
+  emptyChipText: { fontFamily: fonts.geistRegular, fontSize: 11, lineHeight: 16, color: colors.slate700 },
   body: { paddingHorizontal: 15, paddingTop: 16, gap: 16, paddingBottom: 72 },
   // The artefact frame fills the drawer under the tabs, 15px in from the sides and 16 from the bottom (Figma 88:25334).
   artifactBody: { flex: 1, minHeight: 0, paddingHorizontal: 15, paddingTop: 16, paddingBottom: 16 },

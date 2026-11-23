@@ -3,7 +3,7 @@ import { IcWorkbook } from "./financialModel";
 
 /**
  * The "Investment analysis" workbook (prototype only), shown in the artefact drawer as an Excel grid like the financial model:
- * four years of Actuals, IC case and Variation per line, with a green or red arrow on the variation.
+ * four years of Actuals, IC case and Variation per line.
  */
 
 const YEARS = ["FY - 2025", "FY - 2024", "FY - 2023", "FY - 2022"];
@@ -86,7 +86,7 @@ const dataRow = (row: Row): SheetCell[] => [
   ...row.cells.flatMap((cell) => [
     num(cell.actual, !row.child),
     num(cell.ic, !row.child),
-    { v: `${cell.up ? "▲" : "▼"} ${cell.delta}`, bold: !row.child, align: "right" as const, color: cell.up ? UP : DOWN },
+    { v: cell.delta, bold: !row.child, align: "right" as const, color: cell.up ? UP : DOWN },
   ]),
 ];
 

@@ -871,7 +871,7 @@ function ChecklistCard() {
 type OmniLayout = "narrow" | "large";
 
 /** How much the omni box grows when focused. */
-const FOCUS_SCALE = 1.1;
+const FOCUS_SCALE = 1.05;
 
 function Composer({ layout }: { layout: OmniLayout }) {
   const { openAssistant } = useScreen();
