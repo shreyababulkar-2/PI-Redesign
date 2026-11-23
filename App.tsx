@@ -7,6 +7,8 @@ import { StartScreen } from "./src/screens/StartScreen";
 import { ScreenProvider, useScreen } from "./src/state/screen";
 import { VdrScreen } from "./src/screens/VdrScreen";
 import { AssistantScreen } from "./src/screens/AssistantScreen";
+import { VdrScreen as VdrScreenV2 } from "./src/v2/VdrScreen";
+import { AssistantScreen as AssistantScreenV2 } from "./src/v2/AssistantScreen";
 import { ResearchNoteScreen } from "./src/screens/ResearchNoteScreen";
 import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
@@ -19,6 +21,8 @@ function CurrentScreen() {
   const { screen } = useScreen();
   if (screen === "vdr") return <VdrScreen />;
   if (screen === "assistant") return <AssistantScreen />;
+  if (screen === "vdr2") return <VdrScreenV2 />;
+  if (screen === "assistant2") return <AssistantScreenV2 />;
   if (screen === "note") return <ResearchNoteScreen />;
   return <StartScreen />;
 }
