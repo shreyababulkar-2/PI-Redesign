@@ -9,7 +9,7 @@ import { sections } from "../data/sections";
 import { VersionChip } from "../components/note/Chip";
 import { RichText } from "../components/note/RichText";
 import { useHover } from "../hooks/useHover";
-import { MemoSlides } from "../components/assistant/MemoSlides";
+import { MemoSlides } from "./MemoSlides";
 import { ArtifactFrame } from "../components/assistant/ArtifactFrame";
 import { WorkbookSheet } from "../components/assistant/WorkbookSheet";
 import { FINANCIAL_MODEL } from "../data/financialModel";
@@ -38,6 +38,7 @@ export const drawerWidthFor = (_doc: string) => DRAWER_DEFAULT_WIDTH;
 export function DocDrawer({
   width,
   widthValue,
+  minWidth,
   maxWidth,
   onResize,
   tabs,
@@ -51,6 +52,8 @@ export function DocDrawer({
   width: number;
   /** The same width as an animated value, so the drawer eases between documents of different widths. */
   widthValue: Animated.Value;
+  /** The narrowest and widest the drawer can be dragged (the room is shared with the chat). */
+  minWidth: number;
   maxWidth: number;
   onResize: (width: number) => void;
   tabs: string[];
@@ -67,10 +70,10 @@ export function DocDrawer({
   const handleHover = useHover();
   const [dragging, setDragging] = useState(false);
   // Latest values for the responder, which is created once and only reads them inside event handlers.
-  const live = useRef({ width, maxWidth, onResize });
+  const live = useRef({ width, minWidth, maxWidth, onResize });
   useEffect(() => {
-    live.current = { width, maxWidth, onResize };
-  }, [width, maxWidth, onResize]);
+    live.current = { width, minWidth, maxWidth, onResize };
+  }, [width, minWidth, maxWidth, onResize]);
   const startWidth = useRef(width);
   // The responder reads the latest values through `live` at event time, never during render.
   /* eslint-disable react-hooks/refs */
@@ -86,7 +89,7 @@ export function DocDrawer({
       },
       // The drawer is on the left now, so dragging right (positive dx) widens it.
       onPanResponderMove: (_e, g) => {
-        const next = Math.min(Math.max(startWidth.current + g.dx, DRAWER_MIN_WIDTH), live.current.maxWidth);
+        const next = Math.min(Math.max(startWidth.current + g.dx, live.current.minWidth), live.current.maxWidth);
         live.current.onResize(Math.round(next));
       },
       onPanResponderRelease: () => {
@@ -156,7 +159,7 @@ export function DocDrawer({
           )}
         </View>
       ) : (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body}>
+      <ScrollView style={[{ flex: 1 }, subtleScrollbar]} contentContainerStyle={styles.body}>
         {active === "Research note" ? (
           sections.slice(0, 2).map((s) => (
             <View key={s.id} style={styles.card}>
@@ -325,6 +328,12 @@ const tabSizing = {
   // The web can cap a tab at its own content width; elsewhere tabs simply share the row.
   ...(Platform.OS === "web" ? { maxWidth: "max-content" } : { maxWidth: 140 }),
 } as object;
+
+// A thin scrollbar with no track and a faint pine thumb, instead of the browser's wide grey one (web; other
+// platforms ignore it).
+const subtleScrollbar = (Platform.OS === "web"
+  ? { scrollbarWidth: "thin", scrollbarColor: "rgba(32,91,52,0.22) transparent" }
+  : null) as object;
 
 const styles = StyleSheet.create({
   drawer: {

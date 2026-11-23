@@ -25,7 +25,7 @@ import { useConversation } from "../hooks/useConversation";
 import { AnswerView } from "../components/assistant/AnswerView";
 import { FadeIn } from "../components/assistant/FadeIn";
 import { ARTEFACTS } from "../data/artefacts";
-import { DocDrawer, drawerWidthFor, DRAWER_MIN_WIDTH } from "./DocDrawer";
+import { DocDrawer } from "./DocDrawer";
 import { JumpToLatest } from "../components/assistant/JumpToLatest";
 import { ThoughtBlock } from "../components/assistant/ThoughtBlock";
 
@@ -59,8 +59,22 @@ const body = {
 /** The chat history panel's width: 250px on its own, 195px while the documents drawer is open beside it (Figma 189:6785). */
 const HISTORY_W = 250;
 const HISTORY_W_WITH_DRAWER = 195;
-/** Width the document drawer narrows to when the chat history is opened beside it (Figma 189:6785: 501px). */
-const HISTORY_OPEN_DRAWER_W = 501;
+/**
+ * How the room beside the side nav (and the history panel, when it is open) is shared by the documents drawer and the
+ * chat: 45% for the drawer and 55% for the chat to begin with, the drawer's share changeable by dragging between 30% and 50% of the room.
+ */
+const DRAWER_DEFAULT_SHARE = 0.45;
+const SPLIT_MIN_SHARE = 0.3;
+/** The most of the room the drawer can take; the chat keeps the other 50%. */
+const SPLIT_MAX_SHARE = 0.5;
+/** Page padding at the left (side nav + 8px) and at the right, and the gap between the drawer and the chat. */
+const PAGE_LEFT = 60;
+const PAGE_RIGHT = 8;
+const SPLIT_GAP = 8;
+/** The page's column grid (Figma 41:19965): 12 columns, 8px gutter. The chat column is 5 of them wide. */
+const GRID_COLUMNS = 12;
+const GRID_GUTTER = 8;
+const CHAT_COLUMNS = 5;
 /** How long the documents drawer takes to slide open or shut; slower than a hover change, so the panel reads as arriving. */
 const DRAWER_SLIDE_MS = 480;
 
@@ -151,22 +165,36 @@ export function AssistantScreen() {
   const foldedByDrawer = useRef(false);
   const [drawer] = useState(() => new Animated.Value(0));
   const [drawerW] = useState(() => new Animated.Value(500));
-  // Width the user dragged the drawer to (kept for every document); until then each document has its own default.
-  // Never more than half the window.
+  // The drawer and the chat share the room to the right of the side nav and the history panel. The drawer's share is a
+  // fraction of it (so it keeps its proportion when the window or the history panel changes), 50% to begin with.
   const { width: windowWidth } = useWindowDimensions();
-  const maxDrawer = Math.max(DRAWER_MIN_WIDTH, Math.floor(windowWidth * 0.5));
-  const [customW, setCustomW] = useState<number | null>(null);
-  const widthFor = (doc: string) => Math.min(customW ?? drawerWidthFor(doc), maxDrawer);
-  const currentW = widthFor(activeDoc ?? tabs[tabs.length - 1] ?? "");
-  // A narrower window can take the drawer past half: pull it back in. (Not tied to the active document, so switching
-  // tabs can animate the width.)
+  const [share, setShare] = useState(DRAWER_DEFAULT_SHARE);
+  const historyBeside = historyOpen ? HISTORY_W_WITH_DRAWER + SPLIT_GAP : 0;
+  const splitRoom = Math.max(0, windowWidth - PAGE_LEFT - PAGE_RIGHT - historyBeside - SPLIT_GAP);
+  const minDrawer = Math.round(SPLIT_MIN_SHARE * splitRoom);
+  const maxDrawer = Math.round(SPLIT_MAX_SHARE * splitRoom);
+  const targetW = Math.min(Math.max(Math.round(share * splitRoom), minDrawer), maxDrawer);
+  // The chat column is 5 grid columns wide (plus the 4 gutters inside it), so it scales with the window: 500px at 1280.
+  const gridColumn = (windowWidth - PAGE_LEFT - PAGE_RIGHT - GRID_GUTTER * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
+  const chatColumnW = Math.round(CHAT_COLUMNS * gridColumn + GRID_GUTTER * (CHAT_COLUMNS - 1));
+  // The handlers below run a moment after the history has slid away, so they read the latest target, not the one from
+  // the render they were made in.
+  const targetRef = useRef(targetW);
   useEffect(() => {
+    targetRef.current = targetW;
+  }, [targetW]);
+  const widthFor = (_doc?: string) => targetRef.current;
+  const currentW = targetW;
+  // Follow the target when the window or the history panel changes it (a drag sets it frame by frame, so close
+  // values are left alone).
+  useEffect(() => {
+    if (!drawerOpen) return;
     drawerW.stopAnimation((v) => {
-      if (v > maxDrawer) drawerW.setValue(maxDrawer);
+      if (Math.abs(v - targetW) > 1) Animated.timing(drawerW, { toValue: targetW, duration: motion.base, easing: Easing.bezier(0.2, 0, 0, 1), useNativeDriver: false }).start();
     });
-  }, [maxDrawer, drawerW]);
+  }, [targetW, drawerOpen, drawerW]);
   function resizeDrawer(w: number) {
-    setCustomW(w);
+    setShare(splitRoom > 0 ? w / splitRoom : DRAWER_DEFAULT_SHARE);
     drawerW.setValue(w);
   }
   const slide = (value: Animated.Value, toValue: number, onDone?: () => void, duration: number = motion.base) =>
@@ -239,16 +267,6 @@ export function AssistantScreen() {
     foldedByDrawer.current = false;
     setHistoryOpen(next);
     if (next) setHistoryMounted(true);
-    // Opening the history beside an open drawer squeezes the chat, so the drawer gives room back: it narrows to 501px
-    // (never wider than half the window) and stays there; a drawer the user dragged narrower is left as it is.
-    if (next && drawerOpen && squeezeDrawer) {
-      const narrow = Math.min(HISTORY_OPEN_DRAWER_W, maxDrawer);
-      // The default drawer takes exactly this width; one the user dragged narrower is left alone.
-      if (customW === null || currentW > narrow) {
-        setCustomW(narrow);
-        slide(drawerW, narrow);
-      }
-    }
     Animated.timing(open, {
       toValue: next ? 1 : 0,
       duration: motion.base,
@@ -274,6 +292,8 @@ export function AssistantScreen() {
   const turnY = useRef<Record<number, number>>({});
   const pendingScroll = useRef<number | null>(null);
   const [chatHeight, setChatHeight] = useState(0);
+  // The latest measured height of the chat area, for the handlers that run before the next render.
+  const chatHeightRef = useRef(0);
   const lastTurnId = turns[turns.length - 1]?.id;
   useEffect(() => {
     pendingScroll.current = lastTurnId ?? null;
@@ -294,8 +314,14 @@ export function AssistantScreen() {
   const [showJump, setShowJump] = useState(false);
   function updateJump() {
     const { id, y, height } = lastResponse.current;
+    // Only once the chat area has been measured, and only while the latest answer runs past its bottom edge: a short
+    // first answer that fits on screen never needs the button.
+    if (chatHeightRef.current === 0) {
+      setShowJump(false);
+      return;
+    }
     const bottom = (turnY.current[id] ?? 0) + y + height;
-    setShowJump(bottom - (offsetY.current + chatHeight) > 24);
+    setShowJump(bottom - (offsetY.current + chatHeightRef.current) > 24);
   }
   useEffect(updateJump, [generating, chatHeight]);
 
@@ -305,6 +331,7 @@ export function AssistantScreen() {
         title={chatTitle}
         historyOpen={historyOpen}
         historyWidth={histW}
+        drawerOpen={drawerOpen}
         onTogglePanel={() => {
           if (drawerOpen) closeDrawer();
           else if (tabs.length > 0) pickDoc(lastDoc.current && tabs.includes(lastDoc.current) ? lastDoc.current : tabs[tabs.length - 1]);
@@ -384,6 +411,7 @@ export function AssistantScreen() {
           <DocDrawer
             width={currentW}
             widthValue={drawerW}
+            minWidth={minDrawer}
             maxWidth={maxDrawer}
             onResize={resizeDrawer}
             tabs={tabs}
@@ -398,15 +426,16 @@ export function AssistantScreen() {
       )}
       <View style={styles.main}>
         <Animated.View
-          style={[
-            styles.column,
-            { maxWidth: drawer.interpolate({ inputRange: [0, 1], outputRange: [602, 500] }) },
-          ]}
+          style={[styles.column, { maxWidth: chatColumnW }]}
         >
           <View style={{ flex: 1 }}>
             <ScrollView
               ref={chatRef}
-              onLayout={(e) => setChatHeight(e.nativeEvent.layout.height)}
+              onLayout={(e) => {
+                chatHeightRef.current = e.nativeEvent.layout.height;
+                setChatHeight(e.nativeEvent.layout.height);
+                updateJump();
+              }}
               onScroll={(e) => {
                 offsetY.current = e.nativeEvent.contentOffset.y;
                 updateJump();
@@ -730,6 +759,7 @@ function TopBar({
   title,
   historyOpen,
   historyWidth,
+  drawerOpen,
   open,
   onExpand,
   onCollapse,
@@ -750,6 +780,8 @@ function TopBar({
   historyOpen: boolean;
   /** The history panel's current width, so the bar can start right after it. */
   historyWidth: Animated.Value;
+  /** Whether the documents drawer is open (the panel button's icon follows it). */
+  drawerOpen: boolean;
   open: Animated.Value;
   onExpand: () => void;
   onCollapse: () => void;
@@ -816,7 +848,15 @@ function TopBar({
               }}
             />
           </Animated.View>
-          <SoftButton bare label="Toggle document panel" src={vdr.topbarPanel} w={13} onPress={onTogglePanel} />
+          {/* The same panel icon both ways: as drawn while the drawer is open (Figma 189:6631), turned half a round while it is collapsed (189:8269). */}
+          <SoftButton
+            bare
+            label="Toggle document panel"
+            src={vdr.topbarPanel}
+            w={13}
+            rotate={drawerOpen ? undefined : 180}
+            onPress={onTogglePanel}
+          />
         </View>
         <View style={styles.compactDivider} />
         <View style={styles.compactCompany}>

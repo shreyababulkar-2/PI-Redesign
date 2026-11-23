@@ -4,6 +4,7 @@ import { Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAppFonts } from "./src/theme/useAppFonts";
 import { StartScreen } from "./src/screens/StartScreen";
+import { GridOverlay } from "./src/components/GridOverlay";
 import { ScreenProvider, useScreen } from "./src/state/screen";
 import { VdrScreen } from "./src/screens/VdrScreen";
 import { AssistantScreen } from "./src/screens/AssistantScreen";
@@ -53,6 +54,7 @@ export default function App() {
                   <BenchmarkCitationProvider>
                     <ScreenProvider>
                       <CurrentScreen />
+                      <GridOverlay />
                     </ScreenProvider>
                   </BenchmarkCitationProvider>
                 </DocumentViewerProvider>
