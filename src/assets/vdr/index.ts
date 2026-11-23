@@ -37,6 +37,7 @@ export const vdr = {
   compactBg: require("./compact-bg.png"),
   compactExpand: require("./compact-expand.svg"),
   topbarPanel: require("./topbar-panel.svg"),
+  icCover: require("./ic-cover.png"),
   topbarHistory: require("./topbar-history.svg"),
   chevronsUp: require("./chevrons-up.svg"),
   emptyIcon: require("./empty-icon.svg"),

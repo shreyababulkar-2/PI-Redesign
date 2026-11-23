@@ -77,8 +77,6 @@ const t = {
 } as const;
 
 export function VdrScreen() {
-  // The two omni box designs in the Figma file; the switch at the bottom right is a prototype control to compare them.
-  const [omni, setOmni] = useState<OmniLayout>("narrow");
   return (
     <View style={styles.root}>
       <ScrollView
@@ -106,8 +104,8 @@ export function VdrScreen() {
           </View>
         </View>
       </ScrollView>
-      <Composer layout={omni} />
-      <OmniSwitch value={omni} onChange={setOmni} />
+      {/* The large omni box (Figma 101:2517): the field on top, the tools and send button underneath. */}
+      <Composer layout="large" />
       <SideNav />
     </View>
   );
@@ -988,37 +986,6 @@ function Composer({ layout }: { layout: OmniLayout }) {
   );
 }
 
-/**
- * Prototype control: a small two-option switch that flips the omni box between its two Figma designs, the narrow one
- * (one row, 52px) and the large one (input above, tools below, 86px).
- */
-function OmniSwitch({ value, onChange }: { value: OmniLayout; onChange: (v: OmniLayout) => void }) {
-  const options: { id: OmniLayout; label: string }[] = [
-    { id: "narrow", label: "Narrow" },
-    { id: "large", label: "Large" },
-  ];
-  return (
-    <View style={styles.omniSwitch}>
-      <View style={styles.omniSwitchTrack}>
-        {options.map((o) => {
-          const on = o.id === value;
-          return (
-            <Pressable
-              key={o.id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              onPress={() => onChange(o.id)}
-              style={[styles.omniSwitchOption, on && styles.omniSwitchOn, transition(["background-color"])]}
-            >
-              <Text style={[styles.omniSwitchText, { color: on ? colors.white : colors.slate700 }]}>{o.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 function SquareButton({ src, label, w }: { src: Src; label: string; w: number }) {
   const hover = useHover();
   return (
@@ -1385,24 +1352,6 @@ const styles = StyleSheet.create({
   composerLarge: { paddingHorizontal: 15, paddingVertical: 11 },
   composerCol: { gap: 16 },
   composerFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  omniSwitch: {
-    position: "absolute",
-    right: 16,
-    bottom: 16,
-    zIndex: 30,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 4,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: colors.slate200,
-    backgroundColor: colors.white,
-    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
-  } as object,
-  omniSwitchTrack: { flexDirection: "row", gap: 2 },
-  omniSwitchOption: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, ...pointer },
-  omniSwitchOn: { backgroundColor: colors.pine700 },
-  omniSwitchText: { fontFamily: fonts.geistMedium, fontSize: 10, lineHeight: 16 },
   square: {
     width: 28,
     height: 28,
