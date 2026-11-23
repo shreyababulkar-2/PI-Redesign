@@ -6,7 +6,7 @@ const WORD = /\S+/g;
 export function wordsOf(blocks: Block[]): string[] {
   const words: string[] = [];
   for (const block of blocks) {
-    if (block.kind === 'spacer') continue;
+    if (!('segments' in block)) continue;
     for (const seg of block.segments) words.push(...(seg.text.match(WORD) ?? []));
   }
   return words;
@@ -18,7 +18,7 @@ export function truncateBlocks(blocks: Block[], limit: number): Block[] {
   let left = limit;
   for (const block of blocks) {
     if (left <= 0) break;
-    if (block.kind === 'spacer') {
+    if (!('segments' in block)) {
       out.push(block);
       continue;
     }
@@ -43,6 +43,6 @@ export function truncateBlocks(blocks: Block[], limit: number): Block[] {
 /** Plain text of the blocks, for copying. */
 export function plainText(blocks: Block[]): string {
   return blocks
-    .map((b) => (b.kind === 'spacer' ? '' : (b.kind === 'bullet' ? '• ' : '') + b.segments.map((s) => s.text).join('')))
+    .map((b) => (!('segments' in b) ? '' : (b.kind === 'bullet' ? '• ' : '') + b.segments.map((s) => s.text).join('')))
     .join('\n');
 }

@@ -348,7 +348,7 @@ function SourceMeta({
   kind,
 }: {
   host: string;
-  kind: "web" | "dataroom";
+  kind: "web" | "dataroom" | "database";
 }) {
   return (
     <div
@@ -361,7 +361,7 @@ function SourceMeta({
         color: GREEN,
       }}
     >
-      {kind === "web" ? <GlobeIcon /> : <FolderMini />}
+      {kind === "web" ? <GlobeIcon /> : kind === "database" ? <DatabaseMini /> : <FolderMini />}
       <span>{host}</span>
     </div>
   );
@@ -372,6 +372,30 @@ function GlobeIcon() {
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
       <path
         d="M9.98771 6.30934C10.0433 5.60097 9.90951 4.89055 9.60006 4.25134C9.08785 4.73936 8.48238 5.1183 7.82015 5.36528C7.8734 6.0207 7.8439 6.68025 7.73237 7.32826C8.53822 7.12474 9.30178 6.77978 9.98771 6.30934ZM7.08054 7.4603C7.21156 6.83217 7.25737 6.18917 7.21673 5.54874C6.82621 5.64212 6.41887 5.69148 6.00004 5.69148C5.58122 5.69148 5.17388 5.64212 4.78335 5.54874C4.74366 6.18917 4.78947 6.83204 4.91954 7.4603C5.63569 7.57038 6.36439 7.57038 7.08054 7.4603ZM5.08609 8.10572C5.69327 8.17775 6.30681 8.17775 6.91399 8.10572C6.70531 8.77934 6.39725 9.41784 6.00004 10C5.60283 9.41785 5.29476 8.77934 5.08609 8.10572ZM4.26772 7.32867C4.15558 6.68045 4.12608 6.02056 4.17993 5.36487C3.51756 5.11794 2.91193 4.73901 2.39961 4.25093C2.09024 4.89031 1.95656 5.60087 2.01237 6.30934C2.6983 6.77978 3.46187 7.12515 4.26772 7.32867ZM9.83799 7.13204C9.63087 7.83584 9.23546 8.46931 8.69467 8.96366C8.15388 9.45802 7.48839 9.79438 6.77042 9.93624C7.12998 9.33001 7.4044 8.67693 7.58592 7.99547C8.37742 7.82912 9.13757 7.53782 9.83799 7.13246V7.13204ZM2.1621 7.13204C2.85208 7.53147 3.61015 7.82641 4.41416 7.99547C4.59569 8.67693 4.87011 9.33001 5.22966 9.93624C4.51175 9.79442 3.84628 9.45812 3.3055 8.96384C2.76472 8.46955 2.36928 7.83618 2.1621 7.13246V7.13204ZM6.77042 2.06335C7.78681 2.26368 8.68614 2.85143 9.27928 3.703C8.84144 4.1466 8.31878 4.49695 7.74262 4.73303C7.58739 3.79013 7.25765 2.88467 6.77042 2.06335ZM6.00004 2C6.59871 2.87705 6.99205 3.87839 7.15069 4.92925C6.78273 5.02386 6.39713 5.07445 6.00004 5.07445C5.60296 5.07445 5.21736 5.02427 4.8494 4.92925C5.00802 3.87838 5.40136 2.87704 6.00004 2ZM5.22966 2.06335C4.74243 2.88467 4.41269 3.79013 4.25746 4.73303C3.6813 4.49696 3.15863 4.14661 2.72081 3.703C3.31399 2.85156 4.21332 2.26354 5.22966 2.06335Z"
+        fill={GREEN}
+      />
+    </svg>
+  );
+}
+
+/** The database stack beside a database source's name (Figma 916:23657). */
+function DatabaseMini() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+      <path
+        d="M10.5 3.1875C10.5 4.5335 8.485 5.625 6 5.625C3.515 5.625 1.5 4.5335 1.5 3.1875C1.5 1.8415 3.515 0.75 6 0.75C8.485 0.75 10.5 1.8415 10.5 3.1875Z"
+        fill={GREEN}
+      />
+      <path
+        d="M6 6.375C7.3425 6.375 8.595 6.082 9.539 5.5705C9.88642 5.38605 10.2058 5.15304 10.4875 4.8785C10.4955 4.939 10.5 5.0005 10.5 5.0625C10.5 6.4085 8.485 7.5 6 7.5C3.515 7.5 1.5 6.4085 1.5 5.0625C1.5 5.0005 1.5045 4.939 1.5125 4.8785C1.79421 5.15303 2.11358 5.38604 2.461 5.5705C3.4045 6.082 4.6575 6.375 6 6.375Z"
+        fill={GREEN}
+      />
+      <path
+        d="M6 8.25C7.3425 8.25 8.595 7.957 9.539 7.4455C9.88643 7.26105 10.2058 7.02804 10.4875 6.7535C10.4955 6.814 10.5 6.8755 10.5 6.9375C10.5 8.2835 8.485 9.375 6 9.375C3.515 9.375 1.5 8.2835 1.5 6.9375C1.5 6.8755 1.5045 6.814 1.5125 6.7535C1.7942 7.02803 2.11358 7.26104 2.461 7.4455C3.4045 7.957 4.6575 8.25 6 8.25Z"
+        fill={GREEN}
+      />
+      <path
+        d="M6 10.125C7.3425 10.125 8.595 9.832 9.539 9.3205C9.88643 9.13605 10.2058 8.90304 10.4875 8.6285C10.4955 8.689 10.5 8.7505 10.5 8.8125C10.5 10.1585 8.485 11.25 6 11.25C3.515 11.25 1.5 10.1585 1.5 8.8125C1.5 8.7505 1.5045 8.689 1.5125 8.6285C1.7942 8.90303 2.11358 9.13604 2.461 9.3205C3.4045 9.832 4.6575 10.125 6 10.125Z"
         fill={GREEN}
       />
     </svg>
@@ -408,18 +432,54 @@ function claimAt(el: unknown, numbers: number[]): NoteClaim | undefined {
 }
 
 /**
- * What is shown in the text for a citation (Figma 600:1662): web sources keep their numbers, and a folder icon stands
- * for the data room sources, after a comma when both are present.
+ * What is shown in the text for a citation (Figma 600:1662, 916:23883): web sources keep their numbers, and an icon stands
+ * for each other kind of source present, after a comma: a folder for the data room, a database stack for a database.
  */
 function CitationMark({ numbers }: { numbers: number[] }) {
-  const web = numbers.filter((n) => sourceFor(n).kind === "web");
-  const hasDataRoom = web.length < numbers.length;
+  const kinds = numbers.map((n) => sourceFor(n).kind);
+  const web = numbers.filter((_, i) => kinds[i] === "web");
+  const icons = [
+    kinds.includes("dataroom") && <MarkFolder key="folder" />,
+    kinds.includes("database") && <MarkDatabase key="database" />,
+  ].filter(Boolean);
   return (
     <>
       {web.length > 0 && formatCitations(web)}
-      {web.length > 0 && hasDataRoom && ","}
-      {hasDataRoom && <MarkFolder />}
+      {icons.map((icon, i) => (
+        <span key={i}>
+          {(web.length > 0 || i > 0) && ","}
+          {icon}
+        </span>
+      ))}
     </>
+  );
+}
+
+/** The small database stack set in the line like a superscript glyph, as the folder is (Figma 916:23650). */
+function MarkDatabase() {
+  return (
+    <svg
+      width="8"
+      height="8"
+      viewBox="0 0 8 8"
+      fill="none"
+      role="img"
+      aria-label="Database"
+      style={{
+        width: "0.95em",
+        height: "0.95em",
+        marginLeft: "0.1em",
+        verticalAlign: "baseline",
+      }}
+    >
+      <path
+        d="M6.53846 2.26923C6.53846 2.97015 5.40185 3.53846 4 3.53846C2.59815 3.53846 1.46154 2.97015 1.46154 2.26923M6.53846 2.26923C6.53846 1.56831 5.40185 1 4 1C2.59815 1 1.46154 1.56831 1.46154 2.26923M6.53846 2.26923V3.42308M1.46154 2.26923V3.42308M6.53846 3.42308V4.57692M6.53846 3.42308C6.53846 4.124 5.40185 4.69231 4 4.69231C2.59815 4.69231 1.46154 4.124 1.46154 3.42308M6.53846 4.57692V5.73077C6.53846 6.43169 5.40185 7 4 7C2.59815 7 1.46154 6.43169 1.46154 5.73077V4.57692M6.53846 4.57692C6.53846 5.27785 5.40185 5.84615 4 5.84615C2.59815 5.84615 1.46154 5.27785 1.46154 4.57692M1.46154 4.57692V3.42308"
+        stroke="currentColor"
+        strokeWidth="0.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

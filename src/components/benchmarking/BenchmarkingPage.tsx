@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   LayoutChangeEvent,
   Pressable,
@@ -8,13 +8,9 @@ import {
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { colors, fonts } from "../../theme";
-import {
-  benchmarkAnalysis,
-  categoryGroups,
-  overallCompany,
-  overallStats,
-} from "../../data/benchmarking";
+import { benchmarkAnalysis } from "../../data/benchmarking";
 import { BENCHMARK_TABS, useActiveTab } from "../../state/activeTab";
+import { useBenchmarkCitation } from "../../state/benchmarkCitation";
 import { useHover } from "../../hooks/useHover";
 import { Icon } from "../Icon";
 import { IconName } from "../../assets/icons";
@@ -25,9 +21,10 @@ import { appear, leaving, press, transition } from "../../theme/motion";
 import {
   BenchmarkTable,
   createScrollGroup,
-  TableItem,
   Unit,
 } from "./BenchmarkTable";
+import { SourceCardProvider } from "./SourceCard";
+import { CATEGORY_ITEMS, CATEGORY_ROW_START, OVERALL_ITEMS } from "./citationTargets";
 
 /**
  * Benchmarking tab (Figma "Benchmarking - New", 373:23715): a sub-tab bar, the analysis summary and two
@@ -35,48 +32,26 @@ import {
  */
 export function BenchmarkingPage() {
   const { benchTab } = useActiveTab();
-  const overallItems = useMemo<TableItem[]>(
-    () => [
-      { type: "header" },
-      { type: "gap", height: 4 },
-      { type: "company", company: overallCompany },
-      { type: "stat", label: "All companies: Mean", values: overallStats.mean },
-      {
-        type: "stat",
-        label: "All companies: Median",
-        values: overallStats.median,
-      },
-    ],
-    [],
-  );
-  const categoryItems = useMemo<TableItem[]>(() => {
-    const items: TableItem[] = [{ type: "header" }, { type: "gap", height: 4 }];
-    categoryGroups.forEach((g, i) => {
-      if (i > 0) items.push({ type: "gap", height: 10 });
-      items.push({ type: "title", text: g.title }, { type: "gap", height: 4 });
-      g.companies.forEach((company) =>
-        items.push({ type: "company", company }),
-      );
-      items.push(
-        { type: "stat", label: "All companies: Mean", values: g.mean },
-        { type: "stat", label: "All companies: Median", values: g.median },
-      );
-    });
-    return items;
-  }, []);
+  // The citation drawer belongs to this tab: leaving the tab puts it away.
+  const { close } = useBenchmarkCitation();
+  useEffect(() => close, [close]);
   // Both tables share one horizontal scroll position.
   const [scrollGroup] = useState(createScrollGroup);
   // Market cap and EV are shown in ₹ Mn or ₹ Cr; the chip in the first card flips both tables.
   const [unit, setUnit] = useState<Unit>("Mn");
+  // The Citations toggle in the first card's header: corner flags on every sourced figure, in both tables.
+  const [citations, setCitations] = useState(false);
 
   return (
-    <>
+    <SourceCardProvider>
       <SubTabs />
       <Analysis />
 
       <Card key={`overall-${benchTab}`} radius={10} index={2}>
         <CardHeader title="Overall comparison">
           <View style={styles.tools}>
+            <CitationsToggle on={citations} onToggle={() => setCitations((v) => !v)} />
+            <View style={styles.divider} />
             <WithTooltip text="Switch units" side="bottom">
               <UnitChip
                 unit={unit}
@@ -85,7 +60,6 @@ export function BenchmarkingPage() {
             </WithTooltip>
             <View style={styles.divider} />
             <View style={styles.iconPair}>
-              <IconTool icon="tableExpand" label="Expand" />
               <IconTool icon="tableComments" label="Comments" />
               <KebabMenu items={COMPARISON_MENU_ITEMS} width={195}>
                 {({ open, toggle }) => (
@@ -107,7 +81,10 @@ export function BenchmarkingPage() {
         </CardHeader>
         <View style={styles.tableWrap}>
           <BenchmarkTable
-            items={overallItems}
+            items={OVERALL_ITEMS}
+            table="overall"
+            rowStart={1}
+            citations={citations}
             unit={unit}
             scrollGroup={scrollGroup}
           />
@@ -125,7 +102,10 @@ export function BenchmarkingPage() {
           </CardHeader>
           <View style={styles.tableWrap}>
             <BenchmarkTable
-              items={categoryItems}
+              items={CATEGORY_ITEMS}
+              table="category"
+              rowStart={CATEGORY_ROW_START}
+              citations={citations}
               rowAction
               unit={unit}
               scrollGroup={scrollGroup}
@@ -133,7 +113,34 @@ export function BenchmarkingPage() {
           </View>
         </Card>
       </View>
-    </>
+    </SourceCardProvider>
+  );
+}
+
+/** The "Citations" switch (Figma 829:3027): the label, then a small pill track, grey with a grey knob until it is on. */
+function CitationsToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  const hover = useHover();
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel="Citations"
+      onPress={onToggle}
+      {...hover.handlers}
+      // No press scale: shrinking the label and the switch together on every click read as a bounce.
+      style={styles.toggle}
+    >
+      <Text style={styles.toggleLabel}>Citations</Text>
+      <View
+        style={[
+          styles.track,
+          { backgroundColor: on ? colors.pine800 : "#ebebeb" },
+          hover.hovered && !on && { backgroundColor: colors.slate200 },
+        ]}
+      >
+        <View style={[styles.knob, { backgroundColor: on ? colors.white : colors.slate500, transform: [{ translateX: on ? 10 : 0 }] }]} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -467,6 +474,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.slate200,
   },
   tableWrap: { marginTop: 12 },
+  toggle: { flexDirection: "row", alignItems: "center", gap: 4, ...pointer },
+  track: {
+    width: 24,
+    height: 14,
+    borderRadius: 7,
+    padding: 2,
+    justifyContent: "center",
+    ...transition(["background-color"], 200),
+  },
+  knob: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.white,
+    ...transition(["transform", "background-color"], 200, "cubic-bezier(0.25, 1, 0.5, 1)"),
+  },
+  toggleLabel: { fontFamily: fonts.geistRegular, fontSize: 11, lineHeight: 16, color: colors.slate700 },
   chip: {
     flexDirection: "row",
     alignItems: "center",

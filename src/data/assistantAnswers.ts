@@ -183,11 +183,11 @@ export const answers: Record<AnswerId, AnswerContent> = {
       ),
       bullet(
         "Valuation:",
-        "market cap of 1,553 is above the peer mean (1,443) but below the median (1,763). EV of 2,453 is above the mean (2,083) and just under the median (2,553).",
+        "market cap of ₹1,553 Mn is above the peer mean (₹1,405 Mn) and well above the median (₹857 Mn). EV of ₹1,612 Mn is above the mean (₹1,402 Mn) and the median (₹797 Mn).",
       ),
       bullet(
         "Growth:",
-        "FY20–23 revenue CAGR of 35.6% is slightly below the mean (36.3%) and the median (37.8%), and FY23–24 growth of 9.0% trails the 10.3% mean.",
+        "FY20–23 revenue CAGR of 8.4% is below the mean (11.8%) and the median (10.4%), and FY23–24 growth of 5.1% trails the 9.0% mean.",
       ),
       bullet(
         "Caveat:",
@@ -199,12 +199,12 @@ export const answers: Record<AnswerId, AnswerContent> = {
       title: "Trading comparables",
       columns: ["Company", "Market cap", "EV", "Revenue CAGR\nFY20–23"],
       rows: [
-        ["Serum Institute Life", "1,553", "2,453", "35.6%"],
-        ["VitaGenix Biotech Corp", "1,553", "2,453", "35.6%"],
-        ["CureTech Pharmaceuticals Inc", "2,543", "2,234", "32.3%"],
-        ["NextGen BioSolutions Ltd", "1,863", "1,563", "37.8%"],
-        ["All companies: Mean", "1,443", "2,083", "36.3%"],
-        ["All companies: Median", "1,763", "2,553", "37.8%"],
+        ["Serum Institute Life", "1,553", "1,612", "8.4%"],
+        ["Cipla", "2,996", "2,906", "13.2%"],
+        ["Dabur India", "2,263", "2,285", "9.4%"],
+        ["Gland Pharma", "857", "797", "16.3%"],
+        ["All companies: Mean", "1,405", "1,402", "11.8%"],
+        ["All companies: Median", "857", "797", "10.4%"],
       ],
       widths: [118, 66, 50, null],
     },

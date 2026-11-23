@@ -1,4 +1,4 @@
-import Svg, { Path, Rect } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 
 /** Icons for the citation drawer, drawn from Figma 602:4423. Each takes a colour; sizes are the design's. */
 type P = { color?: string; size?: number };
@@ -212,21 +212,6 @@ export function Expand({ color = "#525866", size = 16 }: P) {
       <Path
         d="M5.5 2.5H2.5V5.5M2.5 2.5L6 6M5.5 13.5H2.5V10.5M2.5 13.5L6 10M13.5 5.5V2.5H10.5M13.5 2.5L10 6M13.5 10.5V13.5H10.5M13.5 13.5L10 10"
         stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-/** Collapse (Figma 774:4371): the 32px dark button with four corner arrows pointing inwards, drawn whole. */
-export function CollapseButton({ size = 32 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <Rect width={32} height={32} rx={8} fill="black" fillOpacity={0.8} />
-      <Path
-        d="M9.41964 12.9821H12.9821V9.41964M12.9821 12.9821L8.82589 8.82589M9.41964 17.7321H12.9821V21.2946M12.9821 17.7321L8.82589 21.8884M17.7321 9.41964V12.9821H21.2946M17.7321 12.9821L21.8884 8.82589M17.7321 21.2946V17.7321H21.2946M17.7321 17.7321L21.8884 21.8884"
-        stroke="white"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

@@ -1,4 +1,4 @@
-import { Block, NoteSection, Segment } from './types';
+import { Block, NoteSection, Segment, TableBlock, ChartBlock } from './types';
 
 /**
  * Research note content for Romsons Group.
@@ -22,6 +22,47 @@ const b = (lead: string, text: string, marginBottom?: number): Block => ({
 });
 const spacer: Block = { kind: 'spacer' };
 
+/** Macro tailwinds table in section 1 (Figma 940:44818); `[n]` markers are citations. */
+const tailwinds: TableBlock = {
+  kind: 'table',
+  title: 'Macro tailwinds - government capex and project scale:',
+  columns: [
+    { label: 'Tailwind', width: 124 },
+    { label: 'Impact', width: 66 },
+    { label: 'Timeline', width: 84 },
+    { label: 'Description', width: 380 },
+  ],
+  rows: [
+    ['National Infrastructure Pipeline (NIP)', 'High', 'Short-Med', "Expanded to ~₹213 Tn / ~14,500 projects; transport & logistics ~71% share. Core NIP sector mix (per original FY20–25 plan): Power 32%, Roads 18%, Urban 13%, Railways 10%, Irrigation 9%. L&T's own domestic infra prospect pipeline stood at ₹6.97 Tn for FY22, and grew to ₹6.5 Tn for FY24 — a direct read on project volume for geosynthetic suppliers[4]."],
+    ['Record FY26 budgetary allocation', 'High', 'Short-Med', "₹11.21 lakh crore allocated to infra capex in FY26; highway construction pace at ~34 km/day. Historic context: infra ministries' spend has risen sharply since FY20 under NIP; L&T concalls confirm the government capex thrust is driving tendering activity across water, roads, metros, and T&D[9]."],
+    ['Multi-year infra program continuity', 'High', 'Med-Long', 'CII has recommended a ~₹150 lakh crore infra investment plan for 2026–2032. Bharatmala Phase I (~24,800 km) nearing completion with Phase II(A) of 8,100+ km planned. Vision 2047 targets 50,000 km of high-speed roads[1,2].'],
+    ['Quality Control Orders (QCOs)', 'High', 'Short-Med', 'Mandatory BIS certification for geosynthetic products is pushing demand from unorganised to certified, organised manufacturers, widening the addressable market for compliant players[11].'],
+    ['Water & irrigation spending', 'Medium', 'Med-Long', 'Expanded outlays on canal lining, reservoirs and flood-control works increase use of geomembranes and geotextiles in water-resource projects[7].'],
+    ['Rail & metro network expansion', 'Medium', 'Short-Med', 'Dedicated freight corridors, new rail lines and metro construction require ground stabilisation, drainage and embankment reinforcement products[15].'],
+  ],
+  marginBottom: 16,
+};
+
+/** Employee sentiment chart in section 2, in the style of Figma 940:49601. The scores are example data. */
+const sentiment: ChartBlock = {
+  kind: 'chart',
+  title: 'Employee review score by year',
+  subtitle: 'Romsons International, out of 5, from public employee-review sites[6]',
+  axis: { max: 5, step: 1, unit: '' },
+  bars: [
+    { label: '2023', value: 3.9 },
+    { label: '2024', value: 3.7 },
+    { label: '2025', value: 3.4 },
+    { label: '2026', value: 3.1, strong: true },
+  ],
+  facts: [
+    { lead: 'Trend:', text: '−0.8 points since 2023' },
+    { lead: 'Most cited:', text: 'delayed salaries and pending bonuses' },
+    { lead: 'Caveat:', text: 'public reviews, unverified (system-derived)' },
+  ],
+  marginBottom: 16,
+};
+
 export const sections: NoteSection[] = [
   {
     id: 'company-overview',
@@ -36,6 +77,7 @@ export const sections: NoteSection[] = [
         'Romsons was established in 1952 as "Romsons Scientific and Surgical Industries" and formally incorporated as a private limited company on November 28, 1977. It operates as a manufacturer and distributor of medical equipment and devices, classified within the Health Care Equipment & Supplies sectordata [1,2,3,8].',
         12,
       ),
+      tailwinds,
       p(
         'The company manufactures a diverse portfolio of disposable medical devices, including urology catheters and surgical consumables, alongside a range of patient care products such as BP monitors, blood glucose meters, nebulizers, adult diapers, and breast pumps[4]. Romsons serves healthcare providers in India and internationally, with a distribution network that includes warehouses in all state capitals and exports to 65-75 countries[7].',
         16,
@@ -47,6 +89,7 @@ export const sections: NoteSection[] = [
       b('Single-use pioneer:', 'Credited with helping move Indian hospitals from reusable to single-use medical devices, a shift driven by infection-control standards that became the foundation of its urology and surgical consumables franchise[7].', 8),
       b('Portfolio broadening:', 'Extended beyond hospital disposables into consumer-facing patient care products such as BP monitors, glucose meters, nebulizers, adult diapers and breast pumps, reducing dependence on a single customer type[4].', 8),
       b('National and export reach:', 'Built warehousing in every state capital for fast hospital and distributor replenishment, and now ships to an estimated 65-75 countries[7,10].', 8),
+      b('Revenue growth:', 'Operating revenue grew 14% year on year, from ₹512 crore in FY2022 to ₹584 crore in FY2023[16,19].', 8),
       b('Strategic capital:', 'A subsidiary of Temasek took a minority stake as a long-term partner to support global expansion, a meaningful external validation of the business and its governance[3,8,13].', 16),
       h('Business model at a glance:'),
       b('Manufacture and distribute:', 'Romsons makes the majority of what it sells and also distributes complementary products, which lets it offer hospitals a broad single-vendor basket[4,5].', 8),
@@ -77,6 +120,7 @@ export const sections: NoteSection[] = [
         'What makes us pause is the general employee sentiment, which has been reported as negative and declining in 2026, according to Revelio Labs data. Employee reviews from platforms like Justdial indicate concerns about inefficient management, specifically that higher-level officials are perceived as not prioritizing timely work completion. Furthermore, reviews for "Romsons International" highlight issues such as delayed salaries and pending bonuses[6]. System-derived: This suggests potential internal operational inefficiencies and compensation management issues that could impact talent retention and overall organizational health.',
         16,
       ),
+      sentiment,
       h('Corporate and regulatory standing'),
       p(
         'Romsons Group Private Limited is an unlisted private company incorporated on November 28, 1977, with its registered office in Agra, Uttar Pradesh (CIN U24236UP1977PTC004511). Registry aggregators show the entity as active. None of the public sources reviewed so far surfaced regulatory action, product recalls or licence suspensions, but this reflects desk research only and has not yet been confirmed through formal searches.',

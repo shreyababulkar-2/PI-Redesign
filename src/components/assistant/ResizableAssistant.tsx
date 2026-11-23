@@ -11,6 +11,7 @@ import { colors } from "../../theme";
 import { useHover } from "../../hooks/useHover";
 import { AssistantPanel } from "./AssistantPanel";
 import { DocumentViewer } from "../viewer/DocumentViewer";
+import { CitationDrawer } from "../benchmarking/CitationDrawer";
 import {
   ENTER_MS,
   EXIT_MS,
@@ -146,6 +147,7 @@ export function ResizableAssistant() {
         />
         <View style={styles.overlay}>
           <AssistantPanel onCollapse={() => setOverlayOpen(false)} />
+          <CitationDrawer />
           <DocumentViewer />
         </View>
       </>
@@ -189,6 +191,8 @@ export function ResizableAssistant() {
       >
         <AssistantPanel />
       </View>
+      {/* A benchmarking figure's citations cover the assistant, as the document viewer does. */}
+      <CitationDrawer />
       <DocumentViewer />
       {!viewerOpen && (
         <View

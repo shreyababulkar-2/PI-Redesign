@@ -30,6 +30,12 @@ const actions = [
 function sectionText(section: NoteSection): string {
   const lines = section.body.map((b) => {
     if (b.kind === 'spacer') return '';
+    if (b.kind === 'table') {
+      return [b.title, b.columns.map((c) => c.label).join('\t'), ...b.rows.map((r) => r.join('\t'))].join('\n');
+    }
+    if (b.kind === 'chart') {
+      return [b.title, b.subtitle, ...b.bars.map((x) => `${x.label}: ${x.value}${b.axis.unit}`), ...b.facts.map((f) => `${f.lead} ${f.text}`)].join('\n');
+    }
     const text = b.segments.map((s) => s.text).join('');
     return b.kind === 'bullet' ? `• ${text}` : text;
   });

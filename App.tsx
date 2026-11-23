@@ -15,6 +15,7 @@ import { SelectionContextProvider } from "./src/state/selectionContext";
 import { ActiveTabProvider } from "./src/state/activeTab";
 import { TextSizeProvider } from "./src/state/textSize";
 import { DocumentViewerProvider } from "./src/state/documentViewer";
+import { BenchmarkCitationProvider } from "./src/state/benchmarkCitation";
 import { SourcesDrawerProvider } from "./src/state/sourcesDrawer";
 
 function CurrentScreen() {
@@ -49,9 +50,11 @@ export default function App() {
             <SelectionContextProvider>
               <SourcesDrawerProvider>
                 <DocumentViewerProvider>
-                  <ScreenProvider>
-                    <CurrentScreen />
-                  </ScreenProvider>
+                  <BenchmarkCitationProvider>
+                    <ScreenProvider>
+                      <CurrentScreen />
+                    </ScreenProvider>
+                  </BenchmarkCitationProvider>
                 </DocumentViewerProvider>
               </SourcesDrawerProvider>
             </SelectionContextProvider>
