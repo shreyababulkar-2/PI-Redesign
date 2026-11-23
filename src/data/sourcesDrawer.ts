@@ -1,5 +1,5 @@
 import { CITATION_GROUP, citationNumbers, sourceFor } from "./citations";
-import { NoteSection } from "./types";
+import { NoteSection, segmentsOf } from "./types";
 
 /**
  * How many times each citation number is cited in a section's text. A group like `[1,2,3,8]` counts once for each
@@ -10,8 +10,7 @@ export function sectionCitationCounts(
 ): Map<number, number> {
   const counts = new Map<number, number>();
   for (const block of section.body) {
-    if (block.kind === "spacer") continue;
-    for (const seg of block.segments) {
+    for (const seg of segmentsOf(block)) {
       seg.text.split(CITATION_GROUP).forEach((part, i) => {
         if (i % 2 === 1)
           citationNumbers(part).forEach((n) =>

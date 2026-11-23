@@ -5,6 +5,8 @@ export const fonts = {
   geistRegular: 'Geist_400Regular',
   geistMedium: 'Geist_500Medium',
   geistSemiBold: 'Geist_600SemiBold',
+  geistMonoRegular: 'GeistMono_400Regular',
+  geistMonoMedium: 'GeistMono_500Medium',
   monaSansRegular: 'MonaSans_400Regular',
   interRegular: 'Inter_400Regular',
 } as const;

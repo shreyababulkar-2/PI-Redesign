@@ -1,5 +1,9 @@
-/** A source a citation points to: a web page (with its host) or a file in the data room. */
-export type Source = { title: string; kind: 'web' | 'dataroom'; host: string };
+/**
+ * A source a citation points to: a web page (with its host), a file in the data room, or a database. A database is not
+ * shown as such: its drawer explains the query behind the figure, or shows the SQL (see `databaseSources.ts`). Its `host`
+ * is the database's name.
+ */
+export type Source = { title: string; kind: 'web' | 'dataroom' | 'database'; host: string };
 
 /** Example sources, by citation number: 1, 2, 3 and 8 are from Figma "WIP - Citations" (501:7918), the rest are made up to match. */
 const SOURCES: Record<number, Source> = {
@@ -26,6 +30,8 @@ const SOURCES: Record<number, Source> = {
   16: { title: 'Romsons Group: Key Financials and Peer Comparison', kind: 'web', host: 'economictimes.com' },
   17: { title: 'Poly Medicure Annual Report FY2024-25', kind: 'web', host: 'ibef.org' },
   18: { title: 'Peer_Benchmark_Model_v3.xlsx', kind: 'dataroom', host: 'Data Room' },
+  // A database source (Figma 916:23035, 916:23883, 916:35330): the figure comes from a query, not a document.
+  19: { title: 'Revenue by fiscal year', kind: 'database', host: 'Private circle database' },
 };
 
 export function sourceFor(n: number): Source {

@@ -1,19 +1,26 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ComponentRef, ReactNode, useRef, useState } from "react";
 import { Image } from "expo-image";
 import {
+  Platform,
   Pressable,
   ScrollView,
   ScrollViewInstance,
   StyleSheet,
   Text,
   View,
+  ViewStyle,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { colors, fonts } from "../../theme";
 import {
   benchmarkColumns,
+  CellSource,
   Cell,
+  cellCitation,
   Company,
+  rowCitation,
+  RowKind,
+  TableId,
   Trend,
 } from "../../data/benchmarking";
 import { Icon } from "../Icon";
@@ -22,24 +29,49 @@ import { press, transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { WithTooltip } from "../Tooltip";
 import { useTextSize } from "../../state/textSize";
+import { useSourceCard } from "./SourceCard";
+import { OVERWRITE, useBenchmarkCitation } from "../../state/benchmarkCitation";
+import { useAssistantOverlay } from "../../state/assistantOverlay";
+import { CITATION_TARGETS, cellId } from "./citationTargets";
 
+/**
+ * Comparison table, set out like a spreadsheet (Figma "Benchmarking", 829:2892 and the toggle-on states 829:6550,
+ * 829:8429, 829:10779): column letters across the top, row numbers down the left, hairline borders on every cell and a
+ * header of two tiers with "Company name" merged across both. The row numbers and the company column stay put while the
+ * metric columns scroll sideways (`position: sticky`). With citations on, a small corner flag marks every sourced
+ * figure (amber when the sources agree, red when they disagree) and hovering one opens the card of its sources. A flag
+ * on a row number marks a sourced row; like the others it shows only while citations are on.
+ */
+
+const ROW_NUM_W = 36;
 const NAME_W = 219;
-const HEADER_H = 69;
-const COMPANY_H = 34;
-const STAT_H = 40;
-const TITLE_H = 32;
-/** White space between two rows, with the 1px hairline centred in it (Figma 499:17736: a 34px row, 2px, line, 2px). */
-const ROW_GAP = 4;
-/** The grey 1px lines in the header: between the name column and the metrics, between column groups and between sub-columns. The body has none. */
-const GUTTER = colors.slate200;
+const ACTION_W = 36;
+const LETTER_H = 28;
+const TIER_H = 30;
+const BAND_H = 30;
+const ROW_H = 32;
 
-/** Total width of the scrolling metric columns: each group's leaf columns plus 1px between groups. */
-const MID_W =
-  benchmarkColumns.reduce(
-    (sum, g) => sum + g.subs.reduce((s, c) => s + c.width, 0),
-    0,
-  ) +
-  (benchmarkColumns.length - 1);
+/**
+ * Strokes and fills as in the Figma table (905:10413): the header, letters and row numbers sit on slate 50 with slate 200
+ * lines; the body cells are white with the fainter slate 100 lines; a section band is pine 25.
+ */
+const LINE = colors.slate200;
+const BODY_LINE = colors.slate100;
+const HEAD = colors.slate50;
+const SUB = colors.slate50;
+const BAND = "#f0f5f4";
+/** Hover tint of a sourced figure or row: a pale amber, also where the sources disagree (Figma 829:8429, 829:18458). */
+const TINT = "#fffaeb";
+/** The figure whose citation drawer is open. */
+const ACTIVE = colors.neutralChipBg;
+/** Corner flags: the library's amber, and a deep red for conflicts. */
+const FLAG = "#ffd268";
+const FLAG_CONFLICT = "#ad1f2b";
+
+const LEAF_WIDTHS = benchmarkColumns.flatMap((g) => g.subs.map((s) => s.width));
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+/** The Figma rows (905:10476) carry the arrow only beside the EBITDA margin figures (leaf columns 7 and 8). */
+const ARROW_COLS = new Set([7, 8]);
 
 /** Currency unit of the Market cap and EV columns. 1 Cr = 10 Mn. */
 export type Unit = "Mn" | "Cr";
@@ -84,294 +116,425 @@ export function createScrollGroup(): ScrollGroup {
 
 export type TableItem =
   | { type: "header" }
-  | { type: "gap"; height: number }
   | { type: "title"; text: string }
   | { type: "company"; company: Company }
   | { type: "stat"; label: string; values: string[] };
 
 type Props = {
   items: TableItem[];
-  /** Adds a fixed 36px column on the right with a chevron on each company row (Figma 499:16408). */
+  /** Adds a fixed 36px column at the right end with a chevron on each company row (Figma 499:16408). */
   rowAction?: boolean;
   /** Keeps this table's horizontal scroll in step with the other tables in the group. */
   scrollGroup?: ScrollGroup;
   /** Unit for the Market cap and EV columns. */
   unit?: Unit;
+  /** Which table this is, so its figures get their own sources. */
+  table: TableId;
+  /** The number of the first row; the second table carries on from the first (3 rows in the overall table, so 4). */
+  rowStart?: number;
+  /** Citations toggle: corner flags on the sourced figures and the source card on hover. */
+  citations?: boolean;
 };
 
-/** A design height grown in proportion to the text size, like the column widths, so rows keep their padding. */
+/** A design size grown in proportion to the text size, like the column widths, so rows keep their padding. */
 const grow = (px: number, scale: number) => Math.round(px * scale);
-/** One header row (a group title or the sub-columns) at this text size; the header is two of them and a 1px gutter. */
-const headerRow = (scale: number) => grow(34, scale);
-const headerHeight = (scale: number) => headerRow(scale) * 2 + 1;
 
-const heightOf = (item: TableItem, scale: number) =>
-  item.type === "header"
-    ? headerHeight(scale)
-    : item.type === "gap"
-      ? grow(item.height, scale)
-      : item.type === "title"
-        ? grow(TITLE_H, scale)
-        : item.type === "company"
-          ? grow(COMPANY_H, scale)
-          : grow(STAT_H, scale);
+/** Sticky is web-only; on native the pinned columns simply scroll with the rest. */
+const sticky = (extra: ViewStyle): ViewStyle =>
+  (Platform.OS === "web" ? { position: "sticky", ...extra } : extra) as ViewStyle;
 
-/**
- * Comparison table (Figma 373:23715). Three lanes share one list of fixed-height items so rows line up: the
- * company name column on the left, the metric columns in a horizontal scroller in the middle, and a fixed
- * actions column on the right with a soft edge shadow. Group titles are drawn over all three lanes.
- */
 export function BenchmarkTable({
   items,
   rowAction = false,
   unit = "Mn",
   scrollGroup,
+  table,
+  rowStart = 1,
+  citations = false,
 }: Props) {
-  // Columns grow with the text size (in proportion, for now) so figures and headers keep their room.
   const { scale } = useTextSize();
-  // Once the metrics have moved, the name column gets an edge shadow to show it is pinned over them.
-  const [scrolled, setScrolled] = useState(false);
   const scroller = useRef<ScrollViewInstance | null>(null);
-  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => void (settle.current && clearTimeout(settle.current)),
-    [],
-  );
-  // A thin rule separates a row from the row above it (not from a header, title or gap).
-  const ruled = (i: number) => {
-    const here = items[i].type;
-    const prev = items[i - 1]?.type;
-    return (
-      (here === "company" || here === "stat") &&
-      (prev === "company" || prev === "stat")
-    );
-  };
-  // Each row sits ROW_GAP below the row above it; the hairline lives in that gap.
-  const rowGap = grow(ROW_GAP, scale);
-  const heights = items.map(
-    (item, i) => heightOf(item, scale) + (ruled(i) ? rowGap : 0),
-  );
-  // Top edge of each item: the sum of the heights above it.
-  const titleTops = items.map((_, i) =>
-    heights.slice(0, i).reduce((sum, h) => sum + h, 0),
-  );
+  // The row whose number is hovered: the whole row takes the tint.
+  const [hoverRow, setHoverRow] = useState<number | null>(null);
 
-  const lane = (render: (item: TableItem, i: number) => ReactNode) =>
-    items.map((item, i) => {
-      const body =
-        item.type === "gap" || item.type === "title" ? null : render(item, i);
-      return (
-        <View
-          key={i}
-          style={[{ height: heights[i] }, ruled(i) && { paddingTop: rowGap }]}
-        >
-          {ruled(i) && (
-            <View
-              pointerEvents="none"
-              style={[styles.rule, { top: (rowGap - 1) / 2 }]}
-            />
-          )}
-          {body}
-        </View>
-      );
-    });
+  const rn = ROW_NUM_W;
+  const nameW = grow(NAME_W, scale);
+  const leaf = LEAF_WIDTHS.map((w) => w * scale);
+  const midW = leaf.reduce((a, b) => a + b, 0);
+  const actionW = rowAction ? ACTION_W : 0;
+  const totalW = rn + nameW + midW + actionW;
+
+  // Row numbers and citation row indexes (company and stat rows only).
+  let number = rowStart;
+  let dataRow = 0;
+  const rows = items.map((item) => {
+    if (item.type === "header") return { item, number: null, dataRow: null };
+    const n = number++;
+    if (item.type === "title") return { item, number: n, dataRow: null };
+    return { item, number: n, dataRow: dataRow++ };
+  });
 
   return (
-    <View style={styles.root}>
-      <View
-        style={[
-          styles.nameLane,
-          { width: Math.round(NAME_W * scale) },
-          scrolled && styles.nameLaneScrolled,
-        ]}
-      >
-        {lane((item) =>
-          item.type === "header" ? (
-            <View style={styles.nameHead}>
-              <Text style={styles.headText}>Company name</Text>
-            </View>
-          ) : item.type === "company" ? (
-            <View style={styles.nameCell}>
-              <Logo company={item.company} />
-              <Text numberOfLines={1} style={styles.nameText}>
-                {item.company.name}
-              </Text>
-            </View>
-          ) : item.type === "stat" ? (
-            <View style={styles.nameCell}>
-              <Text style={styles.statLabel}>{item.label}</Text>
-            </View>
-          ) : null,
-        )}
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.scroller}
-        contentContainerStyle={styles.scrollerContent}
-        scrollEventThrottle={16}
-        ref={(view) => {
-          scroller.current = view;
-          if (scrollGroup && view) scrollGroup.register(view);
-        }}
-        onScroll={(e) => {
-          const x = e.nativeEvent.contentOffset.x;
-          setScrolled(x > 1);
-          // Scroll events are throttled and the last one can be dropped (e.g. when another table moves this one
-          // back to 0), so read the real offset once scrolling has stopped.
-          if (settle.current) clearTimeout(settle.current);
-          settle.current = setTimeout(() => {
-            const node = (
-              scroller.current as unknown as {
-                getScrollableNode?: () => HTMLElement;
-              } | null
-            )?.getScrollableNode?.();
-            if (node) setScrolled(node.scrollLeft > 1);
-          }, 100);
-          scrollGroup?.moved(x);
-        }}
-      >
-        {/* At the design width the columns are exactly as drawn; wider, they share the extra space. */}
-        <View style={[styles.mid, { minWidth: Math.round(MID_W * scale) }]}>
-          {lane((item) =>
-            item.type === "header" ? (
-              <MetricHeader scale={scale} />
-            ) : item.type === "company" ? (
-              <MetricRow cells={item.company.cells} unit={unit} scale={scale} />
-            ) : item.type === "stat" ? (
-              <MetricRow
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.scroller}
+      scrollEventThrottle={16}
+      ref={(view) => {
+        scroller.current = view;
+        if (scrollGroup && view) scrollGroup.register(view);
+      }}
+      onScroll={(e) => scrollGroup?.moved(e.nativeEvent.contentOffset.x)}
+    >
+      <View style={{ width: totalW, minWidth: "100%" }}>
+        {rows.map(({ item, number: num, dataRow: di }, i) => {
+          if (item.type === "header")
+            return (
+              <HeaderRows
+                key={i}
                 scale={scale}
-                cells={item.values.map((text) => ({ text }))}
-                unit={unit}
-                stat
+                nameW={nameW}
+                leaf={leaf}
+                actionW={actionW}
               />
-            ) : null,
-          )}
-        </View>
-      </ScrollView>
-
-      {rowAction && (
-        <View style={styles.actions}>
-          {lane((item) =>
-            item.type === "header" ? (
-              <View style={styles.actionsHead} />
-            ) : item.type === "company" ? (
-              <RowChevron company={item.company.name} />
-            ) : null,
-          )}
-        </View>
-      )}
-
-      {/* Group titles sit over all three lanes. */}
-      {items.map((item, i) =>
-        item.type === "title" ? (
-          <View
-            key={`t${i}`}
-            style={[
-              styles.title,
-              { top: titleTops[i], height: grow(TITLE_H, scale) },
-            ]}
-            pointerEvents="none"
-          >
-            <Text style={styles.titleText}>{item.text}</Text>
-          </View>
-        ) : null,
-      )}
-    </View>
-  );
-}
-
-function MetricHeader({ scale }: { scale: number }) {
-  const row = headerRow(scale);
-  return (
-    <View style={[styles.metricHeader, { height: headerHeight(scale) }]}>
-      {benchmarkColumns.map((group) => {
-        const width = group.subs.reduce((s, c) => s + c.width, 0);
-        return (
-          <View
-            key={group.title}
-            style={[
-              styles.group,
-              { flexGrow: width, flexBasis: width * scale },
-            ]}
-          >
-            <View style={[styles.groupTitle, { height: row }]}>
-              <Text style={styles.headText}>{group.title}</Text>
-            </View>
-            <View style={[styles.subRow, { height: row }]}>
-              {group.subs.map((sub, si) => (
-                <View
-                  key={sub.label}
-                  style={[
-                    styles.subCell,
-                    {
-                      height: row,
-                      flexGrow: sub.width,
-                      flexBasis: sub.width * scale,
-                    },
-                    si < group.subs.length - 1 && styles.subDivider,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.headText,
-                      sub.label.startsWith("As of") && styles.asOf,
-                    ]}
-                  >
-                    {sub.label}
+            );
+          if (item.type === "title")
+            return (
+              <TitleRow
+                key={i}
+                text={item.text}
+                number={num!}
+                nameW={nameW}
+                restW={midW + actionW}
+                height={grow(BAND_H, scale)}
+              />
+            );
+          const kind: RowKind =
+            item.type === "company"
+              ? "company"
+              : /median/i.test(item.label)
+                ? "median"
+                : "mean";
+          const texts =
+            item.type === "company"
+              ? item.company.cells.map((c) => c.text)
+              : item.values;
+          const sources = citations ? rowCitation(table, di!) : undefined;
+          const tinted = hoverRow === i;
+          return (
+            <DataRow
+              key={i}
+              height={grow(ROW_H, scale)}
+              number={num!}
+              nameW={nameW}
+              actionW={actionW}
+              rowSources={sources}
+              tinted={tinted}
+              onRowHover={(on) => setHoverRow(on ? i : null)}
+              name={
+                item.type === "company" ? (
+                  <View style={styles.nameInner}>
+                    <Logo company={item.company} />
+                    <Text numberOfLines={1} style={styles.nameText}>
+                      {item.company.name}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text numberOfLines={1} style={styles.statLabel}>
+                    {item.label}
                   </Text>
-                </View>
+                )
+              }
+              action={
+                rowAction && item.type === "company" ? (
+                  <RowChevron company={item.company.name} />
+                ) : null
+              }
+            >
+              {texts.map((text, col) => (
+                <MetricCell
+                  key={col}
+                  width={leaf[col]}
+                  text={col < 2 ? inUnit(text, unit) : text}
+                  cell={item.type === "company" ? item.company.cells[col] : undefined}
+                  id={cellId(table, di!, col)}
+                  stat={item.type === "stat"}
+                  arrow={ARROW_COLS.has(col)}
+                  tinted={tinted}
+                  citation={
+                    citations ? cellCitation(table, kind, di!, col, text) : undefined
+                  }
+                />
               ))}
-            </View>
-          </View>
-        );
-      })}
-    </View>
+            </DataRow>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
-function MetricRow({
-  cells,
-  stat,
-  unit,
+/* ------------------------------------------------------------------ header */
+
+/** The column-letter row and the two header tiers; "Company name" is one cell over both tiers. */
+function HeaderRows({
   scale,
+  nameW,
+  leaf,
+  actionW,
 }: {
   scale: number;
-  cells: Cell[];
-  stat?: boolean;
-  unit: Unit;
+  nameW: number;
+  leaf: number[];
+  actionW: number;
 }) {
-  const widths = benchmarkColumns.flatMap((g) => g.subs.map((s) => s.width));
-  // Group starts get the 1px gutter the header has between groups.
-  const gutter = new Set<number>();
-  let n = 0;
-  benchmarkColumns.forEach((g, gi) => {
-    if (gi > 0) gutter.add(n);
-    n += g.subs.length;
-  });
+  const letterH = grow(LETTER_H, scale);
+  const tier = grow(TIER_H, scale);
   return (
-    <View style={styles.metricRow}>
-      {cells.map((cell, i) => (
-        <View
-          key={i}
-          style={[
-            styles.metricCell,
-            { flexGrow: widths[i], flexBasis: widths[i] * scale },
-            gutter.has(i) && { marginLeft: 1 },
-          ]}
-        >
-          <Text
+    <>
+      {/* Column letters */}
+      <View style={{ flexDirection: "row", height: letterH }}>
+        <View style={[styles.left, sticky({ left: 0, zIndex: 5 })]}>
+          <View style={[styles.head, { width: ROW_NUM_W, height: letterH }]} />
+          <View style={[styles.head, { width: nameW, height: letterH }]}>
+            <Text style={styles.letter}>A</Text>
+          </View>
+        </View>
+        {leaf.map((w, i) => (
+          <View key={i} style={[styles.head, { width: w, height: letterH }]}>
+            <Text style={styles.letter}>{LETTERS[i + 1]}</Text>
+          </View>
+        ))}
+        {actionW > 0 && <View style={[styles.head, { width: actionW, height: letterH }]} />}
+      </View>
+
+      {/* Tier 1: group titles. The row itself is raised (every View is its own stacking layer on the web), so the merged
+          Company name cell can hang over tier 2 whichever way the metric columns are scrolled. */}
+      <View style={{ flexDirection: "row", height: tier, zIndex: 2 }}>
+        <View style={[styles.left, sticky({ left: 0, zIndex: 6 })]}>
+          <View style={[styles.head, { width: ROW_NUM_W, height: tier }]} />
+          <View style={[styles.head, { width: nameW, height: tier }]} />
+          <View
             style={[
-              stat ? styles.statValue : styles.value,
-              !stat && { color: TREND_COLOR[cell.trend ?? "up"] },
+              styles.head,
+              styles.merged,
+              { left: ROW_NUM_W, width: nameW, height: tier * 2, borderBottomColor: LINE },
             ]}
           >
-            {i < 2 ? inUnit(cell.text, unit) : cell.text}
-          </Text>
-          {!stat && cell.trend && <TrendMark trend={cell.trend} />}
+            <Text style={[styles.headText, styles.companyHead]}>Company name</Text>
+          </View>
         </View>
-      ))}
+        {benchmarkColumns.map((group) => {
+          const w = group.subs.reduce((s, c) => s + c.width, 0) * scale;
+          return (
+            <View key={group.title} style={[styles.head, { width: w, height: tier }]}>
+              <Text style={[styles.headText, styles.groupTitle]}>{group.title}</Text>
+            </View>
+          );
+        })}
+        {actionW > 0 && <View style={[styles.head, { width: actionW, height: tier }]} />}
+      </View>
+
+      {/* Tier 2: sub-columns */}
+      <View style={{ flexDirection: "row", height: tier }}>
+        {/* Transparent, so the merged Company name cell hanging down from tier 1 shows through. */}
+        <View style={[styles.left, styles.clear, sticky({ left: 0, zIndex: 5 })]}>
+          <View style={[styles.head, { width: ROW_NUM_W, height: tier }]} />
+          <View style={{ width: nameW, height: tier }} />
+        </View>
+        {benchmarkColumns.flatMap((group) =>
+          group.subs.map((sub) => (
+            <View
+              key={group.title + sub.label}
+              style={[styles.sub, { width: sub.width * scale, height: tier }]}
+            >
+              <Text style={[styles.subText, sub.label.startsWith("As of") && styles.asOf]}>
+                {sub.label}
+              </Text>
+            </View>
+          )),
+        )}
+        {actionW > 0 && <View style={[styles.sub, { width: actionW, height: tier }]} />}
+      </View>
+    </>
+  );
+}
+
+/** A group title, spanning the whole table: a banded row whose label stays with the pinned columns. */
+function TitleRow({
+  text,
+  number,
+  nameW,
+  restW,
+  height,
+}: {
+  text: string;
+  number: number;
+  nameW: number;
+  restW: number;
+  height: number;
+}) {
+  return (
+    <View style={{ flexDirection: "row", height }}>
+      <View style={[styles.left, sticky({ left: 0, zIndex: 3 })]}>
+        <View style={[styles.head, { width: ROW_NUM_W, height }]}>
+          <Text style={styles.rowNum}>{number}</Text>
+        </View>
+        <View style={[styles.band, { width: nameW, height }]}>
+          <Text numberOfLines={1} style={styles.bandText}>
+            {text}
+          </Text>
+        </View>
+      </View>
+      <View style={[styles.band, { width: restW, height }]} />
+    </View>
+  );
+}
+
+/* --------------------------------------------------------------------- rows */
+
+function DataRow({
+  height,
+  number,
+  nameW,
+  actionW,
+  rowSources,
+  tinted,
+  onRowHover,
+  name,
+  action,
+  children,
+}: {
+  height: number;
+  number: number;
+  nameW: number;
+  actionW: number;
+  rowSources?: CellSource[];
+  tinted: boolean;
+  onRowHover: (on: boolean) => void;
+  name: ReactNode;
+  action: ReactNode;
+  children: ReactNode;
+}) {
+  const card = useSourceCard();
+  const ref = useRef<ComponentRef<typeof View>>(null);
+  const tint = tinted ? { backgroundColor: TINT } : null;
+  return (
+    <View style={{ flexDirection: "row", height }}>
+      <View style={[styles.left, sticky({ left: 0, zIndex: 3 })]}>
+        <Pressable
+          ref={ref}
+          accessibilityLabel={rowSources ? `Row ${number}, ${rowSources.length} sources` : `Row ${number}`}
+          onHoverIn={() => {
+            if (!rowSources) return;
+            onRowHover(true);
+            card.show(ref.current, { sources: rowSources, row: true });
+          }}
+          onHoverOut={() => {
+            if (!rowSources) return;
+            onRowHover(false);
+            card.hide();
+          }}
+          style={[styles.head, { width: ROW_NUM_W, height }, tint, rowSources && pointer]}
+        >
+          <Text style={styles.rowNum}>{number}</Text>
+          {rowSources && <Flag color={FLAG} />}
+        </Pressable>
+        <View style={[styles.nameCell, { width: nameW, height }, tint]}>{name}</View>
+      </View>
+      {children}
+      {actionW > 0 && (
+        <View style={[styles.cell, { width: actionW, height }, tint]}>{action}</View>
+      )}
+    </View>
+  );
+}
+
+function MetricCell({
+  width,
+  text: given,
+  cell,
+  id,
+  stat,
+  arrow,
+  tinted,
+  citation,
+}: {
+  width: number;
+  text: string;
+  cell?: Cell;
+  /** `table:row:column`, which the citation drawer is opened by. */
+  id: string;
+  stat: boolean;
+  arrow: boolean;
+  tinted: boolean;
+  citation?: ReturnType<typeof cellCitation>;
+}) {
+  const card = useSourceCard();
+  const { openId, open, pickOf } = useBenchmarkCitation();
+  const { setOpen: showAssistantPane } = useAssistantOverlay();
+  const ref = useRef<ComponentRef<typeof View>>(null);
+  const [hovered, setHovered] = useState(false);
+  // The figure whose drawer is open is marked in a stronger amber (Figma 829:19751).
+  const active = !!citation && openId === id;
+  // A value the reader typed in, or chose from the sources, replaces the one the table was given.
+  const pick = pickOf(id);
+  const own = CITATION_TARGETS.find((t) => t.id === id)?.value;
+  const chosen = pick.selected === OVERWRITE ? pick.overwrite?.value : pick.selected;
+  const text = citation && chosen && chosen !== own ? chosen : given;
+  const bg = active ? ACTIVE : citation && hovered ? TINT : tinted ? TINT : undefined;
+  return (
+    <Pressable
+      ref={ref}
+      disabled={!citation}
+      accessibilityLabel={citation ? `${text}, ${citation.sources.length} sources` : undefined}
+      onPress={() => {
+        if (!citation) return;
+        card.hide();
+        open(id);
+        // In a window too narrow for the assistant beside the note, the drawer comes up in the overlay.
+        showAssistantPane(true);
+      }}
+      onHoverIn={() => {
+        if (!citation) return;
+        setHovered(true);
+        card.show(ref.current, { sources: citation.sources, conflict: citation.conflict });
+      }}
+      onHoverOut={() => {
+        setHovered(false);
+        card.hide();
+      }}
+      style={[
+        styles.cell,
+        styles.metric,
+        { width },
+        bg ? { backgroundColor: bg } : null,
+        citation && pointer,
+        transition(["background-color"], 120),
+      ]}
+    >
+      <Text
+        style={[
+          stat ? styles.statValue : styles.value,
+          !stat && cell?.trend ? { color: TREND_COLOR[cell.trend] } : null,
+        ]}
+      >
+        {text}
+      </Text>
+      {arrow && !stat && cell?.trend === "up" && <UpArrow />}
+      {/* Amber while the sources agree, red when they disagree. */}
+      {citation && <Flag color={citation.conflict ? FLAG_CONFLICT : FLAG} />}
+    </Pressable>
+  );
+}
+
+/** The 8px corner flag in the cell's top-right corner. */
+function Flag({ color }: { color: string }) {
+  return (
+    <View pointerEvents="none" style={styles.flag}>
+      <Svg width={8} height={8} viewBox="0 0 8 8">
+        <Path d="M0 0H8V8Z" fill={color} />
+      </Svg>
     </View>
   );
 }
@@ -382,36 +545,14 @@ const TREND_COLOR: Record<Trend, string> = {
   flat: "#a78025",
 };
 
-function TrendMark({ trend }: { trend: Trend }) {
-  const color = TREND_COLOR[trend];
-  if (trend === "flat")
-    return <Text style={[styles.approx, { color }]}>≈</Text>;
-  return (
-    <Svg width={10} height={10} viewBox="0 0 12 12" fill="none">
-      <Path
-        d={
-          trend === "up"
-            ? "M6 10.5V2M2.8 5.2L6 2l3.2 3.2"
-            : "M6 1.5V10M2.8 6.8L6 10l3.2-3.2"
-        }
-        stroke={color}
-        strokeWidth={1.2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
+/** The arrow beside a rising figure: the design's right-pointing arrow turned a quarter turn up (Figma 905:10504). */
+function UpArrow() {
+  return <Icon name="trendArrow" size={12} style={{ transform: [{ rotate: "-90deg" }] }} />;
 }
 
 function Logo({ company }: { company: Company }) {
   const { source, radius } = company.logo;
-  return (
-    <Image
-      source={source}
-      contentFit="cover"
-      style={[styles.logo, { borderRadius: radius }]}
-    />
-  );
+  return <Image source={source} contentFit="cover" style={[styles.logo, { borderRadius: radius }]} />;
 }
 
 /** The "more" (three dots) icon, as drawn in Figma at 28px. */
@@ -460,81 +601,82 @@ const text = {
 } as const;
 
 const styles = StyleSheet.create({
-  root: { flexDirection: "row", width: "100%", position: "relative" },
-  nameLane: {
-    width: NAME_W,
-    backgroundColor: colors.white,
-    zIndex: 2,
-    boxShadow: "2px 0px 4px rgba(0,0,0,0)",
-    ...transition(["box-shadow"], 200),
-  },
-  nameLaneScrolled: { boxShadow: "2px 0px 4px rgba(0,0,0,0.08)" },
-  scroller: { flex: 1, minWidth: 0 },
-  scrollerContent: { flexGrow: 1 },
-  mid: { flexGrow: 1, minWidth: MID_W },
-  rule: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: (ROW_GAP - 1) / 2,
-    height: 1,
-    backgroundColor: colors.slate100,
-  },
-  nameHead: {
-    height: "100%",
+  scroller: { width: "100%" },
+  left: { flexDirection: "row", backgroundColor: colors.white },
+  clear: { backgroundColor: "transparent" },
+  // Header-style cells: the row numbers, letters and group titles.
+  head: {
+    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 12,
-    backgroundColor: colors.slate100,
+    backgroundColor: HEAD,
     borderRightWidth: 1,
-    borderRightColor: GUTTER,
+    borderBottomWidth: 1,
+    borderColor: LINE,
   },
-  headText: { ...text, color: colors.slate800 },
+  merged: {
+    position: "absolute",
+    top: 0,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  // Column letters are slate 600; row numbers a touch lighter (Figma 905:10414, 905:10477).
+  letter: { ...text, color: colors.slate600 },
+  rowNum: { ...text, color: colors.slate500 },
+  headText: { ...text, color: colors.slate900 },
+  companyHead: { fontFamily: fonts.geistMedium, color: colors.slate800 },
+  groupTitle: { fontFamily: fonts.geistMedium },
+  sub: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: SUB,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: LINE,
+  },
+  subText: { ...text, fontSize: 10, color: colors.slate500 },
+  asOf: { fontSize: 10 },
+  band: {
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    backgroundColor: BAND,
+    borderBottomWidth: 1,
+    borderBottomColor: BODY_LINE,
+  },
+  bandText: { ...text, fontFamily: fonts.geistMedium, color: colors.slate800 },
   nameCell: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
+    backgroundColor: colors.white,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: BODY_LINE,
+    ...transition(["background-color"], 120),
   },
-  nameText: { ...text, color: colors.slate800, flexShrink: 1 },
+  nameInner: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
+  nameText: { ...text, color: colors.slate600, flexShrink: 1 },
   statLabel: {
     fontFamily: fonts.geistMedium,
     fontSize: 11,
     lineHeight: 18,
     letterSpacing: 0.08,
-    color: "#0e121b",
+    color: colors.slate800,
   },
   logo: { width: 16, height: 16 },
-  metricHeader: {
-    flexDirection: "row",
-    gap: 1,
-    height: HEADER_H,
-    // The 1px gutters between the column groups show this grey, not white (sampled from Figma 507:14578).
-    backgroundColor: GUTTER,
+  cell: {
+    backgroundColor: colors.white,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: BODY_LINE,
+    ...transition(["background-color"], 120),
   },
-  group: { backgroundColor: colors.slate100, gap: 1 },
-  groupTitle: {
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ebeef3",
-  },
-  subRow: { height: 34, flexDirection: "row" },
-  subCell: {
-    height: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.slate100,
-  },
-  subDivider: { borderRightWidth: 1, borderRightColor: GUTTER },
-  asOf: { fontSize: 10 },
-  metricRow: { flexDirection: "row", height: "100%" },
-  metricCell: {
-    height: "100%",
+  metric: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
+    justifyContent: "flex-end",
+    gap: 4,
+    paddingHorizontal: 10,
   },
   value: text,
   statValue: {
@@ -543,16 +685,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 18,
     letterSpacing: 0.08,
-    color: "#0e121b",
+    color: colors.slate800,
   },
-  approx: { ...text, fontSize: 12 },
-  actions: {
-    width: 36,
-    backgroundColor: colors.white,
-    boxShadow: "-2px 0px 4px rgba(0,0,0,0.04)",
-    zIndex: 2,
-  },
-  actionsHead: { height: "100%", backgroundColor: colors.slate100 },
+  flag: { position: "absolute", top: 0, right: 0, width: 8, height: 8 },
   actionsCell: { flex: 1, alignItems: "center", justifyContent: "center" },
   chevron: {
     width: 28,
@@ -564,16 +699,4 @@ const styles = StyleSheet.create({
     ...transition(["background-color"]),
   },
   chevronHover: { backgroundColor: colors.slate100 },
-  title: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: TITLE_H,
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    backgroundColor: "#f0f5f4",
-    zIndex: 3,
-  },
-  titleText: { ...text, color: colors.slate600 },
 });

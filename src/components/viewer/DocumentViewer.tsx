@@ -29,13 +29,18 @@ import { pointer } from "../../theme/cursor";
 import { LEAVE_EASING, press, transition } from "../../theme/motion";
 import { useHover } from "../../hooks/useHover";
 import { KebabMenu } from "../note/KebabMenu";
+import { Icon } from "../Icon";
+import { WithTooltip } from "../Tooltip";
 import { sections } from "../../data/sections";
+import { segmentsOf } from "../../data/types";
 import {
   citationNumbers,
   CITATION_GROUP,
   sourceFor,
 } from "../../data/citations";
 import { FILE_TARGETS, WEB_EXCERPTS } from "../../data/sourceExcerpts";
+import { DATABASE_SOURCES } from "../../data/databaseSources";
+import { DatabaseSource } from "./DatabaseSource";
 import { SheetData, WORKBOOKS } from "../../data/workbooks";
 import {
   ENTER_MS,
@@ -59,7 +64,6 @@ import {
   Folder,
   Globe,
   Expand,
-  CollapseButton,
   PageNext,
   PagePrev,
   Refresh,
@@ -69,11 +73,12 @@ import {
 
 
 type Source = ReturnType<typeof sourceFor>;
-type DocKind = "pdf" | "sheet" | "web";
+type DocKind = "pdf" | "sheet" | "web" | "database";
 
 /** What the source opens as: every kind opens in the same box, as the page, the document or the sheet it is. */
 function docKind(source: Source): DocKind {
   if (source.kind === "web") return "web";
+  if (source.kind === "database") return "database";
   return /\.xlsx?$/i.test(source.title) ? "sheet" : "pdf";
 }
 
@@ -83,8 +88,7 @@ function useAllCitations(): number[] {
     const found = new Set<number>();
     for (const section of sections)
       for (const block of section.body) {
-        if (block.kind === "spacer") continue;
-        for (const seg of block.segments)
+        for (const seg of segmentsOf(block))
           for (const part of seg.text.split(CITATION_GROUP))
             if (/^\[/.test(part))
               citationNumbers(part).forEach((n) => found.add(n));
@@ -101,8 +105,7 @@ function useClaims(): Map<number, Claim[]> {
     const map = new Map<number, Claim[]>();
     for (const section of sections)
       for (const block of section.body) {
-        if (block.kind === "spacer") continue;
-        for (const seg of block.segments) {
+        for (const seg of segmentsOf(block)) {
           const parts = seg.text.split(CITATION_GROUP);
           parts.forEach((part, i) => {
             if (i % 2 === 0) return;
@@ -232,14 +235,29 @@ function Drawer({ active, visible }: { active: number; visible: boolean }) {
         <View style={styles.root}>
           <Header />
           <View style={{ flex: 1 }}>
-            {/* Every source fills the rest of the drawer and scrolls inside its own viewer. */}
-            <View style={[styles.scroll, styles.body]}>
-              <Content
-                key={active}
-                n={active}
-                loadMs={settled ? 320 : ENTER_MS + 80}
-              />
-            </View>
+            {/* Every source fills the rest of the drawer and scrolls inside its own viewer; a database has no viewer, so
+                its whole drawer scrolls (the claim and source heading go up with the request and the result). */}
+            {sourceFor(active).kind === "database" ? (
+              <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.body}
+                showsVerticalScrollIndicator={false}
+              >
+                <Content
+                  key={active}
+                  n={active}
+                  loadMs={settled ? 320 : ENTER_MS + 80}
+                />
+              </ScrollView>
+            ) : (
+              <View style={[styles.scroll, styles.body]}>
+                <Content
+                  key={active}
+                  n={active}
+                  loadMs={settled ? 320 : ENTER_MS + 80}
+                />
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -262,7 +280,7 @@ function Header() {
           <ChevronLeft />
         </HeaderButton>
         <Text style={styles.count}>
-          Citation {active}
+          Citation {index + 1}
           <Text style={styles.countTotal}> /{all.length}</Text>
         </Text>
         <HeaderButton label="Next citation" onPress={() => go(1)}>
@@ -324,20 +342,23 @@ function Content({ n, loadMs }: { n: number; loadMs: number }) {
   if (!loaded)
     return (
       <ContentSkeleton
-        kind={docKind(source)}
+        kind={docKind(source) === "database" ? "web" : docKind(source)}
         associated={numbers.length > 1 ? numbers.length : 0}
       />
     );
   return (
     <>
       {claim && (
-        <View style={styles.section}>
-          <Text style={styles.label}>Claim from Research note</Text>
-          <ClaimBox claim={claim} />
+        // The claim and its associated citations belong together: 16px apart, where the blocks around them are 24 (Figma 916:34826).
+        <View style={{ gap: 16 }}>
+          <View style={styles.section}>
+            <Text style={styles.label}>Claim from Research note</Text>
+            <ClaimBox claim={claim} />
+          </View>
+          {numbers.length > 1 && (
+            <Associated n={n} claim={claim} numbers={numbers} />
+          )}
         </View>
-      )}
-      {claim && numbers.length > 1 && (
-        <Associated n={n} claim={claim} numbers={numbers} />
       )}
       <View style={styles.dashed} />
       <SourceHead source={source} n={n} onExpand={() => setExpanded(true)} />
@@ -378,15 +399,16 @@ function ClaimBox({ claim }: { claim: Claim }) {
   );
 }
 
-/** True inside the full-size view, where the collapse button takes the corner the zoom control normally has. */
-const InExpanded = createContext(false);
+/** Set inside the full-size view to the function that puts it away; the view's own header carries the collapse button. */
+const InExpanded = createContext<(() => void) | null>(null);
 
 /**
- * The source at full size (Figma 774:830): the page, document or sheet fills a panel over a dimmed, blurred app. It is
- * the same viewer as in the drawer, so zoom, panning, the page and sheet controls and Refresh all work. The corner
- * button, Escape or a click outside the panel put it away. Web only (it is drawn on the page body, outside the drawer).
+ * The source at full size (Figma 774:830, 887:2015, 887:2302): the page, document or sheet fills a panel over a
+ * dimmed, blurred app. It is the same viewer as in the drawer, so zoom, panning, the page and sheet controls and
+ * Refresh all work, but the controls sit in the panel's own header. The collapse button, Escape or a click outside the
+ * panel put it away. Web only (it is drawn on the page body, outside the drawer).
  */
-function ExpandedSource({
+export function ExpandedSource({
   source,
   n,
   claim,
@@ -418,19 +440,11 @@ function ExpandedSource({
         style={expandedStyles.backdrop}
       />
       <FadeIn rise={10} duration={220} style={expandedStyles.panel as object}>
-        <InExpanded.Provider value>
+        <InExpanded.Provider value={onClose}>
           <View style={{ flex: 1 }}>
             <SourceBody source={source} n={n} claim={claim} />
           </View>
         </InExpanded.Provider>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Collapse"
-          onPress={onClose}
-          style={({ pressed }) => [expandedStyles.collapse, press(pressed)]}
-        >
-          <CollapseButton />
-        </Pressable>
       </FadeIn>
     </FadeIn>,
     document.body,
@@ -461,14 +475,77 @@ const expandedStyles = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: 16,
-    padding: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f2f5f8",
     backgroundColor: colors.white,
     overflow: "hidden",
   } as object,
-  collapse: { position: "absolute", right: 24, bottom: 24 },
+  // The panel's header (Figma 829:4689): the title and the source on the left, the controls on the right.
+  header: {
+    height: 48,
+    padding: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: { flexDirection: "row", alignItems: "center", gap: 16 },
+  title: {
+    fontFamily: fonts.geistMedium,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: 0.192,
+    color: "#222530",
+  },
+  // The source's name as a pale green pill with an arrow that leaves for it.
+  sourceChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 40,
+    backgroundColor: "#eef6ec",
+    ...pointer,
+  },
+  sourceChipText: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 0.055,
+    color: "#1c4b2e",
+  },
+  controls: { flexDirection: "row", alignItems: "center", gap: 12 },
+  refresh: { flexDirection: "row", alignItems: "center", gap: 4 },
+  refreshLabel: {
+    fontFamily: fonts.geistMedium,
+    fontSize: 12,
+    lineHeight: 18,
+    letterSpacing: 0.144,
+    color: "#22733e",
+  },
+  divider: { width: 1, height: 16, borderRadius: 100, backgroundColor: "#e1e4ea" },
+  headerButton: {
+    width: 32,
+    height: 32,
+    padding: 4,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f5f7fa",
+  },
+  headerButtonHover: { backgroundColor: "#e1e4ea" },
+  // A sunken well the page, document or sheet is shown in (Figma 829:4678).
+  well: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e1e4ea",
+    backgroundColor: "#f5f7fa",
+    padding: 8,
+  },
 });
 
 function AssociatedChip({
@@ -497,6 +574,8 @@ function AssociatedChip({
     >
       {s.kind === "web" ? (
         <Globe color={on ? "#ffffff" : "#717784"} />
+      ) : s.kind === "database" ? (
+        <Icon name={on ? "dbChip" : "dbChipOff"} size={16} />
       ) : (
         <Folder color={on ? "#ffffff" : "#717784"} />
       )}
@@ -504,7 +583,8 @@ function AssociatedChip({
         numberOfLines={1}
         style={[styles.chipText, on && styles.chipTextOn]}
       >
-        {s.title}
+        {/* A database is named by its table (Figma 916:34864); the other sources by their title. */}
+        {DATABASE_SOURCES[k]?.table ?? s.title}
       </Text>
     </Pressable>
   );
@@ -648,6 +728,26 @@ function SourceHead({
 }) {
   const kind = docKind(source);
   const url = `https://${source.host}`;
+  if (kind === "database")
+    // The tag and the title sit in one column, 8px apart, with the one action centred beside both (Figma 916:34874).
+    return (
+      <View style={[styles.titleRow, { gap: 8 }]}>
+        <View style={styles.titleCol}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Database</Text>
+          </View>
+          <Text style={styles.title}>{source.title}</Text>
+        </View>
+        <WithTooltip text="Open in database" side="bottom">
+          <IconButton
+            label="Open in database"
+            onPress={() => Linking.openURL(DATABASE_SOURCES[n]?.url ?? url)}
+          >
+            <Icon name="dbRedirect" size={14} />
+          </IconButton>
+        </WithTooltip>
+      </View>
+    );
   return (
     <View style={styles.sourceHead}>
       <View style={styles.badge}>
@@ -683,6 +783,37 @@ function SourceHead({
         </View>
       </View>
     </View>
+  );
+}
+
+/** The 32px square buttons in the full-size view's header (Figma 887:2219): pale at rest, a shade darker on hover, with a tooltip. */
+function ExpandedButton({
+  label,
+  onPress,
+  children,
+}: {
+  label: string;
+  onPress: () => void;
+  children: ReactNode;
+}) {
+  const hover = useHover();
+  return (
+    <WithTooltip text={label} side="bottom">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        {...hover.handlers}
+        style={({ pressed }) => [
+          expandedStyles.headerButton,
+          hover.hovered && expandedStyles.headerButtonHover,
+          transition(["background-color"]),
+          press(pressed),
+        ]}
+      >
+        {children}
+      </Pressable>
+    </WithTooltip>
   );
 }
 
@@ -723,6 +854,7 @@ function SourceBody({
   claim: string;
 }) {
   const kind = docKind(source);
+  if (kind === "database") return <DatabaseSource n={n} />;
   return <FileViewer kind={kind} n={n} claim={claim} />;
 }
 
@@ -759,7 +891,8 @@ function FileViewer({
   const [zoom, setZoom] = useState(1);
   // Bumped by Refresh to load a web page again.
   const [reload, setReload] = useState(0);
-  const inExpanded = useContext(InExpanded);
+  const collapse = useContext(InExpanded);
+  const inExpanded = collapse !== null;
   const pages = target?.pages ?? 1;
   const step = (delta: number) => setZoom((z) => clampZoom(z + delta));
   // Trackpad pinch and Ctrl/Cmd + mouse wheel zoom the document too, like any viewer.
@@ -798,21 +931,124 @@ function FileViewer({
     };
   }, []);
   const sheet = book?.sheets[sheetIndex];
+  // The standard dropdown (as the version menu in the note), so it opens above the viewer and closes on an outside
+  // click or Escape like the others.
+  const sheetChooser =
+    kind === "sheet" ? (
+      <KebabMenu
+        items={(book?.sheets ?? []).map((sh) => ({ label: sh.name }))}
+        selected={sheet?.name}
+        onSelect={(name) =>
+          setSheetIndex(
+            Math.max(
+              book?.sheets.findIndex((sh) => sh.name === name) ?? 0,
+              0,
+            ),
+          )
+        }
+      >
+        {({ open, toggle }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Choose sheet"
+            accessibilityState={{ expanded: open }}
+            onPress={toggle}
+            style={styles.pager}
+          >
+            <Text style={styles.pagerText}>{sheet?.name ?? "Sheet 1"}</Text>
+            <Caret />
+          </Pressable>
+        )}
+      </KebabMenu>
+    ) : null;
+  const src = sourceFor(n);
+  const download = () => downloadFile(target?.src);
+  // A site that does not allow preview has nothing to refresh or zoom: the box says so and that is all.
+  const noPreview = kind === "web" && !canPreview(src.host);
   return (
-    <View style={[styles.section, styles.fileSection]}>
+    <View
+      style={
+        inExpanded ? { flex: 1, gap: 8 } : [styles.section, styles.fileSection]
+      }
+    >
+      {inExpanded ? (
+        <View style={[expandedStyles.header, styles.sourceRow]}>
+          <View style={expandedStyles.headerTitle}>
+            <Text style={expandedStyles.title}>Source</Text>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={
+                kind === "web" ? `Open ${src.host}` : `Download ${src.title}`
+              }
+              onPress={() =>
+                kind === "web" ? Linking.openURL(`https://${src.host}`) : download()
+              }
+              style={expandedStyles.sourceChip}
+            >
+              <Text style={expandedStyles.sourceChipText}>
+                {kind === "web" ? src.host : src.title}
+              </Text>
+              <Icon name="expandedLink" size={12} />
+            </Pressable>
+          </View>
+          <View style={expandedStyles.controls}>
+            {kind === "web" ? (
+              noPreview ? null : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh page"
+                  onPress={() => setReload((v) => v + 1)}
+                  style={({ pressed }) => [
+                    expandedStyles.refresh,
+                    press(pressed),
+                  ]}
+                >
+                  <Icon name="expandedRefresh" size={18} />
+                  <Text style={expandedStyles.refreshLabel}>Refresh</Text>
+                </Pressable>
+              )
+            ) : kind === "pdf" ? (
+              <View style={styles.pager}>
+                <WithTooltip text="Previous page" side="bottom">
+                  <Pressable
+                    accessibilityLabel="Previous page"
+                    onPress={() => setPage((p) => Math.max(1, p - 1))}
+                    style={pointer}
+                  >
+                    <Icon name="expandedPagePrev" size={14} />
+                  </Pressable>
+                </WithTooltip>
+                <Text style={[styles.pagerText, { letterSpacing: 0.132 }]}>
+                  Page {page}/{pages}
+                </Text>
+                <WithTooltip text="Next page" side="bottom">
+                  <Pressable
+                    accessibilityLabel="Next page"
+                    onPress={() => setPage((p) => Math.min(pages, p + 1))}
+                    style={pointer}
+                  >
+                    <Icon name="expandedPageNext" size={14} />
+                  </Pressable>
+                </WithTooltip>
+              </View>
+            ) : (
+              sheetChooser
+            )}
+            <View style={expandedStyles.divider} />
+            {kind !== "web" && (
+              <ExpandedButton label="Download" onPress={download}>
+                <Icon name="expandedDownload" size={18} />
+              </ExpandedButton>
+            )}
+            <ExpandedButton label="Collapse" onPress={collapse}>
+              <Icon name="expandedCollapse" size={18} />
+            </ExpandedButton>
+          </View>
+        </View>
+      ) : (
       <View style={[styles.rowBetween, styles.sourceRow]}>
         <View style={styles.sourceLabel}>
           <Text style={styles.label}>Source</Text>
-          {/* In the full-size view the site's link sits beside the label (the drawer shows it under the title). */}
-          {kind === "web" && inExpanded && (
-            <Text
-              accessibilityRole="link"
-              onPress={() => Linking.openURL(`https://${sourceFor(n).host}`)}
-              style={styles.host}
-            >
-              {sourceFor(n).host}
-            </Text>
-          )}
         </View>
         {kind === "pdf" ? (
           <View style={styles.pager}>
@@ -835,47 +1071,34 @@ function FileViewer({
             </Pressable>
           </View>
         ) : kind === "web" ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Refresh page"
-            onPress={() => setReload((v) => v + 1)}
-            style={({ pressed }) => [styles.pager, pressed && styles.pressed]}
-          >
-            <Refresh />
-            <Text style={styles.refreshText}>Refresh</Text>
-          </Pressable>
-        ) : kind === "sheet" ? (
-          // The standard dropdown (as the version menu in the note), so it opens above the viewer and closes on an
-          // outside click or Escape like the others.
-          <KebabMenu
-            items={(book?.sheets ?? []).map((sh) => ({ label: sh.name }))}
-            selected={sheet?.name}
-            onSelect={(name) =>
-              setSheetIndex(
-                Math.max(
-                  book?.sheets.findIndex((sh) => sh.name === name) ?? 0,
-                  0,
-                ),
-              )
-            }
-          >
-            {({ open, toggle }) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Choose sheet"
-                accessibilityState={{ expanded: open }}
-                onPress={toggle}
-                style={styles.pager}
-              >
-                <Text style={styles.pagerText}>{sheet?.name ?? "Sheet 1"}</Text>
-                <Caret />
-              </Pressable>
-            )}
-          </KebabMenu>
-        ) : null}
+          noPreview ? null : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Refresh page"
+              onPress={() => setReload((v) => v + 1)}
+              style={({ pressed }) => [styles.pager, pressed && styles.pressed]}
+            >
+              <Refresh />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </Pressable>
+          )
+        ) : (
+          sheetChooser
+        )}
       </View>
-      <View ref={viewerRef} style={styles.viewer}>
-        {kind === "pdf" ? (
+      )}
+      <View
+        ref={viewerRef}
+        style={[
+          styles.viewer,
+          inExpanded && expandedStyles.well,
+          // The dashed "no preview" box is the whole thing: no sunken well around it.
+          noPreview && styles.viewerBare,
+        ]}
+      >
+        {noPreview ? (
+          <NoPreview />
+        ) : kind === "pdf" ? (
           <PdfPages
             src={target?.src}
             pages={pages}
@@ -889,23 +1112,37 @@ function FileViewer({
         ) : sheet ? (
           <SheetGrid sheet={sheet} zoom={zoom} claim={claim} />
         ) : null}
-        <View style={[styles.zoom, inExpanded && { right: 48 }]}>
-          <Pressable
-            accessibilityLabel="Zoom out"
-            onPress={() => step(-0.25)}
-            style={pointer}
-          >
-            <ZoomOut />
-          </Pressable>
-          <Text style={styles.zoomText}>{Math.round(zoom * 100)}%</Text>
-          <Pressable
-            accessibilityLabel="Zoom in"
-            onPress={() => step(0.25)}
-            style={pointer}
-          >
-            <ZoomIn />
-          </Pressable>
+        {!noPreview && (
+        <View
+          style={[
+            styles.zoom,
+            // Full size: a touch larger, 16px icons and 12px text, and a bit further in from the corner.
+            inExpanded && { right: 16, bottom: 16 },
+          ]}
+        >
+          <WithTooltip text="Zoom out" side="left">
+            <Pressable
+              accessibilityLabel="Zoom out"
+              onPress={() => step(-0.25)}
+              style={pointer}
+            >
+              {inExpanded ? <Icon name="expandedZoomOut" size={16} /> : <ZoomOut />}
+            </Pressable>
+          </WithTooltip>
+          <Text style={[styles.zoomText, inExpanded && { fontSize: 12, letterSpacing: 0.144 }]}>
+            {Math.round(zoom * 100)}%
+          </Text>
+          <WithTooltip text="Zoom in" side="left">
+            <Pressable
+              accessibilityLabel="Zoom in"
+              onPress={() => step(0.25)}
+              style={pointer}
+            >
+              {inExpanded ? <Icon name="expandedZoomIn" size={16} /> : <ZoomIn />}
+            </Pressable>
+          </WithTooltip>
         </View>
+        )}
       </View>
     </View>
   );
@@ -1177,12 +1414,33 @@ const SNAPSHOTS: Record<string, { w: number; h: number }> = {
   "pib.gov.in": { w: 1280, h: 3600 },
 };
 
+/**
+ * Whether a web source can be shown in the box: it has a saved capture, or (with LIVE_PAGES) the live site can be
+ * framed. Otherwise the box says so (Figma 829:5511) and the site's own link, under the title, is the way in.
+ */
+function canPreview(host: string): boolean {
+  if (!LIVE_PAGES) return !!SNAPSHOTS[host];
+  return !NEVER_FRAMED.has(host) && __DEV__ && Platform.OS === "web";
+}
+
 /** A web source opened in the box: a snapshot of its page, or the live site while LIVE_PAGES is on. */
 function WebPage({ n, zoom }: { n: number; zoom: number }) {
   return LIVE_PAGES ? (
     <LivePage n={n} zoom={zoom} />
   ) : (
     <WebSnapshot n={n} zoom={zoom} />
+  );
+}
+
+/** What the source box shows for a site that does not allow preview (Figma 829:5577): a dashed box and one line. */
+function NoPreview() {
+  return (
+    <View style={webStyles.noPreview}>
+      <Icon name="previewOff" size={28} />
+      <Text style={webStyles.noPreviewText}>
+        This website does not allow preview
+      </Text>
+    </View>
   );
 }
 
@@ -1254,8 +1512,7 @@ const NEVER_FRAMED = new Set<string>();
 function LivePage({ n, zoom }: { n: number; zoom: number }) {
   const source = sourceFor(n);
   const url = `https://${source.host}`;
-  const viaProxy = __DEV__ && Platform.OS === "web";
-  const blocked = NEVER_FRAMED.has(source.host) || !viaProxy;
+  const blocked = !canPreview(source.host);
   const [loaded, setLoaded] = useState(false);
   return (
     // The page sits 4px inside the box (Figma 757:449), with soft edges where it runs on out of view.
@@ -1272,27 +1529,6 @@ function LivePage({ n, zoom }: { n: number; zoom: number }) {
         {!blocked && !loaded && (
           <View pointerEvents="none" style={webStyles.loading}>
             <Text style={webStyles.note}>Loading {source.host}…</Text>
-          </View>
-        )}
-        {blocked && (
-          <View style={webStyles.blocked}>
-            <Text style={webStyles.blockedTitle}>
-              {source.host} can’t be shown here
-            </Text>
-            <Text style={webStyles.note}>
-              The site doesn’t allow being opened inside another page. You can
-              read the source in a new tab.
-            </Text>
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => Linking.openURL(url)}
-              style={({ pressed }) => [
-                webStyles.openButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={webStyles.openText}>Open {source.host}</Text>
-            </Pressable>
           </View>
         )}
         {!blocked && (
@@ -1443,30 +1679,28 @@ const webStyles = StyleSheet.create({
     height: 16,
     backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.1), rgba(0,0,0,0))",
   } as object,
-  blocked: {
+  // The box for a site that does not allow preview (Figma 829:5577).
+  noPreview: {
     flex: 1,
+    minHeight: 240,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    padding: 24,
+    gap: 12,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#e1e4ea",
+    backgroundColor: "rgba(245,247,250,0.2)",
   },
-  blockedTitle: {
-    fontFamily: fonts.geistSemiBold,
-    fontSize: 13,
-    lineHeight: 18,
-    color: "#222530",
+  noPreviewText: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.168,
+    color: "#2b303b",
     textAlign: "center",
   },
-  openButton: {
-    marginTop: 6,
-    height: 28,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#205b34",
-    justifyContent: "center",
-    ...pointer,
-  },
-  openText: { fontFamily: fonts.geistMedium, fontSize: 11, color: "#ffffff" },
   loading: {
     position: "absolute",
     top: 0,
@@ -1696,7 +1930,8 @@ const styles = StyleSheet.create({
   claimBox: {
     flexDirection: "row",
     gap: 12,
-    paddingVertical: 12,
+    // 11 + the text's own 4, with the 1px border, makes the box 72 for two lines (Figma 916:34850).
+    paddingVertical: 11,
     paddingLeft: 12,
     paddingRight: 16,
     borderRadius: 8,
@@ -1709,6 +1944,7 @@ const styles = StyleSheet.create({
   claimBar: { width: 2, borderRadius: 10, backgroundColor: "#66a160" },
   claimText: {
     flex: 1,
+    paddingVertical: 4,
     fontFamily: fonts.geistMedium,
     fontSize: 12,
     lineHeight: 20,
@@ -1850,6 +2086,12 @@ const styles = StyleSheet.create({
     borderColor: "#f5f7fa",
     backgroundColor: "rgba(245,247,250,0.6)",
     overflow: "hidden",
+  },
+  viewerBare: {
+    borderWidth: 0,
+    padding: 0,
+    backgroundColor: "transparent",
+    overflow: "visible",
   },
   viewerContent: { padding: 16 },
   jump: { position: "absolute", left: 8, bottom: 8, zIndex: 3 },

@@ -3,6 +3,7 @@ import { Block } from "../../data/researchNote";
 import { CITATION_GROUP, citationNumbers } from "../../data/citations";
 import { Citation } from "./Citation";
 import { CONTEXT_SOURCE } from "../../state/selectionContext";
+import { NoteChart, NoteTable } from "./NoteBlocks";
 
 type Props = {
   blocks: Block[];
@@ -34,7 +35,7 @@ function scaleText(style: TextStyle, scale: number): TextStyle {
 }
 
 /** Splits copy into plain text and citation groups; adjacent markers like `[7][9]` become one group. */
-function splitCitations(text: string): { text: string; numbers?: number[] }[] {
+export function splitCitations(text: string): { text: string; numbers?: number[] }[] {
   return text
     .split(CITATION_GROUP)
     .filter(Boolean)
@@ -64,6 +65,20 @@ export function RichText({
       {blocks.map((block, i) => {
         if (block.kind === "spacer") {
           return <View key={i} style={{ height: regular.lineHeight }} />;
+        }
+        if (block.kind === "table") {
+          return (
+            <View key={i} style={{ marginBottom: (block.marginBottom ?? 0) * scale }}>
+              <NoteTable block={block} />
+            </View>
+          );
+        }
+        if (block.kind === "chart") {
+          return (
+            <View key={i} style={{ marginBottom: (block.marginBottom ?? 0) * scale }}>
+              <NoteChart block={block} />
+            </View>
+          );
         }
         const content = (
           <Text style={[regular, { color }]}>
