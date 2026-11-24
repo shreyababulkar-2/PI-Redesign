@@ -66,9 +66,9 @@ export function ScrollTopButton({ progress, active, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  // Sits on the 12px grid: 12px in from the column's right edge, the same line as the floating
-  // header's kebab (12px header padding), and 12px up from the bottom.
-  root: { position: "absolute", right: 12, bottom: 12, alignItems: "flex-end" },
+  // The column's right edge is already 8px from the assistant, so flush with it puts the button 8px from the assistant;
+  // 12px up from the bottom.
+  root: { position: "absolute", right: 0, bottom: 12, alignItems: "flex-end" },
   group: {
     backgroundColor: colors.white,
     borderRadius: 4,
