@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../theme";
 import { HEADER_EXPANDED_HEIGHT } from "../theme/layout";
@@ -15,6 +15,7 @@ import { SourcesDrawer } from "../components/note/SourcesDrawer";
 import { useSectionNavigation } from "../hooks/useSectionNavigation";
 import { ResizableAssistant } from "../components/assistant/ResizableAssistant";
 import { BenchmarkingPage } from "../components/benchmarking/BenchmarkingPage";
+import { ICMemoPage } from "../components/memo/ICMemoPage";
 import { BENCHMARK_TABS, useActiveTab } from "../state/activeTab";
 
 /** How long the old page takes to leave when switching tabs from a scrolled position. */
@@ -22,6 +23,7 @@ const SCROLLED_SWITCH_MS = 260;
 
 /** Header tab indexes (see `noteTabs`). */
 const TAB_RESEARCH = 0;
+const TAB_MEMO = 1;
 const TAB_BENCHMARKING = 2;
 
 const sectionIds = sections.map((s) => s.id);
@@ -43,13 +45,20 @@ export function ResearchNoteScreen() {
   } = useSectionNavigation(sectionIds);
   const { tab, pageTab, switching, setSwitchDelay, benchTab } = useActiveTab();
 
+  const [memoSlide, setMemoSlide] = useState("Cover");
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
   // The floating header's chip names where you are: the section on the note, the sub-tab on Benchmarking.
   const floatingTitle =
     pageTab === TAB_BENCHMARKING
       ? BENCHMARK_TABS[benchTab]
-      : activeSection.title;
-  const wide = pageTab === TAB_BENCHMARKING; // benchmarking cards run the full column width
+      : pageTab === TAB_MEMO
+        ? memoSlide
+        : activeSection.title;
+  // Benchmarking cards and the IC memo run the full column width.
+  const wide = pageTab === TAB_BENCHMARKING || pageTab === TAB_MEMO;
+  // The IC memo needs where the page is scrolled and how tall the view is: its rail sticks while the slides scroll.
+  const [scrollY, setScrollY] = useState(0);
+  const [viewportH, setViewportH] = useState(0);
 
   // Switching from a scrolled page: glide back to the top while the old page fades out, and give that glide the
   // time it needs before the next page is shown, so the swap happens at the top instead of as a jump.
@@ -78,9 +87,16 @@ export function ResearchNoteScreen() {
         <View nativeID={NOTE_CONTENT_ID} style={styles.scroll}>
           <ScrollView
             ref={scrollRef}
-            onScroll={onScroll}
+            onScroll={(e) => {
+              onScroll(e);
+              if (pageTab === TAB_MEMO)
+                setScrollY(e.nativeEvent.contentOffset.y);
+            }}
             scrollEventThrottle={16}
-            onLayout={onViewportLayout}
+            onLayout={(e) => {
+              onViewportLayout(e);
+              setViewportH(e.nativeEvent.layout.height);
+            }}
             onContentSizeChange={onContentSizeChange}
             style={styles.scrollInner}
             contentContainerStyle={[
@@ -103,13 +119,27 @@ export function ResearchNoteScreen() {
                 />
               ))}
             {pageTab === TAB_BENCHMARKING && <BenchmarkingPage />}
-            {pageTab !== TAB_RESEARCH && pageTab !== TAB_BENCHMARKING && (
-              <View style={[styles.placeholder, appear(0), leaving(switching)]}>
-                <Text style={styles.placeholderText}>
-                  {noteTabs[pageTab]} is not designed yet.
-                </Text>
-              </View>
+            {pageTab === TAB_MEMO && (
+              <ICMemoPage
+                scrollY={scrollY}
+                viewportHeight={viewportH}
+                onActiveSlide={setMemoSlide}
+                scrollTo={(y) =>
+                  scrollRef.current?.scrollTo({ y, animated: true })
+                }
+              />
             )}
+            {pageTab !== TAB_RESEARCH &&
+              pageTab !== TAB_BENCHMARKING &&
+              pageTab !== TAB_MEMO && (
+                <View
+                  style={[styles.placeholder, appear(0), leaving(switching)]}
+                >
+                  <Text style={styles.placeholderText}>
+                    {noteTabs[pageTab]} is not designed yet.
+                  </Text>
+                </View>
+              )}
           </ScrollView>
         </View>
 
@@ -129,6 +159,8 @@ export function ResearchNoteScreen() {
           variant="left"
           activeTab={tab}
           activeSectionTitle={floatingTitle}
+          // Every edge is 8px: the floating header sits 8px from the side nav, the top and the assistant.
+          inset={{ top: -4, left: -12, right: -12 }}
         />
 
         <ScrollTopButton
@@ -139,7 +171,14 @@ export function ResearchNoteScreen() {
         />
       </View>
 
-      <ResizableAssistant />
+      {/* On the IC memo the assistant never grows past 5 columns of the 12-column grid (8px gutters, 60px / 8px margins). */}
+      <ResizableAssistant
+        maxWidthFor={
+          pageTab === TAB_MEMO
+            ? (w) => Math.round((5 * w) / 12 - 33)
+            : undefined
+        }
+      />
       <SideNav />
       <SourcesDrawer />
     </View>
@@ -147,12 +186,12 @@ export function ResearchNoteScreen() {
 }
 
 const styles = StyleSheet.create({
-  // 56px left clears the floating side-nav pods; 8px gap between the columns and 8px inset on the right (Figma 332:4138).
+  // 60px left clears the side nav by 8px; 8px gap between the columns and 8px inset on the right (Figma 332:4138, 834:2649).
   root: {
     flex: 1,
     flexDirection: "row",
     gap: 8,
-    paddingLeft: 56,
+    paddingLeft: 60,
     paddingRight: 8,
     backgroundColor: colors.slate50,
   },
@@ -178,7 +217,7 @@ const styles = StyleSheet.create({
   header: {
     alignSelf: "stretch",
     marginHorizontal: -80,
-    marginBottom: -4,
+    marginBottom: -8,
     position: "relative",
     zIndex: 40,
   },

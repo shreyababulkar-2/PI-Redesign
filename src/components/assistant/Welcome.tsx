@@ -6,6 +6,7 @@ import { useHover } from "../../hooks/useHover";
 import { pointer } from "../../theme/cursor";
 import { useActiveTab } from "../../state/activeTab";
 import { benchmarkAssistant } from "../../data/benchmarking";
+import { memoAssistant } from "../../data/memo";
 
 type Props = { onPick: (question: string) => void };
 
@@ -14,7 +15,11 @@ export function Welcome({ onPick }: Props) {
   // The assistant is the same on every tab; only the opening text and suggestions follow the page.
   const { tab } = useActiveTab();
   const { intro, heading, suggestions } =
-    tab === 2 ? benchmarkAssistant : assistant.welcome;
+    tab === 2
+      ? benchmarkAssistant
+      : tab === 1
+        ? memoAssistant
+        : assistant.welcome;
   return (
     <View style={styles.root}>
       <Text

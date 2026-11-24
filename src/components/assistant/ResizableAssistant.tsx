@@ -73,7 +73,9 @@ function setSelectable(selectable: boolean) {
  * left edge changes that share. Below ASSISTANT_COLLAPSE_BELOW it collapses; the header's assistant
  * button then opens it as an overlay.
  */
-export function ResizableAssistant() {
+export function ResizableAssistant({
+  maxWidthFor,
+}: { maxWidthFor?: (windowWidth: number) => number } = {}) {
   const { width: windowWidth } = useWindowDimensions();
   const {
     visible: viewerOpen,
@@ -89,17 +91,19 @@ export function ResizableAssistant() {
   const [dragging, setDragging] = useState(false);
   const hover = useHover();
 
-  const max = Math.floor(windowWidth * MAX_RATIO);
+  const max = Math.floor(
+    Math.min(windowWidth * MAX_RATIO, maxWidthFor?.(windowWidth) ?? Infinity),
+  );
   const width = Math.min(
     Math.max(Math.round(ratio * windowWidth), ASSISTANT_MIN_WIDTH),
     Math.max(max, ASSISTANT_MIN_WIDTH),
   );
 
   // Latest values for the responder, which is created once.
-  const live = useRef({ windowWidth, width });
+  const live = useRef({ windowWidth, width, max });
   useEffect(() => {
-    live.current = { windowWidth, width };
-  }, [windowWidth, width]);
+    live.current = { windowWidth, width, max };
+  }, [windowWidth, width, max]);
   const startWidth = useRef(ASSISTANT_MIN_WIDTH);
 
   // The responder reads the latest values through `live` at event time (the lint rule can't tell these
@@ -125,7 +129,7 @@ export function ResizableAssistant() {
         const { windowWidth: w } = live.current;
         const next = Math.min(
           Math.max(startWidth.current - g.dx, ASSISTANT_MIN_WIDTH),
-          w * MAX_RATIO,
+          Math.max(live.current.max, ASSISTANT_MIN_WIDTH),
         );
         setRatio(next / w);
       },
