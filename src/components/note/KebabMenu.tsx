@@ -39,6 +39,23 @@ export const PAGE_MENU_ITEMS: MenuItem[] = [
   { label: "User activity", icon: "menuActivity", hover: "menuActivityDark" },
 ];
 
+/** The page menu on the IC memo tab (Figma 993:30923): the usual actions plus Deal skill and Regenerate. */
+export const MEMO_MENU_ITEMS: MenuItem[] = [
+  { label: "All comments", icon: "menuComments", hover: "menuCommentsDark" },
+  { label: "Notification settings", icon: "menuBell", hover: "menuBellDark" },
+  { label: "Global instructions", icon: "menuInstructions", hover: "menuInstructionsDark" },
+  { label: "Deal skill", icon: "menuSkill", hover: "menuSkillDark" },
+  { label: "Regenerate", icon: "menuRegenerate", hover: "menuRegenerateDark" },
+  { label: "User activity", icon: "menuActivity", hover: "menuActivityDark" },
+];
+
+/** The IC memo's menu once the header has scrolled into its floating form. */
+export const MEMO_SCROLLED_MENU_ITEMS: MenuItem[] = [
+  { label: "Download", icon: "menuSave", hover: "menuSaveDark" },
+  { label: "Manage members", icon: "menuMembers", hover: "menuMembersDark" },
+  ...MEMO_MENU_ITEMS,
+];
+
 /**
  * The page menu once the header has scrolled into its floating form (Figma 507:10399): the Download and Manage
  * members buttons that left the bar move in on top of the usual actions.
