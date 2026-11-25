@@ -755,6 +755,11 @@ function SoftButton({
 
 /* ------------------------------------------------------------------ top bar */
 
+/** From the left pill's left edge to the artefacts button: 4px padding, the panel button, an 8px gap, a divider and another 8px gap. */
+const MENU_OFFSET_A = 4 + 28 + 8 + 1 + 8;
+/** The history button's width while it is on the pill. */
+const HISTORY_BTN_W = 28;
+
 function TopBar({
   title,
   historyOpen,
@@ -859,15 +864,7 @@ function TopBar({
           />
         </View>
         <View style={styles.compactDivider} />
-        <View style={styles.compactCompany}>
-          <Image source={vdr.companyLogo} style={{ width: 16, height: 16, borderRadius: 76 }} />
-          <Text numberOfLines={1} style={styles.compactCompanyText}>
-            Juspay Technologies Private limited
-          </Text>
-        </View>
-      </View>
-      <View style={[styles.compactPill, styles.compactActions]}>
-        {/* The three buttons sit 2px apart (Figma 122:27775); the pill's 8px gap separates them from the divider. */}
+        {/* Artefacts and deal documents sit on the left pill, 2px apart, between two dividers (Figma 189:7235, 189:7393). */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
         <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
@@ -879,7 +876,7 @@ function TopBar({
             active={artefactsOpen}
             onPress={onArtefacts}
           />
-          <ArtefactsMenu open={artefactsOpen} onSelect={onPickArtefact} />
+          <ArtefactsMenu open={artefactsOpen} onSelect={onPickArtefact} left={-(MENU_OFFSET_A + (historyOpen ? 0 : HISTORY_BTN_W))} />
         </View>
         <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
@@ -892,8 +889,20 @@ function TopBar({
             active={docsOpen}
             onPress={onDocs}
           />
-          <DocsMenu open={docsOpen} openDocs={openDocs} active={activeDoc} onSelect={onPickDoc} />
+          <DocsMenu open={docsOpen} openDocs={openDocs} active={activeDoc} onSelect={onPickDoc} left={-(MENU_OFFSET_A + 30 + (historyOpen ? 0 : HISTORY_BTN_W))} />
         </View>
+        </View>
+        <View style={styles.compactDivider} />
+        <View style={styles.compactCompany}>
+          <Image source={vdr.companyLogo} style={{ width: 16, height: 16, borderRadius: 76 }} />
+          <Text numberOfLines={1} style={styles.compactCompanyText}>
+            Juspay Technologies Private limited
+          </Text>
+        </View>
+      </View>
+      <View style={[styles.compactPill, styles.compactActions]}>
+        {/* The three buttons sit 2px apart (Figma 122:27775); the pill's 8px gap separates them from the divider. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
         <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
           bare
@@ -1016,15 +1025,18 @@ function DocsMenu({
   openDocs,
   active,
   onSelect,
+  left,
 }: {
   open: boolean;
   openDocs: string[];
   active: string | null;
   onSelect: (doc: string) => void;
+  /** Where the menu's left edge sits from its button's left edge (negative: back to the pill's left edge). */
+  left: number;
 }) {
   const reveal = useReveal(open);
   return (
-    <Animated.View pointerEvents={open ? "auto" : "none"} style={[styles.docsMenu, reveal]}>
+    <Animated.View pointerEvents={open ? "auto" : "none"} style={[styles.docsMenu, { left, right: undefined }, reveal]}>
       {DOCS.map((d) => (
         <DocsItem key={d} label={d} open={openDocs.includes(d)} active={d === active} onPress={() => onSelect(d)} />
       ))}
@@ -1075,10 +1087,10 @@ function MoreRow({ label, icon, danger, onPress }: { label: string; icon: Src; d
  * from the first top-bar button the way the documents menu hangs from the second (8px under the header, 8px from the
  * window edge). Each row has a thumbnail, a name with its file type and version, and a "more" button; the list scrolls.
  */
-function ArtefactsMenu({ open, onSelect }: { open: boolean; onSelect: (title: string) => void }) {
+function ArtefactsMenu({ open, onSelect, left }: { open: boolean; onSelect: (title: string) => void; left: number }) {
   const reveal = useReveal(open);
   return (
-    <Animated.View pointerEvents={open ? "auto" : "none"} style={[styles.docsMenu, styles.artefactsMenu, reveal]}>
+    <Animated.View pointerEvents={open ? "auto" : "none"} style={[styles.docsMenu, styles.artefactsMenu, { left, right: undefined }, reveal]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {ARTEFACTS.map((a, i) => (
           <ArtefactRow key={i} {...a} onPress={() => onSelect(a.title)} />
