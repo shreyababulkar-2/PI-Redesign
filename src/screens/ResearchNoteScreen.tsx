@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { colors, fonts } from "../theme";
-import { HEADER_EXPANDED_HEIGHT } from "../theme/layout";
+import {
+  HEADER_COLLAPSED_HEIGHT,
+  HEADER_EXPANDED_HEIGHT,
+} from "../theme/layout";
 import { noteTabs, sections } from "../data/researchNote";
 import { SideNav } from "../components/SideNav";
 import { FloatingHeaderLayer } from "../components/note/FloatingHeaderLayer";
@@ -9,7 +12,7 @@ import { appear, leaving } from "../theme/motion";
 import { NOTE_CONTENT_ID } from "../state/selectionContext";
 import { NoteHeader } from "../components/note/NoteHeader";
 import { SectionCard } from "../components/note/SectionCard";
-import { Minimap } from "../components/note/Minimap";
+import { DockedSections, Minimap } from "../components/note/Minimap";
 import { ScrollTopButton } from "../components/note/ScrollTopButton";
 import { SourcesDrawer } from "../components/note/SourcesDrawer";
 import { useSectionNavigation } from "../hooks/useSectionNavigation";
@@ -29,6 +32,12 @@ const TAB_BENCHMARKING = 2;
 const sectionIds = sections.map((s) => s.id);
 /** Tick column sits 40px below the first card's top edge. */
 const MINIMAP_OFFSET = 40;
+/**
+ * Docked section panel (Figma 940:48893): 195px wide. The cards start 234px in and end 71px short of the right edge,
+ * which leaves the same 39px either side of the cards with their action icons.
+ */
+const DOCKED_LEFT = 234;
+const DOCKED_RIGHT = 71;
 
 export function ResearchNoteScreen() {
   const {
@@ -46,6 +55,8 @@ export function ResearchNoteScreen() {
   const { tab, pageTab, switching, setSwitchDelay, benchTab } = useActiveTab();
 
   const [memoSlide, setMemoSlide] = useState("Cover");
+  // The section menu docked as a panel in the left margin (from the hover popup's dock button); the page makes room for it.
+  const [docked, setDocked] = useState(false);
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
   // The floating header's chip names where you are: the section on the note, the sub-tab on Benchmarking.
   const floatingTitle =
@@ -56,6 +67,7 @@ export function ResearchNoteScreen() {
         : activeSection.title;
   // Benchmarking cards and the IC memo run the full column width.
   const wide = pageTab === TAB_BENCHMARKING || pageTab === TAB_MEMO;
+  const dockedNow = docked && pageTab === TAB_RESEARCH;
   // The IC memo needs where the page is scrolled and how tall the view is: its rail sticks while the slides scroll.
   const [scrollY, setScrollY] = useState(0);
   const [viewportH, setViewportH] = useState(0);
@@ -89,7 +101,7 @@ export function ResearchNoteScreen() {
             ref={scrollRef}
             onScroll={(e) => {
               onScroll(e);
-              if (pageTab === TAB_MEMO)
+              if (pageTab === TAB_MEMO || docked)
                 setScrollY(e.nativeEvent.contentOffset.y);
             }}
             scrollEventThrottle={16}
@@ -102,11 +114,24 @@ export function ResearchNoteScreen() {
             contentContainerStyle={[
               styles.scrollContent,
               wide && styles.scrollContentWide,
+              dockedNow && {
+                paddingLeft: DOCKED_LEFT,
+                paddingRight: DOCKED_RIGHT,
+              },
             ]}
             showsVerticalScrollIndicator={false}
           >
             {/* The default header is part of the page: it scrolls away with the content. */}
-            <View style={[styles.header, wide && styles.headerWide]}>
+            <View
+              style={[
+                styles.header,
+                wide && styles.headerWide,
+                dockedNow && {
+                  marginLeft: -DOCKED_LEFT,
+                  marginRight: -DOCKED_RIGHT,
+                },
+              ]}
+            >
               <NoteHeader activeTab={tab} />
             </View>
             {pageTab === TAB_RESEARCH &&
@@ -143,12 +168,36 @@ export function ResearchNoteScreen() {
           </ScrollView>
         </View>
 
-        {pageTab === TAB_RESEARCH && (
+        {pageTab === TAB_RESEARCH && !docked && (
           <View style={styles.minimapSlot}>
             <Minimap
               sections={sections}
               activeId={activeId}
               onSelect={scrollToSection}
+              onDock={() => setDocked(true)}
+            />
+          </View>
+        )}
+        {dockedNow && (
+          // Full height like the IC memo's slide rail: under the header at rest, then stuck under the floating header.
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              width: 195,
+              zIndex: 10,
+              top: Math.max(
+                HEADER_COLLAPSED_HEIGHT,
+                HEADER_EXPANDED_HEIGHT - scrollY,
+              ),
+              bottom: 8,
+            }}
+          >
+            <DockedSections
+              sections={sections}
+              activeId={activeId}
+              onSelect={scrollToSection}
+              onUndock={() => setDocked(false)}
             />
           </View>
         )}

@@ -20,6 +20,8 @@ type Props = {
   sections: NoteSection[];
   activeId: string;
   onSelect: (id: string) => void;
+  /** Called when the popup's dock button is pressed. */
+  onDock?: () => void;
 };
 
 /**
@@ -27,7 +29,7 @@ type Props = {
  * Hovering the ticks expands the section menu; it stays open while the pointer is over either
  * the ticks or the menu (including the gap between them) and closes shortly after it leaves both.
  */
-export function Minimap({ sections, activeId, onSelect }: Props) {
+export function Minimap({ sections, activeId, onSelect, onDock }: Props) {
   const [open, setOpen] = useState(false);
   // The section under the pointer, in either the ticks or the menu, so the two always agree.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -105,6 +107,12 @@ export function Minimap({ sections, activeId, onSelect }: Props) {
             hoveredId={hoveredId}
             onHover={setHoveredId}
             onSelect={select}
+            onToggleDock={() => {
+              cancelClose();
+              setOpen(false);
+              setMounted(false);
+              onDock?.();
+            }}
           />
         </Animated.View>
       )}
@@ -155,3 +163,32 @@ const styles = StyleSheet.create({
   // between ticks and menu so the pointer never leaves the hover area on the way across.
   popupAnchor: { position: 'absolute', top: -24, left: 20, paddingLeft: POPUP_GAP, zIndex: 10 },
 });
+
+/**
+ * The section menu docked as a panel in the page's left margin (Figma 940:48893). The caller sizes and places it; the
+ * button at its top undocks it again.
+ */
+export function DockedSections({
+  sections,
+  activeId,
+  onSelect,
+  onUndock,
+}: {
+  sections: NoteSection[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onUndock: () => void;
+}) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  return (
+    <SectionNavPopup
+      sections={sections}
+      activeId={activeId}
+      hoveredId={hoveredId}
+      onHover={setHoveredId}
+      onSelect={onSelect}
+      docked
+      onToggleDock={onUndock}
+    />
+  );
+}
