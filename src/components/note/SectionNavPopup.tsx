@@ -1,10 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { colors, type } from '../../theme';
 import { transition } from '../../theme/motion';
 import { NoteSection } from '../../data/researchNote';
 import { Icon } from '../Icon';
 import { Stroke } from '../Stroke';
 import { pointer } from '../../theme/cursor';
+import { useHover } from '../../hooks/useHover';
+import { vdr } from '../../assets/vdr';
 
 type Props = {
   sections: NoteSection[];
@@ -13,19 +16,27 @@ type Props = {
   hoveredId: string | null;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
+  /** True once the menu is docked as a panel beside the page; the header button then undocks it. */
+  docked?: boolean;
+  /** Docks the menu (from the hover popup) or undocks it (from the docked panel). */
+  onToggleDock?: () => void;
 };
 
 /**
  * Floating section menu (Figma "Active item" / "Hover item", nodes 332:4075 / 332:4106): 248 × 412,
  * 8px padding, 8px radius, 32px rows with 8px padding, gradient "New custom section" button.
  */
-export function SectionNavPopup({ sections, activeId, hoveredId, onHover, onSelect }: Props) {
+export function SectionNavPopup({ sections, activeId, hoveredId, onHover, onSelect, docked = false, onToggleDock }: Props) {
   const main = sections.filter((s) => s.group === 'main');
   const custom = sections.filter((s) => s.group === 'custom');
 
   return (
-    <View style={styles.root}>
-      <View style={styles.groups}>
+    <View style={[styles.root, docked && styles.rootDocked]}>
+      {/* Figma 940:48566: a 24px header with the dock button; the same chevrons point right to dock and left to undock. */}
+      <View style={styles.header}>
+        <DockButton docked={docked} onPress={onToggleDock} />
+      </View>
+      <View style={[styles.groups, docked && { flex: 1 }]}>
         <View>
           {main.map((s) => (
             <NavItem
@@ -56,13 +67,28 @@ export function SectionNavPopup({ sections, activeId, hoveredId, onHover, onSele
       </View>
 
       <View style={styles.addButton}>
-        <Icon name="menuButtonBg" size={0} width={232} height={28} style={StyleSheet.absoluteFill} />
+        <Icon name="menuButtonBg" size={0} width={docked ? 177 : 232} height={28} style={StyleSheet.absoluteFill} />
         <Icon name="plusWhite" size={16} />
-        <Text style={[type.menuButton, { color: colors.white }]}>New custom section</Text>
+        <Text style={[type.menuButton, { color: colors.white }]}>Add new custom section</Text>
       </View>
 
       <Stroke color={colors.dew100} radius={8} />
     </View>
+  );
+}
+
+function DockButton({ docked, onPress }: { docked: boolean; onPress?: () => void }) {
+  const hover = useHover();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={docked ? 'Undock sections' : 'Dock sections'}
+      onPress={onPress}
+      {...hover.handlers}
+      style={[styles.dock, hover.hovered && { backgroundColor: colors.slate100 }]}
+    >
+      <Image source={vdr.chevronsUp} contentFit="fill" style={{ width: 16, height: 16, transform: [{ rotate: docked ? '90deg' : '-90deg' }] }} />
+    </Pressable>
   );
 }
 
@@ -103,7 +129,11 @@ const styles = StyleSheet.create({
     gap: 8,
     boxShadow: '2px 4px 12px rgba(0,0,0,0.15)',
   },
+  header: { height: 24, width: '100%', flexDirection: 'row', alignItems: 'center' },
+  dock: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', ...pointer, ...transition(['background-color']) },
   groups: { width: '100%', gap: 4 },
+  // Docked (Figma 940:48893): a 195px card the height of the page, rows ellipsised, the button kept at the bottom.
+  rootDocked: { width: 195, height: '100%', boxShadow: 'none', borderWidth: 1, borderColor: colors.slate100 },
   item: { height: 32, flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 8, ...pointer, ...transition(['background-color']) },
   // Selected row fill per Figma 441:31176.
   itemActive: { backgroundColor: '#f0f5f4', borderRadius: 6 },
