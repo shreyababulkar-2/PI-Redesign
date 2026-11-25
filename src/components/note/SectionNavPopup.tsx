@@ -73,7 +73,7 @@ export function SectionNavPopup({ sections, activeId, hoveredId, onHover, onSele
         <Text style={[type.menuButton, { color: colors.white }]}>Add new custom section</Text>
       </View>
 
-      <Stroke color={colors.dew100} radius={8} />
+      {!docked && <Stroke color={colors.dew100} radius={8} />}
     </View>
   );
 }
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   dock: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', ...pointer, ...transition(['background-color']) },
   groups: { width: '100%', gap: 4 },
   // Docked (Figma 940:48893): a 195px card the height of the page, rows ellipsised, the button kept at the bottom.
-  rootDocked: { width: 195, height: '100%', boxShadow: 'none', borderWidth: 1, borderColor: colors.slate100 },
+  rootDocked: { width: 195, height: '100%', boxShadow: 'none' },
   item: { height: 32, flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 8, ...pointer, ...transition(['background-color']) },
   // Selected row fill per Figma 441:31176.
   itemActive: { backgroundColor: '#f0f5f4', borderRadius: 6 },
