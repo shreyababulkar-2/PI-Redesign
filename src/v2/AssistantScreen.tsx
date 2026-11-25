@@ -565,17 +565,21 @@ const DEFAULT_QUESTION =
 function History({ title, onNewChat, onCollapse }: { title: string; onNewChat: () => void; onCollapse: () => void }) {
   return (
     <View style={styles.history}>
+      {/* The company leads the panel, with the collapse button beside it (Figma 189:7348). */}
+      <View style={styles.historyCompany}>
+        <View style={styles.historyCompanyName}>
+          <Image source={vdr.companyLogo} style={{ width: 16, height: 16, borderRadius: 76 }} />
+          <Text numberOfLines={1} style={styles.compactCompanyText}>
+            Juspay Technologies Private limited
+          </Text>
+        </View>
+        <SoftButton label="Collapse chat history" src={vdr.chevronsUp} w={16} rotate={90} onPress={onCollapse} />
+      </View>
+      <View style={styles.historyRule} />
       <View style={styles.historyHead}>
         <Text style={[body, { fontFamily: fonts.geistMedium, letterSpacing: 0 }]}>Chat history</Text>
-        <View style={styles.row6}>
-          <SoftButton label="New chat" src={vdr.addChat} hoverSrc={vdr.addChatHover} w={16} onPress={onNewChat} />
-          <SoftButton
-            label="Collapse chat history"
-            src={vdr.chevronsUp}
-            w={16}
-            rotate={90}
-            onPress={onCollapse}
-          />
+        <View style={{ height: 24, justifyContent: "center" }}>
+          <SoftButton bare label="New chat" src={vdr.addChat} hoverSrc={vdr.addChatHover} w={16} onPress={onNewChat} />
         </View>
       </View>
       <View style={styles.search}>
@@ -755,10 +759,10 @@ function SoftButton({
 
 /* ------------------------------------------------------------------ top bar */
 
-/** From the left pill's left edge to the artefacts button: 4px padding, the panel button, an 8px gap, a divider and another 8px gap. */
-const MENU_OFFSET_A = 4 + 28 + 8 + 1 + 8;
-/** The history button's width while it is on the pill. */
-const HISTORY_BTN_W = 28;
+/** From the left pill's left edge to the artefacts button: padding, the panel button, 4px, a divider and 4px (the folded pill
+ *  has 4px padding and the history button in front of the panel button). */
+const MENU_OFFSET_OPEN = 8 + 28 + 4 + 1 + 4;
+const MENU_OFFSET_FOLDED = 4 + 28 + 28 + 4 + 1 + 4;
 
 function TopBar({
   title,
@@ -826,7 +830,9 @@ function TopBar({
     {/* The bar starts right after the history panel when that is open, else beside the side nav (Figma 189:6341, 197:8302). */}
     <View pointerEvents="box-none" style={styles.compactBar}>
       <Image source={vdr.compactBg} contentFit="fill" style={StyleSheet.absoluteFill} pointerEvents="none" />
-      <View style={[styles.compactPill, styles.compactLeft]}>
+      {/* Figma 189:7235 / 189:7393: 8px in from the edges with the history panel open, 4px with it folded away (the history
+          button then sits first); 4px either side of the first divider; the two buttons 2px apart open, touching folded. */}
+      <Animated.View style={[styles.compactPill, styles.compactLeft, { gap: 0, width: grow(111, 260), paddingLeft: grow(8, 4), paddingRight: grow(8, 4) }]}>
         {/* The documents drawer button is always on the pill (Figma 189:6341, 197:8302). */}
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           {/* The history button is only there while the panel is folded away (Figma 189:6499). It eases in and out (opacity,
@@ -863,9 +869,11 @@ function TopBar({
             onPress={onTogglePanel}
           />
         </View>
+        <View style={{ width: 4 }} />
         <View style={styles.compactDivider} />
-        {/* Artefacts and deal documents sit on the left pill, 2px apart, between two dividers (Figma 189:7235, 189:7393). */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+        <View style={{ width: 4 }} />
+        {/* Artefacts and deal documents sit on the left pill between two dividers (Figma 189:7235, 189:7393). */}
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
           bare
@@ -876,9 +884,9 @@ function TopBar({
             active={artefactsOpen}
             onPress={onArtefacts}
           />
-          <ArtefactsMenu open={artefactsOpen} onSelect={onPickArtefact} left={-(MENU_OFFSET_A + (historyOpen ? 0 : HISTORY_BTN_W))} />
+          <ArtefactsMenu open={artefactsOpen} onSelect={onPickArtefact} left={-(historyOpen ? MENU_OFFSET_OPEN : MENU_OFFSET_FOLDED)} />
         </View>
-        <View style={{ zIndex: 30 }} {...({ dataSet: { popupMenu: "1" } } as object)}>
+        <Animated.View style={{ zIndex: 30, marginLeft: grow(2, 0) }} {...({ dataSet: { popupMenu: "1" } } as object)}>
           <SoftButton
           bare
             label="Deal documents"
@@ -889,17 +897,23 @@ function TopBar({
             active={docsOpen}
             onPress={onDocs}
           />
-          <DocsMenu open={docsOpen} openDocs={openDocs} active={activeDoc} onSelect={onPickDoc} left={-(MENU_OFFSET_A + 30 + (historyOpen ? 0 : HISTORY_BTN_W))} />
+          <DocsMenu open={docsOpen} openDocs={openDocs} active={activeDoc} onSelect={onPickDoc} left={-(historyOpen ? MENU_OFFSET_OPEN + 30 : MENU_OFFSET_FOLDED + 28)} />
+        </Animated.View>
         </View>
-        </View>
-        <View style={styles.compactDivider} />
-        <View style={styles.compactCompany}>
-          <Image source={vdr.companyLogo} style={{ width: 16, height: 16, borderRadius: 76 }} />
-          <Text numberOfLines={1} style={styles.compactCompanyText}>
-            Juspay Technologies Private limited
-          </Text>
-        </View>
-      </View>
+        {/* The company is on the pill only while the history panel is folded away; with it open the name is in the panel and
+            the pill shrinks to its buttons (Figma 189:7235). */}
+        <Animated.View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", overflow: "hidden", opacity: closed }}>
+          <View style={{ width: 8 }} />
+          <View style={styles.compactDivider} />
+          <View style={{ width: 8 }} />
+          <View style={styles.compactCompany}>
+            <Image source={vdr.companyLogo} style={{ width: 16, height: 16, borderRadius: 76 }} />
+            <Text numberOfLines={1} style={styles.compactCompanyText}>
+              Juspay Technologies Private limited
+            </Text>
+          </View>
+        </Animated.View>
+      </Animated.View>
       <View style={[styles.compactPill, styles.compactActions]}>
         {/* The three buttons sit 2px apart (Figma 122:27775); the pill's 8px gap separates them from the divider. */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
@@ -1306,6 +1320,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   historyHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  historyCompany: { flexDirection: "row", alignItems: "center", gap: 16 },
+  historyCompanyName: { flex: 1, flexDirection: "row", alignItems: "center", gap: 4, minWidth: 0 },
+  historyRule: { height: 1, backgroundColor: colors.slate100 },
   soft: {
     width: 28,
     height: 28,
@@ -1382,7 +1399,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     boxShadow: "0px 2px 12px rgba(15,23,41,0.08)",
   } as object,
-  compactLeft: { width: 260, padding: 4 },
+  compactLeft: { padding: 4 },
   compactActions: {
     justifyContent: "center",
     paddingHorizontal: 4,
