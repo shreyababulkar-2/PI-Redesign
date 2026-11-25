@@ -1,13 +1,13 @@
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { avatarGroup, companyLogo } from "../../assets/images";
-import { colors, type } from "../../theme";
+import { colors, fonts, type } from "../../theme";
 import { HEADER_TOP } from "../../theme/layout";
 import { company, noteTabs } from "../../data/researchNote";
 import { Icon } from "../Icon";
 import { NoteTab } from "./NoteTab";
 import { StageChip } from "./Chip";
-import { BENCHMARK_MENU_ITEMS, KebabMenu } from "./KebabMenu";
+import { BENCHMARK_MENU_ITEMS, KebabMenu, MEMO_MENU_ITEMS } from "./KebabMenu";
 import { WithTooltip } from "../Tooltip";
 import { AssistantButton } from "../AssistantButton";
 import { pointer } from "../../theme/cursor";
@@ -30,6 +30,10 @@ export function NoteHeader({ activeTab }: Props) {
 /** The header's inner layout without the card chrome, so it can live inside a morphing container. */
 export function NoteHeaderContent({ activeTab }: Props) {
   const hoverDownload = useHover();
+  const hoverPresent = useHover();
+  const hoverVersion = useHover();
+  // The IC memo's header (Figma 993:30561) adds its version chip and a present button.
+  const isMemo = activeTab === 1;
   // With the citation drawer open the note is half width and the header keeps only its menu (Figma 601:2417).
   const compact = useDocumentViewer().visible;
   const { setTab } = useActiveTab();
@@ -65,6 +69,24 @@ export function NoteHeaderContent({ activeTab }: Props) {
 
       <View style={styles.right}>
         {/* Collaborators (Figma 439:25170): three overlapping avatars, then a hairline divider. */}
+        {!compact && isMemo && (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Version 2, show version history"
+              {...hoverVersion.handlers}
+              style={({ pressed }) => [
+                styles.versionChip,
+                hoverVersion.hovered && { backgroundColor: "#c6d7fc" },
+                press(pressed),
+              ]}
+            >
+              <Text style={styles.versionText}>v2</Text>
+              <Icon name="chevronDownInfo12" size={12} />
+            </Pressable>
+            <View style={styles.rightDivider} />
+          </>
+        )}
         {!compact && (
           <>
             <WithTooltip text="Manage members" side="bottom">
@@ -84,6 +106,28 @@ export function NoteHeaderContent({ activeTab }: Props) {
           </>
         )}
         <View style={styles.rightButtons}>
+          {!compact && isMemo && (
+            <WithTooltip text="Present" side="bottom">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Present"
+                {...hoverPresent.handlers}
+                style={({ pressed }) => press(pressed)}
+              >
+                <Icon name="topbarPresent" size={28} style={pointer} />
+                <View
+                  pointerEvents="none"
+                  style={[
+                    styles.downloadHover,
+                    { opacity: hoverPresent.hovered ? 1 : 0 },
+                    transition(["opacity"], 150),
+                  ]}
+                >
+                  <Icon name="topbarPresentHover" size={28} />
+                </View>
+              </Pressable>
+            </WithTooltip>
+          )}
           {!compact && (
             <WithTooltip text="Download" side="bottom">
               <Pressable
@@ -110,7 +154,9 @@ export function NoteHeaderContent({ activeTab }: Props) {
           <KebabMenu
             {...(activeTab === 2
               ? { items: BENCHMARK_MENU_ITEMS, width: 191 }
-              : null)}
+              : activeTab === 1
+                ? { items: MEMO_MENU_ITEMS }
+                : null)}
           >
             {({ open, toggle }) => (
               <WithTooltip text="More" side="bottom" disabled={open}>
@@ -183,6 +229,27 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: "row", gap: 8 },
   right: { flexDirection: "row", alignItems: "center", gap: 12 },
   rightButtons: { flexDirection: "row", alignItems: "center", gap: 8 },
+  // The version chip (Figma 993:30584): info-blue pill, 10px text and a 12px chevron.
+  versionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 4,
+    borderRadius: 40,
+    backgroundColor: "#d5e2ff",
+    ...pointer,
+    ...transition(["background-color"], 150),
+  },
+  versionText: {
+    fontFamily: fonts.geistRegular,
+    fontSize: 10,
+    lineHeight: 16,
+    letterSpacing: 0.05,
+    color: "#182f8b",
+  },
   avatars: { width: 60, height: 28 },
   rightDivider: {
     width: 1,
