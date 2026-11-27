@@ -11,6 +11,7 @@ import { AssistantScreen } from "./src/screens/AssistantScreen";
 import { VdrScreen as VdrScreenV2 } from "./src/v2/VdrScreen";
 import { AssistantScreen as AssistantScreenV2 } from "./src/v2/AssistantScreen";
 import { ResearchNoteScreen } from "./src/screens/ResearchNoteScreen";
+import { ResearchNoteScreen as ResearchNoteScreenArchive } from "./src/archive/dealScan/screens/ResearchNoteScreen";
 import { AssistantOverlayProvider } from "./src/state/assistantOverlay";
 import { SelectionContextProvider } from "./src/state/selectionContext";
 import { ActiveTabProvider } from "./src/state/activeTab";
@@ -26,6 +27,7 @@ function CurrentScreen() {
   if (screen === "vdr2") return <VdrScreenV2 />;
   if (screen === "assistant2") return <AssistantScreenV2 />;
   if (screen === "note") return <ResearchNoteScreen />;
+  if (screen === "noteArchive") return <ResearchNoteScreenArchive />;
   return <StartScreen />;
 }
 

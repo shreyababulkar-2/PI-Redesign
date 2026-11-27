@@ -2,7 +2,14 @@ import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 import { Platform } from "react-native";
 
 /** The prototype's top-level screens: the empty start page, then either the research note or the VDR assistant. */
-export type ScreenKey = "start" | "note" | "vdr" | "assistant" | "vdr2" | "assistant2";
+export type ScreenKey =
+  | "start"
+  | "note"
+  | "noteArchive"
+  | "vdr"
+  | "assistant"
+  | "vdr2"
+  | "assistant2";
 
 type ScreenState = {
   screen: ScreenKey;
@@ -28,6 +35,7 @@ function initialScreen(): ScreenKey {
   if (Platform.OS !== "web" || typeof window === "undefined") return "start";
   const param = new URLSearchParams(window.location.search).get("screen");
   if (param === "note") return "note";
+  if (param === "notearchive") return "noteArchive";
   if (param === "vdr") return "vdr";
   if (param === "assistant") return "assistant";
   if (param === "vdr2") return "vdr2";
