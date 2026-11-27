@@ -14,12 +14,17 @@ import { NoteHeader } from "../components/note/NoteHeader";
 import { SectionCard } from "../components/note/SectionCard";
 import { DockedSections, Minimap } from "../components/note/Minimap";
 import { ScrollTopButton } from "../components/note/ScrollTopButton";
+import {
+  TEXT_SIZE_CONTROL_HEIGHT,
+  TextSizeControl,
+} from "../components/note/TextSizeControl";
 import { SourcesDrawer } from "../components/note/SourcesDrawer";
 import { useSectionNavigation } from "../hooks/useSectionNavigation";
 import { ResizableAssistant } from "../components/assistant/ResizableAssistant";
 import { BenchmarkingPage } from "../components/benchmarking/BenchmarkingPage";
 import { ICMemoPage } from "../components/memo/ICMemoPage";
 import { BENCHMARK_TABS, useActiveTab } from "../state/activeTab";
+import { TextSizeContext, useNoteTextSize } from "../state/textSize";
 
 /** How long the old page takes to leave when switching tabs from a scrolled position. */
 const SCROLLED_SWITCH_MS = 260;
@@ -55,6 +60,8 @@ export function ResearchNoteScreen() {
   const { tab, pageTab, switching, setSwitchDelay, benchTab } = useActiveTab();
 
   const [memoSlide, setMemoSlide] = useState("Cover");
+  // The note's own text size (the control at its bottom right): only the section cards' text follows it.
+  const noteText = useNoteTextSize();
   // The section menu docked as a panel in the left margin (from the hover popup's dock button); the page makes room for it.
   const [docked, setDocked] = useState(false);
   const activeSection = sections.find((s) => s.id === activeId) ?? sections[0];
@@ -134,15 +141,18 @@ export function ResearchNoteScreen() {
             >
               <NoteHeader activeTab={tab} />
             </View>
-            {pageTab === TAB_RESEARCH &&
-              sections.map((section, i) => (
-                <SectionCard
-                  key={section.id}
-                  index={i}
-                  section={section}
-                  onLayout={onSectionLayout(section.id)}
-                />
-              ))}
+            {pageTab === TAB_RESEARCH && (
+              <TextSizeContext.Provider value={noteText}>
+                {sections.map((section, i) => (
+                  <SectionCard
+                    key={section.id}
+                    index={i}
+                    section={section}
+                    onLayout={onSectionLayout(section.id)}
+                  />
+                ))}
+              </TextSizeContext.Provider>
+            )}
             {pageTab === TAB_BENCHMARKING && <BenchmarkingPage />}
             {pageTab === TAB_MEMO && (
               <ICMemoPage
@@ -212,7 +222,18 @@ export function ResearchNoteScreen() {
           inset={{ top: -4, left: -12, right: -12 }}
         />
 
+        {pageTab === TAB_RESEARCH && (
+          // Figma 1135:4206: at the note's bottom-right corner, 8px from the assistant and from the bottom.
+          <View style={styles.textSizeSlot}>
+            <TextSizeControl size={noteText.size} onChange={noteText.setSize} />
+          </View>
+        )}
         <ScrollTopButton
+          bottom={
+            pageTab === TAB_RESEARCH
+              ? 8 + TEXT_SIZE_CONTROL_HEIGHT + 8
+              : undefined
+          }
           progress={headerProgress}
           active={scrolled}
           // Not `onPress={scrollToTop}`: that would hand it the press event as its duration and the scroll would jump.
@@ -270,6 +291,7 @@ const styles = StyleSheet.create({
     position: "relative",
     zIndex: 40,
   },
+  textSizeSlot: { position: "absolute", right: 0, bottom: 8, zIndex: 10 },
   minimapSlot: {
     position: "absolute",
     top: HEADER_EXPANDED_HEIGHT + MINIMAP_OFFSET,

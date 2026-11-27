@@ -9,16 +9,28 @@ import { useScreen } from "../state/screen";
 
 /** The empty page the prototype opens on: a short list of cards that lead into the research note or the VDR. */
 export function StartScreen() {
-  const { go } = useScreen();
   return (
     <View style={styles.root}>
       <View accessibilityRole="list" style={styles.column}>
-        <Text style={styles.eyebrow}>Prototypes</Text>
-        <View style={styles.list}>
-          {PROTOTYPES.map((item, i) => (
-            <Row key={item.key} index={i} item={item} onPress={() => go(item.key)} />
-          ))}
-        </View>
+        <Group label="Prototypes" group="prototypes" start={0} />
+        <Group label="Archived" group="archived" start={PROTOTYPES.filter((p) => p.group === "prototypes").length} />
+      </View>
+    </View>
+  );
+}
+
+/** One layer of the list under its eyebrow; empty groups are left out. */
+function Group({ label, group, start }: { label: string; group: Prototype["group"]; start: number }) {
+  const { go } = useScreen();
+  const items = PROTOTYPES.filter((p) => p.group === group);
+  if (items.length === 0) return null;
+  return (
+    <View style={styles.group}>
+      <Text style={styles.eyebrow}>{label}</Text>
+      <View style={styles.list}>
+        {items.map((item, i) => (
+          <Row key={item.key} index={start + i} item={item} onPress={() => go(item.key)} />
+        ))}
       </View>
     </View>
   );
@@ -76,7 +88,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 16,
   },
-  column: { width: "100%", maxWidth: 440, gap: 12 },
+  column: { width: "100%", maxWidth: 440, gap: 24 },
+  group: { gap: 12 },
   eyebrow: {
     fontFamily: fonts.geistMedium,
     fontSize: 11,

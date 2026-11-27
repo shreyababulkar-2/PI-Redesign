@@ -12,14 +12,15 @@ type Props = {
   /** True once the button is visible enough to take clicks. */
   active: boolean;
   onPress: () => void;
+  /** Distance from the bottom edge (12 by default); raised when another control sits in the corner. */
+  bottom?: number;
 };
 
 /**
  * Scroll-to-top button in the note's bottom-right corner (Figma 332:4475). It appears once the page has been
- * scrolled and shows a "Scroll to top" tooltip on hover. The text size control that used to sit under it is gone;
- * page-level controls will come later.
+ * scrolled and shows a "Scroll to top" tooltip on hover. The text size control sits under it (see TextSizeControl).
  */
-export function ScrollTopButton({ progress, active, onPress }: Props) {
+export function ScrollTopButton({ progress, active, onPress, bottom }: Props) {
   // Unmounted while invisible so a hidden button can't take hover or clicks.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -31,7 +32,7 @@ export function ScrollTopButton({ progress, active, onPress }: Props) {
 
   if (!mounted) return null;
   return (
-    <View pointerEvents="box-none" style={styles.root}>
+    <View pointerEvents="box-none" style={[styles.root, bottom !== undefined && { bottom }]}>
       <Animated.View
         pointerEvents={active ? "auto" : "none"}
         style={[
