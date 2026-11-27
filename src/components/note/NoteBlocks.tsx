@@ -55,6 +55,8 @@ export function NoteTable({ block }: { block: TableBlock }) {
   const [view, setView] = useState(0);
   const [x, setX] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  // The scroll bar under the table only shows while the pointer is over it.
+  const [hovering, setHovering] = useState(false);
   const max = Math.max(0, width - view);
   const scrolls = view > 0 && max > 1;
   const atStart = x <= 1;
@@ -105,6 +107,8 @@ export function NoteTable({ block }: { block: TableBlock }) {
         {...(Platform.OS === "web"
           ? ({
               onMouseDown: startDrag,
+              onMouseEnter: () => setHovering(true),
+              onMouseLeave: () => setHovering(false),
               onClickCapture: (e: { stopPropagation: () => void }) => {
                 if (dragged.current) e.stopPropagation();
               },
@@ -142,7 +146,7 @@ export function NoteTable({ block }: { block: TableBlock }) {
         <View pointerEvents="none" style={[styles.shade, styles.shadeRight, { opacity: scrolls && !atEnd ? 1 : 0 }]} />
         <View pointerEvents="none" style={[styles.shade, styles.shadeLeft, { opacity: scrolls && !atStart ? 1 : 0 }]} />
         {scrolls && (
-          <View pointerEvents="none" style={styles.track}>
+          <View pointerEvents="none" style={[styles.track, { opacity: hovering ? 1 : 0 }]}>
             <View style={[styles.thumb, { width: thumbW, transform: [{ translateX: thumbX }] }]} />
           </View>
         )}
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
   shade: { position: "absolute", top: 0, bottom: 0, width: 20, ...transition(["opacity"], 160) },
   shadeRight: { right: 0, backgroundImage: "linear-gradient(to right, rgba(34,37,48,0), rgba(34,37,48,0.04))" } as object,
   shadeLeft: { left: 0, backgroundImage: "linear-gradient(to left, rgba(34,37,48,0), rgba(34,37,48,0.04))" } as object,
-  track: { position: "absolute", left: TRACK_INSET, right: TRACK_INSET, bottom: 1 },
+  track: { position: "absolute", left: TRACK_INSET, right: TRACK_INSET, bottom: 1, ...transition(["opacity"], 160) },
   thumb: { height: 4, borderRadius: 100, backgroundColor: colors.slate300 },
   tr: { flexDirection: "row", alignItems: "stretch" },
   rule: { borderBottomWidth: 0.5, borderBottomColor: colors.slate200 },
