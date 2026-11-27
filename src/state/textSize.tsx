@@ -9,17 +9,18 @@ import {
 import { Platform } from "react-native";
 
 /**
- * Text size is an accessibility setting (Figma 519:2733): the base as designed, Medium 1.1x and Large 1.25x. `px` is
- * what 12px text becomes (sizes are rounded to whole pixels). Only text grows; containers, spacing and icons keep their size (see `theme/scaledText`).
+ * Text size of the research note (Figma 1135:4206): A- is smaller, A the base as designed and A+ larger. `factor` is what
+ * every piece of text in the note is multiplied by (sizes are rounded to whole pixels). Only text grows; containers,
+ * spacing and icons keep their size (see `theme/scaledText`).
  */
 export const TEXT_SIZES = [
-  { key: "default", label: "Default", factor: 1, px: 12 },
-  { key: "medium", label: "Medium", factor: 1.1, px: 13 },
-  { key: "large", label: "Large", factor: 1.25, px: 15 },
+  { key: "small", label: "A-", name: "Smaller text", factor: 0.9 },
+  { key: "default", label: "A", name: "Default text size", factor: 1 },
+  { key: "large", label: "A+", name: "Larger text", factor: 1.2 },
 ] as const;
 export type TextSizeKey = (typeof TEXT_SIZES)[number]["key"];
 
-const STORAGE_KEY = "pi-text-size";
+const STORAGE_KEY = "pi-note-text-size";
 
 function readSaved(): TextSizeKey {
   if (Platform.OS !== "web") return "default";
@@ -41,8 +42,21 @@ type Ctx = {
 
 export const TextSizeContext = createContext<Ctx | null>(null);
 
-/** The reader's chosen text size, remembered in the browser. */
+/** App-wide the text keeps its designed size; only the research note opts in to a different one (`useNoteTextSize`). */
 export function TextSizeProvider({ children }: { children: ReactNode }) {
+  const value = useMemo<Ctx>(
+    () => ({ size: "default", setSize: () => {}, scale: 1 }),
+    [],
+  );
+  return (
+    <TextSizeContext.Provider value={value}>
+      {children}
+    </TextSizeContext.Provider>
+  );
+}
+
+/** The research note's chosen text size, remembered in the browser; its value is meant for a `TextSizeContext.Provider` around the note's text. */
+export function useNoteTextSize(): Ctx {
   const [size, setSizeState] = useState<TextSizeKey>(readSaved);
   const setSize = useCallback((next: TextSizeKey) => {
     setSizeState(next);
@@ -53,15 +67,10 @@ export function TextSizeProvider({ children }: { children: ReactNode }) {
       // Not saved; it still applies for this visit.
     }
   }, []);
-  const value = useMemo(() => {
+  return useMemo(() => {
     const scale = TEXT_SIZES.find((s) => s.key === size)?.factor ?? 1;
     return { size, setSize, scale };
   }, [size, setSize]);
-  return (
-    <TextSizeContext.Provider value={value}>
-      {children}
-    </TextSizeContext.Provider>
-  );
 }
 
 export function useTextSize(): Ctx {
